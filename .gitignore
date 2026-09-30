@@ -8,6 +8,7 @@ test-results/
 .codesight/
 output-samples/
 *.pdf
+*.tsbuildinfo
 
 # Local system symlinks and directories
 .pi-subagents/

@@ -119,3 +119,9 @@ pnpm pack:check
 ## Baseline Parity Corpus
 
 Printedjs is rigorously validated against the 122-fixture legacy Paged.js corpus located in `tests/fixtures/`, with verified accepted baselines in `tests/baseline/accepted/`.
+
+---
+
+## Credits & Acknowledgments
+
+Printedjs is inspired by and builds upon the pioneering work of [Paged.js](https://github.com/pagedjs/pagedjs) by the Cabbage Tree Labs community. We are deeply grateful to the Paged.js authors and contributors for championing CSS Paged Media standards in browsers and providing the foundational groundwork that made this project possible.
