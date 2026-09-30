@@ -1,0 +1,12 @@
+{
+	"files": [],
+	"references": [
+		{ "path": "./packages/core" },
+		{ "path": "./packages/browser" },
+		{ "path": "./packages/plugins" },
+		{ "path": "./packages/devtools" },
+		{ "path": "./packages/polyfill" },
+		{ "path": "./packages/minimal" },
+		{ "path": "./packages/cli" }
+	]
+}

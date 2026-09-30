@@ -1,0 +1,13 @@
+.pi-subagents/
+node_modules/
+test-results/
+tests/baseline/candidates/
+tests/baseline/accepted/
+tests/fixtures/
+dist/
+**/.tsup/
+pnpm-lock.yaml
+output-samples/
+products/
+pagedjs/
+*.pdf

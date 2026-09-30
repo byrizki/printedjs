@@ -1,0 +1,26 @@
+{
+	"name": "@printedjs/polyfill",
+	"version": "0.0.0",
+	"description": "Older browser polyfill compatibility layer for Printedjs",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./dist/*": "./dist/*"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"typecheck": "tsc --build"
+	},
+	"dependencies": {}
+}

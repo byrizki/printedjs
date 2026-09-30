@@ -1,0 +1,54 @@
+.pm-app-shell {
+	display: flex;
+	flex-direction: column;
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+	font-family: var(--pm-font-sans);
+	background: var(--pm-bg-canvas);
+	color: var(--pm-text-primary);
+	-webkit-font-smoothing: antialiased;
+}
+
+.pm-workspace {
+	display: flex;
+	flex: 1;
+	height: calc(100vh - var(--pm-header-height));
+	min-height: 0;
+	overflow: hidden;
+	position: relative;
+}
+
+#pm-sidebar-slot {
+	display: flex;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+#pm-viewport-slot {
+	display: flex;
+	flex: 1;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--pm-border-default);
+	border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--pm-border-hover);
+}

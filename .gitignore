@@ -1,0 +1,31 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.DS_Store
+.codesight/
+output-samples/
+*.pdf
+
+# Local system symlinks and directories
+.pi-subagents/
+products
+products/
+pagedjs
+pagedjs/
+
+# Local scripts with local machine paths or external dependencies
+scripts/test-uat-zip.ts
+scripts/compare-realworld-parity.ts
+scripts/generate-cli-samples.ts
+scripts/capture-legacy-baselines.ts
+
+# Tests with local system paths or external repository dependencies
+tests/unit/realworld.test.ts
+tests/browser/realworld.spec.ts
+tests/browser/legacy-capture.spec.ts
+tests/browser/legacy-capture.ts
+tests/unit/legacy-capture.test.ts
+tests/baseline/

@@ -1,0 +1,376 @@
+.pm-viewport-wrapper {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	background: var(--pm-bg-canvas);
+	overflow: hidden;
+	position: relative;
+}
+
+/* Canvas scroll container with safe centering to prevent left-side overflow */
+.pm-canvas-scroll {
+	flex: 1;
+	overflow: auto;
+	padding: 40px 40px 100px 40px;
+	display: flex;
+	justify-content: safe center;
+	align-items: flex-start;
+	background: radial-gradient(var(--pm-border-subtle) 1.5px, transparent 1.5px);
+	background-size: 24px 24px;
+}
+
+.pm-zoom-container {
+	transition:
+		zoom var(--pm-transition-fast),
+		transform var(--pm-transition-fast);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin: 0 auto;
+}
+
+#render-viewport {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 32px;
+	color: #0f172a;
+	margin: 0 auto;
+	min-width: min-content;
+}
+
+#render-viewport [data-printedjs-root="true"] {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+}
+
+#render-viewport .printedjs_pages,
+#render-viewport .pagedjs_pages {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+}
+
+/* Page card shadow in playground viewport */
+#render-viewport .printedjs_page,
+#render-viewport .pagedjs_page {
+	background: #ffffff;
+	color: #0f172a;
+	box-shadow: var(--pm-shadow-paper);
+	border-radius: 2px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 32px;
+	transition:
+		transform var(--pm-transition-fast),
+		box-shadow var(--pm-transition-fast);
+}
+
+#render-viewport [data-printedjs-sheet] {
+	color: #0f172a;
+}
+
+#render-viewport .printedjs_margin-content,
+#render-viewport .pagedjs_margin-content {
+	color: #475569;
+}
+
+/* Iframe playground frame sizing */
+#render-viewport iframe[data-playground-frame] {
+	border: none;
+	background: transparent;
+	display: block;
+	overflow: visible;
+	margin: 0 auto;
+}
+
+@media screen {
+	/* Spread view layout */
+	.pm-spread-view #render-viewport [data-printedjs-root="true"] {
+		display: block !important;
+		width: auto !important;
+	}
+
+	.pm-spread-view #render-viewport .printedjs_pages,
+	.pm-spread-view #render-viewport .pagedjs_pages {
+		display: grid !important;
+		grid-template-columns: repeat(2, max-content) !important;
+		justify-content: safe center !important;
+		gap: 24px !important;
+		width: max-content !important;
+		max-width: none !important;
+		margin: 0 auto !important;
+	}
+
+	.pm-spread-view #render-viewport .printedjs_page,
+	.pm-spread-view #render-viewport .pagedjs_page {
+		margin-bottom: 0 !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+		display: block !important;
+	}
+}
+
+/* Floating Preview Toolbar at Bottom Center */
+.pm-floating-preview-bar {
+	position: absolute;
+	bottom: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: var(--pm-bg-surface-elevated);
+	border: 1px solid var(--pm-border-default);
+	border-radius: 9999px;
+	padding: 5px 12px;
+	box-shadow:
+		0 10px 30px -5px rgba(0, 0, 0, 0.4),
+		0 0 0 1px var(--pm-border-subtle);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	user-select: none;
+	transition: all var(--pm-transition-fast);
+}
+
+.pm-floating-preview-bar:hover {
+	border-color: var(--pm-border-hover);
+	box-shadow: 0 14px 35px -5px rgba(0, 0, 0, 0.45);
+}
+
+.pm-toolbar-pill-group {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.pm-toolbar-divider {
+	width: 1px;
+	height: 18px;
+	background: var(--pm-border-default);
+	margin: 0 2px;
+}
+
+.pm-pill-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 5px 10px;
+	border-radius: 9999px;
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--pm-text-secondary);
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all var(--pm-transition-fast);
+	outline: none;
+}
+
+.pm-pill-btn:hover {
+	color: var(--pm-text-primary);
+	background: var(--pm-bg-surface-hover);
+}
+
+.pm-pill-btn.active {
+	background: var(--pm-accent-primary);
+	color: #ffffff;
+	border-color: var(--pm-accent-primary);
+	box-shadow: 0 2px 8px var(--pm-accent-glow);
+}
+
+.pm-pill-icon {
+	padding: 5px 8px;
+}
+
+.pm-zoom-select {
+	background: var(--pm-bg-card);
+	color: var(--pm-text-primary);
+	border: 1px solid var(--pm-border-default);
+	border-radius: 9999px;
+	padding: 3px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	outline: none;
+	cursor: pointer;
+	transition: border-color var(--pm-transition-fast);
+}
+
+.pm-zoom-select:hover {
+	border-color: var(--pm-border-hover);
+}
+
+.pm-page-indicator {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--pm-text-muted);
+	min-width: 60px;
+	text-align: center;
+	padding: 0 4px;
+}
+
+/* Status group inside floating preview bar */
+.pm-status-group {
+	padding: 0 4px;
+	gap: 6px;
+}
+
+.pm-status-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--pm-text-secondary);
+	font-family: var(--pm-font-mono);
+	max-width: 150px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Trace popover panel floating above preview bar */
+.pm-trace-popover {
+	display: none;
+	position: absolute;
+	bottom: 74px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 680px;
+	max-width: calc(100vw - 48px);
+	max-height: 280px;
+	background: var(--pm-bg-surface-elevated);
+	border: 1px solid var(--pm-border-default);
+	border-radius: var(--pm-radius-lg);
+	box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	z-index: 50;
+	overflow: hidden;
+	flex-direction: column;
+}
+
+.pm-trace-popover.open {
+	display: flex;
+}
+
+.pm-trace-popover-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--pm-border-subtle);
+	font-size: 11px;
+}
+
+.pm-trace-popover-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: 12px 14px;
+	font-family: var(--pm-font-mono);
+	font-size: 11px;
+}
+
+/* Empty state */
+.pm-viewport-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 360px;
+	color: var(--pm-text-muted);
+	font-size: 14px;
+	gap: 12px;
+}
+
+.pm-viewport-empty svg {
+	width: 48px;
+	height: 48px;
+	stroke: var(--pm-text-faint);
+}
+
+/* Print handling */
+@media print {
+	html,
+	body,
+	#app,
+	.pm-app-shell,
+	.pm-workspace,
+	#pm-sidebar-slot,
+	#pm-viewport-slot,
+	.pm-viewport-wrapper,
+	.pm-canvas-scroll,
+	.pm-zoom-container,
+	#render-viewport,
+	[data-printedjs-root="true"] {
+		margin: 0 !important;
+		padding: 0 !important;
+		width: auto !important;
+		min-width: 0 !important;
+		max-width: none !important;
+		height: auto !important;
+		min-height: 0 !important;
+		max-height: none !important;
+		overflow: visible !important;
+		background: #ffffff !important;
+		transform: none !important;
+		zoom: 1 !important;
+		display: block !important;
+		position: static !important;
+	}
+
+	.pm-header,
+	.pm-sidebar,
+	#pm-sidebar-slot,
+	.pm-floating-preview-bar,
+	.pm-trace-popover,
+	.pm-diagnostics-bar,
+	[data-printedjs-devtools-overlay] {
+		display: none !important;
+	}
+
+	.pm-spread-view #render-viewport .printedjs_pages,
+	.pm-spread-view #render-viewport .pagedjs_pages,
+	#render-viewport .printedjs_pages,
+	#render-viewport .pagedjs_pages {
+		display: block !important;
+		grid-template-columns: none !important;
+		width: auto !important;
+		height: auto !important;
+		min-height: 0 !important;
+		max-height: none !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		gap: 0 !important;
+	}
+
+	.pm-spread-view #render-viewport .printedjs_page,
+	.pm-spread-view #render-viewport .pagedjs_page,
+	#render-viewport .printedjs_page,
+	#render-viewport .pagedjs_page {
+		box-shadow: none !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border-radius: 0 !important;
+		page-break-after: always !important;
+		break-after: page !important;
+		display: block !important;
+	}
+
+	.pm-spread-view #render-viewport .printedjs_page:last-child,
+	.pm-spread-view #render-viewport .pagedjs_page:last-child,
+	#render-viewport .printedjs_page:last-child,
+	#render-viewport .pagedjs_page:last-child {
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+	}
+
+	#render-viewport iframe[data-playground-frame] {
+		width: 100% !important;
+		height: auto !important;
+		min-height: 0 !important;
+		max-height: none !important;
+		overflow: visible !important;
+	}
+}
