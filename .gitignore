@@ -30,3 +30,4 @@ tests/browser/legacy-capture.spec.ts
 tests/browser/legacy-capture.ts
 tests/unit/legacy-capture.test.ts
 tests/baseline/
+tests/temp-*

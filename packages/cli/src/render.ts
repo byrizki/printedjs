@@ -4,6 +4,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import type { PagedjsCompatibilityOptions } from "@printedjs/core";
 import { injectAndPaginate } from "./browser-injection.js";
+import { resolveChromeExecutable } from "./chrome-resolver.js";
 import { renderPdfWithPuppeteer } from "./puppeteer-bridge.js";
 
 export interface CliRenderOptions extends PagedjsCompatibilityOptions {
@@ -78,8 +79,10 @@ export async function renderPdf(options: CliRenderOptions): Promise<CliRenderRes
 		targetUrl = pathToFileURL(fullInputPath).href;
 	}
 
+	const resolvedExecutablePath = resolveChromeExecutable();
 	const browser = await chromium.launch({
 		headless: true,
+		...(resolvedExecutablePath ? { executablePath: resolvedExecutablePath } : {}),
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
 	});
 
