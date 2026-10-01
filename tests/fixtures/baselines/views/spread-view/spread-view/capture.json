@@ -1,0 +1,54 @@
+{
+  "fixtureId": "views/spread-view/spread-view",
+  "capturedAt": "2026-10-01T11:34:01.729Z",
+  "pageCount": 4,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 793.6875,
+      "height": 559.359375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 793.6875,
+      "height": 559.359375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 793.6875,
+      "height": 559.359375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 793.6875,
+      "height": 559.359375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "cd663dd1eeff8e7bc2e79519d85251e0ce46aeb62389676b098e54de06e7977f"
+}

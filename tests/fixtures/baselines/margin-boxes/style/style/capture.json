@@ -1,0 +1,21 @@
+{
+  "fixtureId": "margin-boxes/style/style",
+  "capturedAt": "2026-10-01T11:33:56.752Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 800,
+      "height": 800,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "0db0707ce51f93390cdde52c02970c0c9910b049df49aede7a1dc3095c721c8d"
+}

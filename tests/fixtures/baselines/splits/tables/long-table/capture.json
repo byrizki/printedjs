@@ -1,0 +1,32 @@
+{
+  "fixtureId": "splits/tables/long-table",
+  "capturedAt": "2026-10-01T11:34:00.077Z",
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 529.125,
+      "height": 566.921875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 529.125,
+      "height": 566.921875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "d08137eaed49ca861f6b442352b40222ae102b84522c6ae14b28d11e76bbe4b4"
+}

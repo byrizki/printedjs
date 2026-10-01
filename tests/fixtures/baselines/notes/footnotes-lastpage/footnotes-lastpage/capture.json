@@ -1,0 +1,58 @@
+{
+  "fixtureId": "notes/footnotes-lastpage/footnotes-lastpage",
+  "capturedAt": "2026-10-01T11:33:58.826Z",
+  "pageCount": 4,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 604.71875,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 604.71875,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 604.71875,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 604.71875,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "a93abaa70599ea7590fc9bebbcc78f259ad8fc525ce52627b6712c15aaf80648"
+}

@@ -1,0 +1,120 @@
+{
+  "fixtureId": "position-fixed/position-fixed",
+  "capturedAt": "2026-10-01T11:33:59.916Z",
+  "pageCount": 10,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 8,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 10,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "d548b7bad9d0f0fe6b88e42630564e2101dd226a0a7e781b98e0fc417f2de071"
+}

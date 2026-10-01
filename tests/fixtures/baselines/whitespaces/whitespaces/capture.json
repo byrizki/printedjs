@@ -1,0 +1,21 @@
+{
+  "fixtureId": "whitespaces/whitespaces",
+  "capturedAt": "2026-10-01T11:34:01.274Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "7e47c67dc6e7f2b726a975a047c7e7f85f557c07c2ee71fab7bb1ef8afce756b"
+}

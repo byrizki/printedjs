@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
-import { generatePageCss } from "../../packages/plugins/src/page-rules/plugin.js";
-import { parsePageRules } from "../../packages/plugins/src/page-rules/parser.js";
+import { generatePageCss } from "../../packages/plugins/core/page-rules/src/plugin.js";
+import { parsePageRules } from "../../packages/plugins/core/page-rules/src/parser.js";
 import {
 	PAGE_SHELL_CSS,
 	createPageShell,

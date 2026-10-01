@@ -13,6 +13,7 @@ function resolvePackageBundle(pkgName: string): string {
 		() => req.resolve(`${pkgName}/dist/index.global.js`),
 		() => resolve(import.meta.dirname, `../../${subDir}/dist/index.global.js`),
 		() => resolve(import.meta.dirname, `../${subDir}/dist/index.global.js`),
+		() => resolve(import.meta.dirname, `../../plugins/core/preset/dist/index.global.js`),
 	];
 
 	for (const getPath of candidates) {
@@ -38,7 +39,7 @@ export function getBrowserBundle(): string {
 
 export function getPluginsBundle(): string {
 	if (!cachedPluginsBundle) {
-		cachedPluginsBundle = resolvePackageBundle("@printedjs/plugins");
+		cachedPluginsBundle = resolvePackageBundle("@printedjs/plugin-preset");
 	}
 	return cachedPluginsBundle;
 }
@@ -111,7 +112,7 @@ export async function injectAndPaginate(
 			return;
 		}
 
-		// Direct engine execution using @printedjs/browser and @printedjs/plugins
+		// Direct engine execution using @printedjs/browser and @printedjs/plugin-preset
 		if (printedApi?.createRenderer && pluginsApi?.standardPreset) {
 			if (!win.__printedjsOriginalContent) {
 				win.__printedjsOriginalContent = document.body.innerHTML;

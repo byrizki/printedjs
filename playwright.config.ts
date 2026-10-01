@@ -10,14 +10,22 @@ export default defineConfig({
 		timezoneId: "UTC",
 		viewport: { width: 1440, height: 1000 },
 		deviceScaleFactor: 1,
-		reducedMotion: "reduce",
+		contextOptions: {
+			reducedMotion: "reduce",
+		},
 	},
 	projects: [
 		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
-		{ name: "firefox", use: { ...devices["Desktop Firefox"] } },
-		...(process.env.CI || process.env.PLAYWRIGHT_WEBKIT
-			? [{ name: "webkit", use: { ...devices["Desktop Safari"] } }]
-			: []),
+		{
+			name: "firefox",
+			use: { ...devices["Desktop Firefox"] },
+			testIgnore: ["**/legacy-capture.spec.ts"],
+		},
+		{
+			name: "webkit",
+			use: { ...devices["Desktop Safari"], deviceScaleFactor: 1 },
+			testIgnore: ["**/legacy-capture.spec.ts"],
+		},
 	],
 	// Legacy baseline capture launches Chromium directly. Do not expand it to this matrix.
 });

@@ -5,7 +5,7 @@ import process from "node:process";
 const workspacePackages = [
 	"packages/core",
 	"packages/browser",
-	"packages/plugins",
+	"packages/plugins/core/preset",
 	"packages/devtools",
 	"packages/polyfill",
 	"packages/minimal",

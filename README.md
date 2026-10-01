@@ -88,6 +88,7 @@ pnpm printedjs render document.html -o document.pdf --watch
 ## Documentation
 
 - [Documentation Hub](docs/README.md)
+- [Feature Catalog & Paged.js Comparison](docs/features.md)
 - [Architecture & Design Principles](docs/architecture.md)
 - [Package Catalog & Overview](docs/packages-overview.md)
 - [Migrating from Paged.js](docs/migrating-from-pagedjs.md)
@@ -107,7 +108,7 @@ pnpm verify
 # Build all packages and applications
 pnpm build
 
-# Run browser tests across engines (Chromium, Firefox)
+# Run browser tests across engines (Chromium, Firefox, WebKit)
 pnpm test:browser
 
 # Validate distribution package exports and bundles

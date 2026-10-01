@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Phase 19: Mirrored Margins and Gutter Binding</title>
+	<style>
+		@page {
+			size: A5 portrait;
+			margin-inside: 25mm;
+			margin-outside: 15mm;
+			margin-top: 20mm;
+			margin-bottom: 20mm;
+			gutter: 5mm;
+			@bottom-center {
+				content: counter(page);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		@page :left {
+			@top-left {
+				content: "Left Page (Verso)";
+				font-family: "Liberation Serif", serif;
+				font-size: 8pt;
+			}
+		}
+
+		@page :right {
+			@top-right {
+				content: "Right Page (Recto)";
+				font-family: "Liberation Serif", serif;
+				font-size: 8pt;
+			}
+		}
+
+		body {
+			font-family: "Liberation Serif", serif;
+			font-size: 10pt;
+			line-height: 1.5;
+			margin: 0;
+			padding: 0;
+		}
+
+		.page-block {
+			break-after: page;
+			border: 1px dashed #cccccc;
+			padding: 16px;
+			box-sizing: border-box;
+			min-height: 120mm;
+		}
+
+		.page-block:last-child {
+			break-after: avoid;
+		}
+
+		h1 {
+			margin-top: 0;
+			font-size: 18pt;
+		}
+	</style>
+</head>
+<body>
+	<div class="page-block">
+		<h1>Sheet 1: Right Page (Recto)</h1>
+		<p>Inside margin is the left edge (spine): 25mm + 5mm gutter = 30mm.</p>
+		<p>Outside margin is the right edge: 15mm.</p>
+	</div>
+	<div class="page-block">
+		<h1>Sheet 2: Left Page (Verso)</h1>
+		<p>Inside margin is the right edge (spine): 25mm + 5mm gutter = 30mm.</p>
+		<p>Outside margin is the left edge: 15mm.</p>
+	</div>
+	<div class="page-block">
+		<h1>Sheet 3: Right Page (Recto)</h1>
+		<p>Inside margin is the left edge (spine): 25mm + 5mm gutter = 30mm.</p>
+		<p>Outside margin is the right edge: 15mm.</p>
+	</div>
+	<div class="page-block">
+		<h1>Sheet 4: Left Page (Verso)</h1>
+		<p>Inside margin is the right edge (spine): 25mm + 5mm gutter = 30mm.</p>
+		<p>Outside margin is the left edge: 15mm.</p>
+	</div>
+</body>
+</html>

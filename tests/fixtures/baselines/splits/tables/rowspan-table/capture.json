@@ -1,0 +1,43 @@
+{
+  "fixtureId": "splits/tables/rowspan-table",
+  "capturedAt": "2026-10-01T11:34:00.196Z",
+  "pageCount": 3,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 600,
+      "height": 300,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 600,
+      "height": 300,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 600,
+      "height": 300,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "ca5bfe8bcad30c7848688a773bba7aa054a7fb732f8d44178d61e1c8915b4cd3"
+}

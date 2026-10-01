@@ -11,7 +11,7 @@
 .pm-canvas-scroll {
 	flex: 1;
 	overflow: auto;
-	padding: 40px 40px 100px 40px;
+	padding: 40px 40px 140px 40px;
 	display: flex;
 	justify-content: safe center;
 	align-items: flex-start;
@@ -43,7 +43,7 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	width: 100%;
+	width: max-content;
 }
 
 #render-viewport .printedjs_pages,
@@ -51,7 +51,7 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	width: 100%;
+	width: max-content;
 }
 
 /* Page card shadow in playground viewport */
@@ -64,6 +64,7 @@
 	margin-left: auto;
 	margin-right: auto;
 	margin-bottom: 32px;
+	flex-shrink: 0 !important;
 	transition:
 		transform var(--pm-transition-fast),
 		box-shadow var(--pm-transition-fast);
@@ -83,7 +84,7 @@
 	border: none;
 	background: transparent;
 	display: block;
-	overflow: visible;
+	overflow: hidden;
 	margin: 0 auto;
 }
 
@@ -97,7 +98,9 @@
 	.pm-spread-view #render-viewport .printedjs_pages,
 	.pm-spread-view #render-viewport .pagedjs_pages {
 		display: grid !important;
-		grid-template-columns: repeat(2, max-content) !important;
+		grid-template-columns: repeat(var(--pm-grid-cols, 2), max-content) !important;
+		grid-auto-flow: row !important;
+		grid-auto-rows: auto !important;
 		justify-content: safe center !important;
 		gap: 24px !important;
 		width: max-content !important;
@@ -111,7 +114,92 @@
 		margin-left: 0 !important;
 		margin-right: 0 !important;
 		display: block !important;
+		flex-shrink: 0 !important;
 	}
+
+	/* Flipbook view layout.
+	   StPageFlip owns page geometry once the host has .stf__parent.
+	   Grid rules are only the DOM fallback. */
+	.pm-flipbook-view #render-viewport [data-printedjs-root="true"] {
+		display: block !important;
+		width: auto !important;
+	}
+
+	.pm-flipbook-view #render-viewport .printedjs_pages:not(.stf__parent),
+	.pm-flipbook-view #render-viewport .pagedjs_pages:not(.stf__parent) {
+		display: grid !important;
+		grid-template-columns: repeat(2, max-content) !important;
+		justify-content: center !important;
+		align-items: center !important;
+		perspective: 2500px !important;
+		transform-style: preserve-3d !important;
+		width: max-content !important;
+		max-width: none !important;
+		margin: 0 auto !important;
+		padding: 32px 16px !important;
+		box-sizing: border-box !important;
+	}
+
+	.pm-flipbook-view #render-viewport .printedjs_pages.stf__parent,
+	.pm-flipbook-view #render-viewport .pagedjs_pages.stf__parent {
+		display: block !important;
+		width: auto !important;
+		max-width: none !important;
+		margin: 24px auto !important;
+		padding: 0 !important;
+		overflow: hidden !important;
+	}
+
+	.pm-flipbook-view #render-viewport .printedjs_pages:not(.stf__parent) > .printedjs_page,
+	.pm-flipbook-view #render-viewport .pagedjs_pages:not(.stf__parent) > .pagedjs_page {
+		margin-bottom: 0 !important;
+		flex-shrink: 0 !important;
+	}
+
+	#render-viewport .printedjs_page table,
+	#render-viewport .pagedjs_page table {
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+	}
+}
+
+/* Book View Side Navigation Arrows */
+.pm-book-side-nav {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 40;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: rgba(15, 23, 42, 0.75);
+	backdrop-filter: blur(8px);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	color: #ffffff;
+	cursor: pointer;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+	transition: all var(--pm-transition-fast);
+}
+
+.pm-book-side-nav:hover {
+	background: rgba(30, 41, 59, 0.95);
+	border-color: rgba(255, 255, 255, 0.35);
+	transform: translateY(-50%) scale(1.08);
+}
+
+.pm-book-side-nav:active {
+	transform: translateY(-50%) scale(0.96);
+}
+
+.pm-book-side-nav.prev {
+	left: 20px;
+}
+
+.pm-book-side-nav.next {
+	right: 20px;
 }
 
 /* Floating Preview Toolbar at Bottom Center */
@@ -134,12 +222,52 @@
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
 	user-select: none;
-	transition: all var(--pm-transition-fast);
+	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pm-floating-preview-bar:hover {
 	border-color: var(--pm-border-hover);
 	box-shadow: 0 14px 35px -5px rgba(0, 0, 0, 0.45);
+}
+
+.pm-floating-preview-bar.is-minimized {
+	bottom: 12px;
+	padding: 4px 10px;
+	gap: 6px;
+	opacity: 0.92;
+	box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.pm-floating-preview-bar.is-minimized:hover {
+	opacity: 1;
+	border-color: var(--pm-border-hover);
+}
+
+.pm-floating-preview-bar.is-minimized .pm-hide-when-minimized,
+.pm-floating-preview-bar.is-minimized .pm-toolbar-divider {
+	display: none !important;
+}
+
+.pm-floating-preview-bar:not(.is-minimized) .pm-show-when-minimized {
+	display: none !important;
+}
+
+.pm-grid-controls {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.pm-grid-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--pm-text-muted);
+	margin-right: 2px;
+}
+
+.pm-grid-select {
+	padding: 3px 6px;
+	font-size: 11px;
 }
 
 .pm-toolbar-pill-group {
@@ -211,6 +339,44 @@
 	min-width: 60px;
 	text-align: center;
 	padding: 0 4px;
+}
+
+/* Single View Mode: Vertical Pages Stack */
+#render-viewport.pm-single-view [data-printedjs-root="true"],
+#render-viewport.pm-single-view .printedjs_pages,
+#render-viewport.pm-single-view .pagedjs_pages,
+.pm-single-view .printedjs_pages,
+.pm-single-view .pagedjs_pages {
+	display: flex !important;
+	flex-direction: column !important;
+	align-items: center !important;
+	gap: 32px !important;
+	width: max-content !important;
+	margin: 0 auto !important;
+	padding: 24px 0 !important;
+}
+
+/* Spread View Mode: Grid Pages Display (Left -> Right -> Bottom fills) */
+#render-viewport.pm-spread-view [data-printedjs-root="true"],
+#render-viewport.pm-spread-view .printedjs_pages,
+#render-viewport.pm-spread-view .pagedjs_pages,
+.pm-spread-view .printedjs_pages,
+.pm-spread-view .pagedjs_pages {
+	display: grid !important;
+	grid-template-columns: repeat(var(--pm-grid-cols, 2), max-content) !important;
+	grid-auto-flow: row !important;
+	justify-content: center !important;
+	column-gap: 24px !important;
+	row-gap: 32px !important;
+	width: max-content !important;
+	margin: 0 auto !important;
+	padding: 24px 16px !important;
+}
+
+.pm-spread-view .printedjs_page,
+.pm-spread-view .pagedjs_page {
+	grid-column: auto !important;
+	flex-shrink: 0 !important;
 }
 
 /* Status group inside floating preview bar */

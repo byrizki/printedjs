@@ -1,0 +1,32 @@
+{
+  "fixtureId": "whitespaces/break-elements/break-elements",
+  "capturedAt": "2026-10-01T11:34:01.139Z",
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "c655aa4736a784a428d0e5dd99077aecdb32552301459aabbd82fded4bed16c5"
+}

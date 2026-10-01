@@ -8,7 +8,7 @@ import type {
 	PrintedjsPlugin,
 	StylesheetSource,
 } from "@printedjs/core";
-import { standardPreset } from "@printedjs/plugins";
+import { standardPreset } from "@printedjs/plugin-preset";
 
 export interface PolyfillOptions extends PagedjsCompatibilityOptions {
 	readonly target?: HTMLElement | undefined;
@@ -512,5 +512,5 @@ if (typeof window !== "undefined") {
 }
 
 export { createRenderer } from "@printedjs/browser";
-export { standardPreset } from "@printedjs/plugins";
+export { standardPreset } from "@printedjs/plugin-preset";
 export type { PageResult, RenderResult } from "@printedjs/core";

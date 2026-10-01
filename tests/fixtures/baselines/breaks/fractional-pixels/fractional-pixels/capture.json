@@ -1,0 +1,32 @@
+{
+  "fixtureId": "breaks/fractional-pixels/fractional-pixels",
+  "capturedAt": "2026-10-01T11:33:55.082Z",
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "54d4404fd7431910e944c613d427237f4cff99198a36f417511c2ccb55f6fe80"
+}

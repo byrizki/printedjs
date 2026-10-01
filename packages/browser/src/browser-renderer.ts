@@ -124,14 +124,39 @@ export class BrowserRenderer {
 				this.styleRegistry.clear();
 			}
 
-			const { root: normalizedContent, inlineStyles } = normalizeSource(
-				request.content,
-				this.surface.document,
-			);
+			const {
+				root: normalizedContent,
+				inlineStyles,
+				externalStylesheets,
+				documentBaseUrl,
+			} = normalizeSource(request.content, this.surface.document);
 			session.assertNotAborted();
+
+			const effectiveBaseUrl =
+				request.baseUrl ??
+				(typeof request.content === "object" && "baseUrl" in request.content
+					? request.content.baseUrl
+					: undefined) ??
+				documentBaseUrl;
+
+			if (effectiveBaseUrl) {
+				const doc = this.surface.document;
+				let baseEl = doc.querySelector("base");
+				if (!baseEl) {
+					baseEl = doc.createElement("base");
+					if (doc.head) {
+						doc.head.prepend(baseEl);
+					} else {
+						doc.documentElement.prepend(baseEl);
+					}
+				}
+				baseEl.setAttribute("href", effectiveBaseUrl);
+			}
 
 			const allStylesheetSources: StylesheetSource[] = [
 				...(request.stylesheets ?? []),
+				...(externalStylesheets?.map((url): StylesheetSource => ({ type: "url", url })) ??
+					[]),
 				...inlineStyles.map((content): StylesheetSource => ({ type: "inline", content })),
 			];
 

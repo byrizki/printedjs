@@ -169,3 +169,207 @@
 	border-color: var(--pm-accent-sky);
 	background: rgba(14, 165, 233, 0.1);
 }
+
+/* Visually hidden utility for preserving underlying select */
+.pm-visually-hidden {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+/* Searchable Preset Combobox */
+.pm-preset-combobox-wrapper {
+	position: relative;
+}
+
+.pm-preset-combobox {
+	position: relative;
+}
+
+.pm-preset-trigger-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 220px;
+	height: 30px;
+	padding: 0 10px;
+	background: var(--pm-bg-input);
+	color: var(--pm-text-primary);
+	border: 1px solid var(--pm-border-default);
+	border-radius: var(--pm-radius-md);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	text-align: left;
+	transition: all var(--pm-transition-fast);
+}
+
+.pm-preset-trigger-btn:hover {
+	border-color: var(--pm-border-hover);
+	background: var(--pm-bg-card);
+}
+
+.pm-preset-trigger-btn:focus-visible {
+	border-color: var(--pm-accent-sky);
+	box-shadow: 0 0 0 2px var(--pm-accent-glow);
+	outline: none;
+}
+
+.pm-preset-trigger-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+}
+
+.pm-preset-chevron {
+	color: var(--pm-text-muted);
+	flex-shrink: 0;
+	transition: transform var(--pm-transition-fast);
+}
+
+.pm-preset-combobox.open .pm-preset-chevron {
+	transform: rotate(180deg);
+}
+
+/* Dropdown Popover */
+.pm-preset-dropdown {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	width: 320px;
+	max-height: 420px;
+	background: var(--pm-bg-surface);
+	border: 1px solid var(--pm-border-default);
+	border-radius: var(--pm-radius-lg);
+	box-shadow:
+		0 12px 32px rgba(0, 0, 0, 0.45),
+		0 4px 8px rgba(0, 0, 0, 0.25);
+	backdrop-filter: blur(12px);
+	z-index: 1000;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	animation: pm-dropdown-appear 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pm-dropdown-appear {
+	from {
+		opacity: 0;
+		transform: translateY(-6px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.pm-preset-search-box {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--pm-border-subtle);
+	background: var(--pm-bg-panel);
+}
+
+.pm-preset-search-icon {
+	color: var(--pm-text-muted);
+	flex-shrink: 0;
+}
+
+.pm-preset-search-input {
+	flex: 1;
+	background: transparent;
+	border: none;
+	outline: none;
+	font-size: 12px;
+	color: var(--pm-text-primary);
+	font-family: inherit;
+}
+
+.pm-preset-search-input::placeholder {
+	color: var(--pm-text-muted);
+}
+
+.pm-preset-search-clear {
+	background: transparent;
+	border: none;
+	color: var(--pm-text-muted);
+	cursor: pointer;
+	font-size: 16px;
+	line-height: 1;
+	padding: 0 4px;
+	border-radius: var(--pm-radius-sm);
+}
+
+.pm-preset-search-clear:hover {
+	color: var(--pm-text-primary);
+}
+
+.pm-preset-list {
+	overflow-y: auto;
+	max-height: 330px;
+	padding: 6px;
+}
+
+.pm-preset-group-header {
+	position: sticky;
+	top: -6px;
+	background: var(--pm-bg-surface);
+	z-index: 5;
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--pm-accent-sky);
+	padding: 8px 10px 6px 10px;
+	border-bottom: 1px solid var(--pm-border-subtle);
+	margin-bottom: 4px;
+}
+
+.pm-preset-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: var(--pm-radius-md);
+	cursor: pointer;
+	font-size: 12px;
+	color: var(--pm-text-primary);
+	transition: all var(--pm-transition-fast);
+}
+
+.pm-preset-item:hover,
+.pm-preset-item.active {
+	background: var(--pm-bg-card);
+	color: var(--pm-accent-sky);
+}
+
+.pm-preset-item.selected {
+	background: rgba(14, 165, 233, 0.15);
+	color: var(--pm-accent-sky);
+	font-weight: 600;
+}
+
+.pm-preset-item-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pm-preset-empty {
+	padding: 18px 12px;
+	text-align: center;
+	font-size: 12px;
+	color: var(--pm-text-muted);
+}

@@ -1,0 +1,32 @@
+{
+  "fixtureId": "breaks/child-parent-propagation/break-after-child-parent-propagation",
+  "capturedAt": "2026-10-01T11:33:54.268Z",
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "800bcfe9c4c7bdb58ecb9934238cb4eab907420640e956204d081a006afcf1f6"
+}

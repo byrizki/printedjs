@@ -1,0 +1,21 @@
+{
+  "fixtureId": "marks/marks",
+  "capturedAt": "2026-10-01T11:33:57.235Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 839.046875,
+      "height": 1167.859375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "2c56da455ecc6a790e87b039b9473ea12e1365ca256b3e80f8fc465c4c4165e7"
+}

@@ -1,0 +1,21 @@
+{
+  "fixtureId": "margin-boxes/text-align/text-align",
+  "capturedAt": "2026-10-01T11:33:56.891Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "7bb79741e813ac7987707dc643543fc6085a058babcc3d5f05608712aa7d5533"
+}

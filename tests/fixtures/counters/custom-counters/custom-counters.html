@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Phase 17: Multi-Section Custom Counters</title>
+	<style>
+		@page {
+			size: A5 portrait;
+			margin: 20mm 15mm;
+			@top-left {
+				content: string(section-title);
+				font-family: "Liberation Serif", serif;
+				font-size: 8pt;
+				color: #555555;
+			}
+			@bottom-right {
+				content: counter(page);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		@page :first {
+			@top-left { content: none; }
+			@bottom-right { content: none; }
+		}
+
+		@page frontmatter {
+			@bottom-right {
+				content: counter(page, lower-roman);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		@page body-page {
+			@bottom-right {
+				content: "Page " counter(page, decimal);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		@page appendix-page {
+			@bottom-right {
+				content: "Appendix " counter(page, upper-alpha);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		body {
+			font-family: "Liberation Serif", serif;
+			font-size: 10pt;
+			line-height: 1.5;
+			color: #111111;
+			margin: 0;
+			padding: 0;
+		}
+
+		.cover-page {
+			height: 100%;
+			box-sizing: border-box;
+			padding: 40px 20px;
+			break-after: page;
+		}
+
+		.cover-title {
+			font-size: 24pt;
+			margin: 0 0 12px 0;
+		}
+
+		.frontmatter-section {
+			page: frontmatter;
+			counter-reset: page 1;
+			break-before: page;
+		}
+
+		.frontmatter-heading {
+			string-set: section-title "Frontmatter";
+			font-size: 16pt;
+			margin: 0 0 12px 0;
+		}
+
+		.body-section {
+			page: body-page;
+			counter-reset: page 1;
+			break-before: page;
+		}
+
+		.chapter-heading {
+			string-set: section-title content();
+			font-size: 16pt;
+			margin: 0 0 12px 0;
+		}
+
+		.appendix-section {
+			page: appendix-page;
+			counter-reset: page 1;
+			break-before: page;
+		}
+
+		.appendix-heading {
+			string-set: section-title content();
+			font-size: 16pt;
+			margin: 0 0 12px 0;
+		}
+	</style>
+</head>
+<body>
+	<!-- Page 1: Cover (No header, no footer) -->
+	<div class="cover-page">
+		<h1 class="cover-title">Multi-Section Document</h1>
+		<p>Demonstrating Phase 17 custom page counter styles and section counter resets.</p>
+	</div>
+
+	<!-- Page 2: Frontmatter (Page i) -->
+	<div class="frontmatter-section" data-page-counter-reset="1" data-page-counter-style="lower-roman">
+		<h2 class="frontmatter-heading">Table of Contents</h2>
+		<p>Page 1 of Frontmatter in lower-roman numerals.</p>
+	</div>
+
+	<!-- Page 3: Frontmatter (Page ii) -->
+	<div class="frontmatter-section">
+		<h2 class="frontmatter-heading">Preface</h2>
+		<p>Page 2 of Frontmatter continuing in lower-roman numerals.</p>
+	</div>
+
+	<!-- Page 4: Main Body Chapter 1 (Resets to Page 1) -->
+	<div class="body-section" data-page-counter-reset="1" data-page-counter-style="decimal">
+		<h1 class="chapter-heading">Chapter 1: Foundations</h1>
+		<p>First page of main body resetting counter to decimal 1.</p>
+	</div>
+
+	<!-- Page 5: Main Body Chapter 2 (Page 2) -->
+	<div class="body-section">
+		<h1 class="chapter-heading">Chapter 2: Implementation</h1>
+		<p>Second page of main body progressing to decimal 2.</p>
+	</div>
+
+	<!-- Page 6: Appendix A (Resets to Appendix A) -->
+	<div class="appendix-section" data-page-counter-reset="1" data-page-counter-style="upper-alpha">
+		<h1 class="appendix-heading">Appendix A: Reference</h1>
+		<p>First page of appendix resetting counter to upper-alpha A.</p>
+	</div>
+
+	<!-- Page 7: Appendix B (Appendix B) -->
+	<div class="appendix-section">
+		<h1 class="appendix-heading">Appendix B: Glossary</h1>
+		<p>Second page of appendix progressing to upper-alpha B.</p>
+	</div>
+</body>
+</html>

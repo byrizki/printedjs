@@ -1,0 +1,255 @@
+{
+  "harnessVersion": "printedjs-native-capture/v1",
+  "createdAt": "2026-10-01T11:34:01.985Z",
+  "totalFixtures": 41,
+  "passed": 41,
+  "failed": 0,
+  "fixtures": [
+    {
+      "fixtureId": "bleed/bleed",
+      "outcome": "passed",
+      "pageCount": 7,
+      "documentPngSha256": "b2d1c4ea96578a59b6a4b8970e7dc6a7369a02ee0f01e1c877b337c97176cd47"
+    },
+    {
+      "fixtureId": "breaks/break-after/break-after-left/break-after-left",
+      "outcome": "passed",
+      "pageCount": 38,
+      "documentPngSha256": "5619b9ccf0dd1ded4f871f910221d263c6c228efb099b055bc7695340f5a7d89"
+    },
+    {
+      "fixtureId": "breaks/break-after/break-after-recto/break-after-recto",
+      "outcome": "passed",
+      "pageCount": 39,
+      "documentPngSha256": "03869c53cf79d5d294088185012cb88ccc92e90edff29b33e59bb46a3f2695c6"
+    },
+    {
+      "fixtureId": "breaks/break-after/break-after-right/break-after-right",
+      "outcome": "passed",
+      "pageCount": 39,
+      "documentPngSha256": "03869c53cf79d5d294088185012cb88ccc92e90edff29b33e59bb46a3f2695c6"
+    },
+    {
+      "fixtureId": "breaks/break-after/break-after-verso/break-after-verso",
+      "outcome": "passed",
+      "pageCount": 38,
+      "documentPngSha256": "5619b9ccf0dd1ded4f871f910221d263c6c228efb099b055bc7695340f5a7d89"
+    },
+    {
+      "fixtureId": "breaks/child-parent-propagation/break-after-child-parent-propagation",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "800bcfe9c4c7bdb58ecb9934238cb4eab907420640e956204d081a006afcf1f6"
+    },
+    {
+      "fixtureId": "breaks/child-parent-propagation/break-before-child-parent-propagation",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "800bcfe9c4c7bdb58ecb9934238cb4eab907420640e956204d081a006afcf1f6"
+    },
+    {
+      "fixtureId": "breaks/child-parent-propagation/break-before-container-propagation",
+      "outcome": "passed",
+      "pageCount": 3,
+      "documentPngSha256": "941e909685b8708df883ee547d8aa0993a4b7bf7bf5dc556547e8039b011fcd5"
+    },
+    {
+      "fixtureId": "breaks/empty-page-detection/empty-page-detection",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "6b3d44f5b72632bcda485968538bc0bc2c439f375f7d4e7001f2681929c3c673"
+    },
+    {
+      "fixtureId": "breaks/fractional-pixels/fractional-pixels",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "54d4404fd7431910e944c613d427237f4cff99198a36f417511c2ccb55f6fe80"
+    },
+    {
+      "fixtureId": "counters/counter-page-reset/counter-page-reset-scope",
+      "outcome": "passed",
+      "pageCount": 5,
+      "documentPngSha256": "3db10e427cf60df9f66f5640ca0cc1fa1c12524f1539cace85594bb8d158eb1a"
+    },
+    {
+      "fixtureId": "counters/nested/nested",
+      "outcome": "passed",
+      "pageCount": 9,
+      "documentPngSha256": "637f926f27c5a5709189ce94fb925af28638bc76d53f427bdda3176ef5545978"
+    },
+    {
+      "fixtureId": "default/default",
+      "outcome": "passed",
+      "pageCount": 5,
+      "documentPngSha256": "c31903f93d5620b4bae737e9aa3bda994f0712da046292c79cf2b544b20c46e2"
+    },
+    {
+      "fixtureId": "filters/script-elements/script-elements",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "e490978197cb87a2ac8785fad346b871a454fe0bedd5f45de371eef511525f03"
+    },
+    {
+      "fixtureId": "filters/undisplayed/undisplayed",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "035b8097aea87ffbc4cf9582837d63fae2341c1d6d628ad0dfac92e428585e35"
+    },
+    {
+      "fixtureId": "infinite-loop/infinite-loop",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "066217adce16c49e890b52850f8b501f3d86471c94801b294b5fea9dadf857a3"
+    },
+    {
+      "fixtureId": "margin-boxes/style/style",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "0db0707ce51f93390cdde52c02970c0c9910b049df49aede7a1dc3095c721c8d"
+    },
+    {
+      "fixtureId": "margin-boxes/text-align/text-align",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "7bb79741e813ac7987707dc643543fc6085a058babcc3d5f05608712aa7d5533"
+    },
+    {
+      "fixtureId": "margin-boxes/vertical-align/vertical-align",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "0af2256092d2d3d4c5437176efa1ee1206bc79368e2a83c4a6eb101cc659bd82"
+    },
+    {
+      "fixtureId": "marks/marks",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "2c56da455ecc6a790e87b039b9473ea12e1365ca256b3e80f8fc465c4c4165e7"
+    },
+    {
+      "fixtureId": "named-page/no-forced-page-break/fold-page-breaks-after",
+      "outcome": "passed",
+      "pageCount": 4,
+      "documentPngSha256": "2da3d012978e0bdcf51fd7fdf66894ae096b4efb12ff86d755566abfae28bea7"
+    },
+    {
+      "fixtureId": "named-page/no-forced-page-break/fold-page-breaks-before",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "255ddbabfd7c8f55dbab00ec33bb9d5e1a81d1b778a49cfd02b77031e2c9cfba"
+    },
+    {
+      "fixtureId": "named-page/no-forced-page-break/ignore-undisplayed-nodes",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "d4a2a95b4e044b81a2d468ae397535cd946cb8a4937bfcc3595493fad8a74aa1"
+    },
+    {
+      "fixtureId": "named-page/no-forced-page-break/no-forced-page-break",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "f71687cfc2d68f336ca489a7099a81cb60e6ecf59597baf696f55dfc0d15c394"
+    },
+    {
+      "fixtureId": "named-page/page-group/page-group",
+      "outcome": "passed",
+      "pageCount": 11,
+      "documentPngSha256": "2d9d558b16d07692122c7c7c653d66bc785c701bc549ddb2e5d56bcb4aa88ae6"
+    },
+    {
+      "fixtureId": "notes/footnotes-lastpage/footnotes-lastpage",
+      "outcome": "passed",
+      "pageCount": 4,
+      "documentPngSha256": "a93abaa70599ea7590fc9bebbcc78f259ad8fc525ce52627b6712c15aaf80648"
+    },
+    {
+      "fixtureId": "page-rules/size/landscape/landscape",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "64f783854980c4fbbe6e0e91286ad525b282f9e4673312b3168071009586c27d"
+    },
+    {
+      "fixtureId": "page-rules/size/margin/margin-0",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "4e9a0a64aeff3fed450679b95a9e6d43a47b27133d0ffebd6fc066a0fd72aef8"
+    },
+    {
+      "fixtureId": "page-rules/size/padding/padding-0",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "7f9e2b33f451cc5e0792ff5cc1342361ff068ac2a499ddaaa1fe04adab7c7c04"
+    },
+    {
+      "fixtureId": "page-rules/size/page-size/page-size",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "4c9fbe471a4cac53f5fb76c1c89568e287fa467bf0db9ccdbd698f533468fe02"
+    },
+    {
+      "fixtureId": "position-fixed/position-fixed",
+      "outcome": "passed",
+      "pageCount": 10,
+      "documentPngSha256": "d548b7bad9d0f0fe6b88e42630564e2101dd226a0a7e781b98e0fc417f2de071"
+    },
+    {
+      "fixtureId": "splits/tables/long-table",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "d08137eaed49ca861f6b442352b40222ae102b84522c6ae14b28d11e76bbe4b4"
+    },
+    {
+      "fixtureId": "splits/tables/rowspan-table",
+      "outcome": "passed",
+      "pageCount": 3,
+      "documentPngSha256": "ca5bfe8bcad30c7848688a773bba7aa054a7fb732f8d44178d61e1c8915b4cd3"
+    },
+    {
+      "fixtureId": "string/string-default",
+      "outcome": "passed",
+      "pageCount": 7,
+      "documentPngSha256": "ce936d2329f6a46d6a1424bcfcf2474df7bb11bd4d73a016b8229298c0993527"
+    },
+    {
+      "fixtureId": "styles/simple",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "8aca5f9d4fce4baa44dceef01ba737c9f6c159d271133134fbc3d44dce975036"
+    },
+    {
+      "fixtureId": "tables/rebuild/rebuild",
+      "outcome": "passed",
+      "pageCount": 3,
+      "documentPngSha256": "b6e197a60621c58e007aa3b45ee3c5f1457bf53e727d6c1fc3a3fea9bd3233fe"
+    },
+    {
+      "fixtureId": "whitespaces/break-elements/break-elements",
+      "outcome": "passed",
+      "pageCount": 2,
+      "documentPngSha256": "c655aa4736a784a428d0e5dd99077aecdb32552301459aabbd82fded4bed16c5"
+    },
+    {
+      "fixtureId": "whitespaces/whitespaces",
+      "outcome": "passed",
+      "pageCount": 1,
+      "documentPngSha256": "7e47c67dc6e7f2b726a975a047c7e7f85f557c07c2ee71fab7bb1ef8afce756b"
+    },
+    {
+      "fixtureId": "counters/custom-counters/custom-counters",
+      "outcome": "passed",
+      "pageCount": 7,
+      "documentPngSha256": "807d38f14f91c37b08eefa3d0a189a3ef6c6af067b7f24c7cbf85171a4020c67"
+    },
+    {
+      "fixtureId": "views/spread-view/spread-view",
+      "outcome": "passed",
+      "pageCount": 4,
+      "documentPngSha256": "cd663dd1eeff8e7bc2e79519d85251e0ce46aeb62389676b098e54de06e7977f"
+    },
+    {
+      "fixtureId": "page-rules/mirrored-margins/mirrored-margins",
+      "outcome": "passed",
+      "pageCount": 4,
+      "documentPngSha256": "060035f869d72bb5e2ddf43b2e95b51db26440717f6c7b4023134dff47e46df6"
+    }
+  ]
+}

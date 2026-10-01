@@ -1,0 +1,36 @@
+{
+  "fixtureId": "named-page/no-forced-page-break/ignore-undisplayed-nodes",
+  "capturedAt": "2026-10-01T11:33:57.760Z",
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_tableofcontents_page",
+        "pagedjs_tableofcontents_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_section_page",
+        "pagedjs_section_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "d4a2a95b4e044b81a2d468ae397535cd946cb8a4937bfcc3595493fad8a74aa1"
+}

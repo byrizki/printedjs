@@ -1,0 +1,21 @@
+{
+  "fixtureId": "filters/script-elements/script-elements",
+  "capturedAt": "2026-10-01T11:33:56.344Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "e490978197cb87a2ac8785fad346b871a454fe0bedd5f45de371eef511525f03"
+}

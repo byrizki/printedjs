@@ -10,6 +10,7 @@ Printedjs is designed as a modular, high-performance, and resilient successor to
 
 | Guide                                                  | Description                                                                              |
 | :----------------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| [Feature Catalog & Comparison](./features.md)          | Complete catalog of all current features, architecture subsystems, and Paged.js matrix.  |
 | [Architecture Overview](./architecture.md)             | Multi-package architecture, pure core design, lifecycle pipeline, and surface isolation. |
 | [Package Catalog](./packages-overview.md)              | Comprehensive catalog of all `@printedjs/*` packages, their boundaries, and exports.     |
 | [Migrating from Paged.js](./migrating-from-pagedjs.md) | Guide for transitioning from legacy Paged.js, API comparisons, and compatibility shims.  |
@@ -17,6 +18,7 @@ Printedjs is designed as a modular, high-performance, and resilient successor to
 | [Headless PDF CLI](./cli.md)                           | Command-line interface and programmatic bridge for headless PDF rendering.               |
 | [Release Readiness](./release-readiness.md)            | Verification pipeline, package distribution checks, and release criteria.                |
 | [Project Roadmap](./roadmap.md)                        | Comprehensive milestone tracker covering completed phases and future horizons.           |
+| [Implementation Plan](./roadmap-plan.md)               | Technical plan for Phase 17 (Counters), Phase 18 (View Plugins), and Future Horizons.    |
 
 ---
 

@@ -5,7 +5,12 @@ import {
 	type DevtoolsOverlay,
 	type TraceReport,
 } from "@printedjs/devtools";
-import { standardPreset } from "@printedjs/plugins";
+import { standardPreset } from "@printedjs/plugin-preset";
+import {
+	pageViewsPlugin,
+	type PageViewsController,
+	type ViewMode,
+} from "@printedjs/plugin-views";
 import type { RenderStats } from "../types/playground.js";
 
 export interface RenderServiceOptions {
@@ -16,7 +21,7 @@ export interface RenderServiceOptions {
 export interface RenderExecutionOptions {
 	readonly compiledHtml: string;
 	readonly isolation: "root" | "iframe";
-	readonly viewMode?: "single" | "spread";
+	readonly viewMode?: "single" | "spread" | "flipbook";
 	readonly compileDurationMs: number;
 	readonly showOverlay: boolean;
 	readonly onIframeReady?: (iframe: HTMLIFrameElement) => void;
@@ -27,27 +32,27 @@ html, body {
 	margin: 0;
 	padding: 0;
 	background: transparent;
-	overflow: visible;
+	overflow: hidden;
 }
 body {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 24px 16px;
+	padding: 24px 0;
 	box-sizing: border-box;
 }
 [data-printedjs-root="true"] {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	width: 100%;
+	width: max-content;
 }
 .printedjs_pages, .pagedjs_pages {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 32px;
-	width: 100%;
+	width: max-content;
 }
 .printedjs_page, .pagedjs_page {
 	background: #ffffff;
@@ -58,6 +63,7 @@ body {
 	margin-left: auto;
 	margin-right: auto;
 	margin-bottom: 32px;
+	flex-shrink: 0 !important;
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 @media screen {
@@ -68,7 +74,9 @@ body {
 	.pm-spread-view .printedjs_pages,
 	.pm-spread-view .pagedjs_pages {
 		display: grid !important;
-		grid-template-columns: repeat(2, max-content) !important;
+		grid-template-columns: repeat(var(--pm-grid-cols, 2), max-content) !important;
+		grid-auto-flow: row !important;
+		grid-auto-rows: auto !important;
 		justify-content: center !important;
 		gap: 24px !important;
 		width: max-content !important;
@@ -80,6 +88,55 @@ body {
 		margin-left: 0 !important;
 		margin-right: 0 !important;
 		display: block !important;
+		flex-shrink: 0 !important;
+	}
+
+	.pm-flipbook-view [data-printedjs-root="true"] {
+		display: block !important;
+		width: auto !important;
+	}
+	.pm-flipbook-view .printedjs_pages:not(.stf__parent),
+	.pm-flipbook-view .pagedjs_pages:not(.stf__parent) {
+		display: grid !important;
+		grid-template-columns: repeat(2, max-content) !important;
+		justify-content: center !important;
+		align-items: center !important;
+		perspective: 2500px !important;
+		transform-style: preserve-3d !important;
+		width: max-content !important;
+		max-width: none !important;
+		margin: 0 auto !important;
+		padding: 32px 16px !important;
+		box-sizing: border-box !important;
+	}
+	.pm-flipbook-view .printedjs_pages.stf__parent,
+	.pm-flipbook-view .pagedjs_pages.stf__parent {
+		display: block !important;
+		width: auto !important;
+		max-width: none !important;
+		margin: 24px auto !important;
+		padding: 0 !important;
+		overflow: visible !important;
+	}
+	.pm-flipbook-view .stf__wrapper {
+		height: 100% !important;
+		padding-bottom: 0 !important;
+		overflow: hidden !important;
+	}
+	html.pm-flipbook-view,
+	body.pm-flipbook-view {
+		overflow: hidden !important;
+	}
+	.pm-flipbook-view .printedjs_pages:not(.stf__parent) > .printedjs_page,
+	.pm-flipbook-view .pagedjs_pages:not(.stf__parent) > .pagedjs_page {
+		margin-bottom: 0 !important;
+		flex-shrink: 0 !important;
+	}
+
+	.printedjs_page table,
+	.pagedjs_page table {
+		max-width: 100% !important;
+		box-sizing: border-box !important;
 	}
 }
 @media print {
@@ -158,13 +215,16 @@ export class RenderService {
 			},
 		});
 
-		const plugins = [...standardPreset(), devtools];
+		const views = pageViewsPlugin({
+			initialMode: options.viewMode ?? "single",
+		});
+		const plugins = [...standardPreset(), views, devtools];
 
 		let target: HTMLElement = this.viewportElement;
 		let createdIframe: HTMLIFrameElement | null = null;
 		if (isolation === "iframe") {
 			this.viewportElement.innerHTML =
-				'<iframe data-playground-frame style="border: none; background: transparent; display: block; overflow: visible; margin: 0 auto;"></iframe>';
+				'<iframe data-playground-frame scrolling="no" style="border: none; background: transparent; display: block; overflow: hidden; margin: 0 auto;"></iframe>';
 			const iframe = this.viewportElement.querySelector<HTMLIFrameElement>(
 				"iframe[data-playground-frame]",
 			);
@@ -241,6 +301,28 @@ export class RenderService {
 			this.currentOverlay = null;
 		}
 		this.viewportElement.innerHTML = "";
+	}
+
+	getPageViewsController(): PageViewsController | null {
+		const iframe = this.viewportElement.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument ?? this.viewportElement;
+		const pagesContainer = doc.querySelector<HTMLElement>(
+			".printedjs_pages, .pagedjs_pages",
+		);
+		if (!pagesContainer) return null;
+		return (
+			((pagesContainer as unknown as Record<string, unknown>).__printedjs_page_views as
+				PageViewsController | undefined) ?? null
+		);
+	}
+
+	setViewMode(mode: ViewMode): void {
+		const controller = this.getPageViewsController();
+		if (controller) {
+			controller.setMode(mode);
+		}
 	}
 
 	destroy(): void {

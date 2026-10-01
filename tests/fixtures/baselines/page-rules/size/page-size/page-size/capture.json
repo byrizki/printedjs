@@ -1,0 +1,21 @@
+{
+  "fixtureId": "page-rules/size/page-size/page-size",
+  "capturedAt": "2026-10-01T11:33:59.364Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "4c9fbe471a4cac53f5fb76c1c89568e287fa467bf0db9ccdbd698f533468fe02"
+}

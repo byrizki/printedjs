@@ -10,6 +10,6 @@
 	"references": [
 		{ "path": "../core" },
 		{ "path": "../browser" },
-		{ "path": "../plugins" }
+		{ "path": "../plugins/core/preset" }
 	]
 }

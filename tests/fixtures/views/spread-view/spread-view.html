@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Phase 18: Spread Page View</title>
+	<style>
+		@page {
+			size: A5 landscape;
+			margin: 15mm 20mm;
+			@bottom-center {
+				content: counter(page);
+				font-family: "Liberation Serif", serif;
+				font-size: 9pt;
+			}
+		}
+
+		@page :left {
+			@top-left {
+				content: "Phase 18 Editorial Spread";
+				font-family: "Liberation Serif", serif;
+				font-size: 8pt;
+			}
+		}
+
+		@page :right {
+			@top-right {
+				content: "Printed.js View System";
+				font-family: "Liberation Serif", serif;
+				font-size: 8pt;
+			}
+		}
+
+		body {
+			font-family: "Liberation Serif", serif;
+			font-size: 10pt;
+			line-height: 1.5;
+			margin: 0;
+			padding: 0;
+		}
+
+		.page {
+			break-after: page;
+			padding: 20px;
+			box-sizing: border-box;
+		}
+
+		.page:last-child {
+			break-after: avoid;
+		}
+
+		.cover {
+			background: #f1f5f9;
+			padding: 40px 24px;
+		}
+
+		h1 {
+			margin-top: 0;
+			font-size: 20pt;
+		}
+
+		h2 {
+			margin-top: 0;
+			font-size: 14pt;
+		}
+	</style>
+</head>
+<body>
+	<div class="page cover">
+		<h1>The Facing Spread</h1>
+		<p>Page 1: Solo recto cover page with spine offset.</p>
+	</div>
+	<div class="page">
+		<h2>Verso Spread Page</h2>
+		<p>Page 2: Left-hand facing page of the first spread.</p>
+	</div>
+	<div class="page">
+		<h2>Recto Spread Page</h2>
+		<p>Page 3: Right-hand facing page of the first spread.</p>
+	</div>
+	<div class="page">
+		<h2>Back Cover</h2>
+		<p>Page 4: Final verso page closing the spread.</p>
+	</div>
+</body>
+</html>

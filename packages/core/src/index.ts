@@ -69,3 +69,4 @@ export type {
 
 export { generateCss, parseCss, stripPageRules } from "./css/parser.js";
 export { CssTransformContext } from "./css/transform-context.js";
+export { formatPageNumber, type PageCounterStyle } from "./counters/formatters.js";

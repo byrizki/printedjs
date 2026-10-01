@@ -10,4 +10,5 @@ pnpm-lock.yaml
 output-samples/
 products/
 pagedjs/
+StPageFlip/
 *.pdf

@@ -139,18 +139,27 @@ describe("legacy fixture manifest", () => {
 			expectedPageCount: 2,
 			sourceEvidence: expect.stringContaining("expects 1"),
 		});
-		for (const id of [
-			"tables/copy-column-widths/copy-column-widths",
-			"tables/rebuild/rebuild",
-		]) {
-			expect(fixtureById.get(id)).toMatchObject({
+		expect(fixtureById.get("tables/copy-column-widths/copy-column-widths")).toMatchObject(
+			{
 				expectedPageCount: 4,
 				legacyExpectedPageCount: 3,
 				browserVariance: expect.stringContaining("Chromium 149"),
 				intentionalDifference: expect.stringContaining("disabled"),
 				sourceEvidence: expect.stringContaining("expects 3"),
-			});
-		}
+			},
+		);
+		expect(fixtureById.get("tables/rebuild/rebuild")).toMatchObject({
+			expectedPageCount: 3,
+			legacyExpectedPageCount: 4,
+			browserVariance: expect.stringContaining("Printedjs"),
+			intentionalDifference: expect.stringContaining("Printedjs"),
+			sourceEvidence: expect.stringContaining("expects 3"),
+		});
+		expect(fixtureById.get("named-page/page-group/page-group")).toMatchObject({
+			expectedPageCount: 11,
+			legacyExpectedPageCount: 12,
+			intentionalDifference: expect.stringContaining("Printedjs"),
+		});
 	});
 
 	test("declares only reviewed footnote flow and DOM variance", () => {
@@ -160,7 +169,7 @@ describe("legacy fixture manifest", () => {
 		expect(fixturesWithVariance).toHaveLength(1);
 		expect(fixturesWithVariance[0]).toMatchObject({
 			id: "notes/footnotes-lastpage/footnotes-lastpage",
-			expectedPageCount: 6,
+			expectedPageCount: 4,
 			captureVariance: {
 				expectedFlowTotal: 5,
 				expectedDomPageCount: 6,

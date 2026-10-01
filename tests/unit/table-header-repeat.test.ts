@@ -44,7 +44,7 @@ describe.runIf(Boolean(executablePath))("Table header repeat control", () => {
         </tbody>
     </table>
     <script src="${resolve(__dirname, "../../packages/browser/dist/index.global.js")}"></script>
-    <script src="${resolve(__dirname, "../../packages/plugins/dist/index.global.js")}"></script>
+    <script src="${resolve(__dirname, "../../packages/plugins/core/preset/dist/index.global.js")}"></script>
     <script>
         window.addEventListener("DOMContentLoaded", async () => {
             const content = document.body.innerHTML;
@@ -132,7 +132,7 @@ describe.runIf(Boolean(executablePath))("Table header repeat control", () => {
         </tbody>
     </table>
     <script src="${resolve(__dirname, "../../packages/browser/dist/index.global.js")}"></script>
-    <script src="${resolve(__dirname, "../../packages/plugins/dist/index.global.js")}"></script>
+    <script src="${resolve(__dirname, "../../packages/plugins/core/preset/dist/index.global.js")}"></script>
     <script>
         window.addEventListener("DOMContentLoaded", async () => {
             const content = document.body.innerHTML;

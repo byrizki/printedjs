@@ -1,8 +1,9 @@
-import type {
-	BreakToken,
-	LayoutStepResult,
-	PagedjsCompatibilityOptions,
-	PaginatorAdapter,
+import {
+	formatPageNumber,
+	type BreakToken,
+	type LayoutStepResult,
+	type PagedjsCompatibilityOptions,
+	type PaginatorAdapter,
 } from "@printedjs/core";
 import type { RenderSurface } from "../surface/types.js";
 import { createPageShell } from "./page-shell.js";
@@ -59,7 +60,7 @@ function getBreakInside(el: HTMLElement, doc: Document): string | null {
 	return ci && ci !== "auto" && ci !== "normal" ? ci.toLowerCase() : null;
 }
 
-function getNamedPage(
+export function getNamedPage(
 	node: Node | null,
 	ancestors?: readonly HTMLElement[],
 ): string | null {
@@ -67,13 +68,17 @@ function getNamedPage(
 	while (curr) {
 		if (isElement(curr)) {
 			const attr = curr.getAttribute("data-page");
-			if (attr) return attr.trim();
+			if (attr) {
+				const val = attr.trim();
+				return val === "auto" ? null : val;
+			}
 			const inlineStyle = curr.getAttribute("style");
 			if (inlineStyle) {
 				const match = /(?:^|;)\s*page\s*:\s*([^;!]+)/i.exec(inlineStyle);
 				if (match && match[1]) {
 					const val = match[1].trim();
-					if (val && val !== "auto") return val;
+					if (val === "auto") return null;
+					if (val) return val;
 				}
 			}
 		}
@@ -84,13 +89,143 @@ function getNamedPage(
 			const a = ancestors[i];
 			if (!a) continue;
 			const attr = a.getAttribute("data-page");
-			if (attr) return attr.trim();
+			if (attr) {
+				const val = attr.trim();
+				return val === "auto" ? null : val;
+			}
 			const inlineStyle = a.getAttribute("style");
 			if (inlineStyle) {
 				const match = /(?:^|;)\s*page\s*:\s*([^;!]+)/i.exec(inlineStyle);
 				if (match && match[1]) {
 					const val = match[1].trim();
-					if (val && val !== "auto") return val;
+					if (val === "auto") return null;
+					if (val) return val;
+				}
+			}
+		}
+	}
+	return null;
+}
+
+function getCounterReset(
+	node: Node | null,
+	ancestors?: readonly HTMLElement[],
+	doc?: Document,
+): number | null {
+	let curr: Node | null = node;
+	while (curr) {
+		if (isElement(curr)) {
+			const attr =
+				curr.getAttribute("data-page-counter-reset") ||
+				curr.getAttribute("data-counter-reset") ||
+				curr.getAttribute("data-page-reset");
+			if (attr) {
+				const match = /(?:page\s+)?(\d+)/i.exec(attr);
+				if (match && match[1]) {
+					return parseInt(match[1], 10);
+				}
+				const num = parseInt(attr, 10);
+				if (!Number.isNaN(num)) return num;
+			}
+			const inline = curr.getAttribute("style");
+			if (inline) {
+				const match = /(?:^|;)\s*counter-reset\s*:\s*(?:page\s+)?(\d+)/i.exec(inline);
+				if (match && match[1]) {
+					return parseInt(match[1], 10);
+				}
+				if (/(?:^|;)\s*counter-reset\s*:\s*page\b/i.test(inline)) {
+					return 1;
+				}
+			}
+			if (doc?.defaultView) {
+				const computed = doc.defaultView.getComputedStyle(curr);
+				const cr = computed?.counterReset;
+				if (cr && cr !== "none") {
+					const match = /\bpage\s+(\d+)/i.exec(cr);
+					if (match && match[1]) {
+						return parseInt(match[1], 10);
+					}
+					if (/\bpage\b/i.test(cr)) {
+						return 1;
+					}
+				}
+			}
+		}
+		curr = curr.parentNode;
+	}
+	if (ancestors) {
+		for (let i = ancestors.length - 1; i >= 0; i--) {
+			const a = ancestors[i];
+			if (!a) continue;
+			const attr =
+				a.getAttribute("data-page-counter-reset") ||
+				a.getAttribute("data-counter-reset") ||
+				a.getAttribute("data-page-reset");
+			if (attr) {
+				const match = /(?:page\s+)?(\d+)/i.exec(attr);
+				if (match && match[1]) {
+					return parseInt(match[1], 10);
+				}
+				const num = parseInt(attr, 10);
+				if (!Number.isNaN(num)) return num;
+			}
+			const inline = a.getAttribute("style");
+			if (inline) {
+				const match = /(?:^|;)\s*counter-reset\s*:\s*(?:page\s+)?(\d+)/i.exec(inline);
+				if (match && match[1]) {
+					return parseInt(match[1], 10);
+				}
+				if (/(?:^|;)\s*counter-reset\s*:\s*page\b/i.test(inline)) {
+					return 1;
+				}
+			}
+		}
+	}
+	return null;
+}
+
+function getCounterStyle(
+	node: Node | null,
+	ancestors?: readonly HTMLElement[],
+): string | null {
+	let curr: Node | null = node;
+	while (curr) {
+		if (isElement(curr)) {
+			const attr =
+				curr.getAttribute("data-page-style") ||
+				curr.getAttribute("data-counter-style") ||
+				curr.getAttribute("data-page-counter-style");
+			if (attr) return attr.toLowerCase().trim();
+			const inline = curr.getAttribute("style");
+			if (inline) {
+				const match =
+					/(?:^|;)\s*(?:--printedjs-page-style|--page-style|counter-style)\s*:\s*([^;!]+)/i.exec(
+						inline,
+					);
+				if (match && match[1]) {
+					return match[1].toLowerCase().trim();
+				}
+			}
+		}
+		curr = curr.parentNode;
+	}
+	if (ancestors) {
+		for (let i = ancestors.length - 1; i >= 0; i--) {
+			const a = ancestors[i];
+			if (!a) continue;
+			const attr =
+				a.getAttribute("data-page-style") ||
+				a.getAttribute("data-counter-style") ||
+				a.getAttribute("data-page-counter-style");
+			if (attr) return attr.toLowerCase().trim();
+			const inline = a.getAttribute("style");
+			if (inline) {
+				const match =
+					/(?:^|;)\s*(?:--printedjs-page-style|--page-style|counter-style)\s*:\s*([^;!]+)/i.exec(
+						inline,
+					);
+				if (match && match[1]) {
+					return match[1].toLowerCase().trim();
 				}
 			}
 		}
@@ -581,7 +716,11 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 	private readonly startedNodes = new Set<Node>();
 	private readonly tableColumnWidths = new Map<HTMLElement, number[]>();
 	private carriedRowSpans = new Map<HTMLElement, TableRowCarriedSpan[]>();
+	private pendingBreakTarget: "left" | "right" | "recto" | "verso" | null = null;
 	private initialized = false;
+	private currentLogicalPageNumber = 0;
+	private currentCounterStyle = "decimal";
+	private activeSectionIndex = 1;
 
 	constructor(options: DomLayoutAdapterOptions) {
 		this.surface = options.surface;
@@ -679,7 +818,77 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 		if (!this.initialized) {
 			return true;
 		}
+		this.purgeUndisplayedLeadingWork();
 		return this.remainingWork.length > 0;
+	}
+
+	private isWorkNodeUndisplayed(head: WorkNode, doc: Document): boolean {
+		const node = head.node;
+		if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+			return true;
+		}
+		if (node.nodeType === Node.COMMENT_NODE) {
+			return true;
+		}
+		if (isElement(node)) {
+			const tag = node.tagName.toUpperCase();
+			if (
+				tag === "SCRIPT" ||
+				tag === "STYLE" ||
+				tag === "NOSCRIPT" ||
+				tag === "TEMPLATE"
+			) {
+				return true;
+			}
+			if (node.style.display === "none") {
+				return true;
+			}
+		}
+		for (const anc of head.ancestors) {
+			if (anc.style.display === "none") {
+				return true;
+			}
+		}
+
+		const testClone = isElement(node)
+			? (node.cloneNode(false) as HTMLElement)
+			: doc.createElement("span");
+		let attachRoot: HTMLElement = testClone;
+		const ancestorClones: HTMLElement[] = [];
+		for (let i = head.ancestors.length - 1; i >= 0; i--) {
+			const ancClone = head.ancestors[i]!.cloneNode(false) as HTMLElement;
+			ancClone.appendChild(attachRoot);
+			attachRoot = ancClone;
+			ancestorClones.push(ancClone);
+		}
+		this.pagesContainer.appendChild(attachRoot);
+		const win = doc.defaultView;
+		let isHidden = false;
+		if (win) {
+			if (win.getComputedStyle(testClone).display === "none") {
+				isHidden = true;
+			} else {
+				for (const ancClone of ancestorClones) {
+					if (win.getComputedStyle(ancClone).display === "none") {
+						isHidden = true;
+						break;
+					}
+				}
+			}
+		}
+		attachRoot.remove();
+		return isHidden;
+	}
+
+	private purgeUndisplayedLeadingWork(): void {
+		const doc = this.surface.document;
+		while (this.remainingWork.length > 0) {
+			const head = this.remainingWork[0];
+			if (!head || !this.isWorkNodeUndisplayed(head, doc)) {
+				break;
+			}
+			this.remainingWork.shift();
+		}
 	}
 
 	private markBlankPage(pageShell: HTMLElement): void {
@@ -691,18 +900,48 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 	async layoutPage(pageNumber: number): Promise<LayoutStepResult> {
 		const doc = this.surface.document;
-		const targetPageName =
-			this.remainingWork.length > 0
-				? getNamedPage(
-						this.remainingWork[0]?.node ?? null,
-						this.remainingWork[0]?.ancestors,
-					)
-				: null;
+		const headNode = this.remainingWork.length > 0 ? this.remainingWork[0] : null;
+		const targetPageName = headNode
+			? getNamedPage(headNode.node ?? null, headNode.ancestors)
+			: null;
+
+		const detectedReset = headNode
+			? getCounterReset(headNode.node, headNode.ancestors, doc)
+			: null;
+		const detectedStyle = headNode
+			? getCounterStyle(headNode.node, headNode.ancestors)
+			: null;
+
+		if (detectedStyle) {
+			this.currentCounterStyle = detectedStyle;
+		}
+
+		let isReset = false;
+		if (detectedReset !== null) {
+			this.currentLogicalPageNumber = detectedReset;
+			this.activeSectionIndex++;
+			isReset = true;
+		} else {
+			this.currentLogicalPageNumber++;
+		}
+
+		const formattedNumber = formatPageNumber(
+			this.currentLogicalPageNumber,
+			this.currentCounterStyle,
+		);
+
 		const pageShell = createPageShell(
 			pageNumber,
 			doc,
 			this.pagedjsCompatible,
 			targetPageName ?? undefined,
+			{
+				physicalPageNumber: pageNumber,
+				logicalPageNumber: this.currentLogicalPageNumber,
+				counterStyle: this.currentCounterStyle,
+				counterFormatted: formattedNumber,
+				counterReset: isReset ? this.currentLogicalPageNumber : undefined,
+			},
 		);
 		this.pagesContainer.appendChild(pageShell);
 
@@ -726,6 +965,39 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 		if (!contentArea || !contentParent) {
 			throw new Error("Invalid page shell structure");
+		}
+
+		if (this.pendingBreakTarget && this.remainingWork.length > 0) {
+			const target = this.pendingBreakTarget;
+			let isTarget = false;
+			if (target === "right" || target === "recto") {
+				isTarget = pageNumber % 2 === 1;
+			} else if (target === "left" || target === "verso") {
+				isTarget = pageNumber % 2 === 0;
+			}
+
+			if (!isTarget) {
+				this.markBlankPage(pageShell);
+				this.pendingBreakTarget = null;
+				const pageRect = pageShell.getBoundingClientRect();
+				return {
+					breakToken: {
+						page: pageNumber,
+						cursor: `blank:${pageNumber}:${this.remainingWork.length}`,
+						finished: false,
+					},
+					pageResult: {
+						pageNumber,
+						box: {
+							width: pageRect.width,
+							height: pageRect.height,
+						},
+						classes: Array.from(pageShell.classList),
+						metadata: { blank: true },
+					},
+				};
+			}
+			this.pendingBreakTarget = null;
 		}
 
 		const areaRect = pageArea?.getBoundingClientRect();
@@ -1006,8 +1278,10 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 						shouldBreakAfter = true;
 					} else if (breakAfter === "right" || breakAfter === "recto") {
 						shouldBreakAfter = true;
+						this.pendingBreakTarget = breakAfter;
 					} else if (breakAfter === "left" || breakAfter === "verso") {
 						shouldBreakAfter = true;
+						this.pendingBreakTarget = breakAfter;
 					} else if (breakAfter === "avoid") {
 						recentAvoidBreakAfter.push({
 							clonedNode: clonedNode as HTMLElement,
@@ -1023,21 +1297,24 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				for (const ancestor of current.ancestors) {
 					if (!nextWork || !nextWork.ancestors.includes(ancestor)) {
 						const ancestorBreakAfter = getBreakAfter(ancestor, doc);
-						if (
-							ancestorBreakAfter === "page" ||
-							ancestorBreakAfter === "always" ||
+						if (ancestorBreakAfter === "page" || ancestorBreakAfter === "always") {
+							shouldBreakAfter = true;
+							break;
+						} else if (
 							ancestorBreakAfter === "right" ||
 							ancestorBreakAfter === "recto" ||
 							ancestorBreakAfter === "left" ||
 							ancestorBreakAfter === "verso"
 						) {
 							shouldBreakAfter = true;
+							this.pendingBreakTarget = ancestorBreakAfter;
 							break;
 						}
 					}
 				}
 
 				if (shouldBreakAfter) {
+					this.purgeUndisplayedLeadingWork();
 					break;
 				}
 				continue;
@@ -1201,6 +1478,15 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 				if (isElement(child)) {
 					const tag = child.tagName.toUpperCase();
+					if (
+						tag === "SCRIPT" ||
+						tag === "STYLE" ||
+						tag === "NOSCRIPT" ||
+						tag === "TEMPLATE" ||
+						(child as HTMLElement).style?.display === "none"
+					) {
+						continue;
+					}
 					const isPrimaryThead =
 						tag === "THEAD" &&
 						child.parentElement?.querySelector(":scope > thead") === child;

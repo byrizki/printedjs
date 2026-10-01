@@ -46,7 +46,7 @@ footnotes<span class="footnote">Refer to CSS Paged Media Module Level 3 specific
 <body>
 <div id="app"></div>
 <script src="${resolve(__dirname, "../../packages/browser/dist/index.global.js")}"></script>
-<script src="${resolve(__dirname, "../../packages/plugins/dist/index.global.js")}"></script>
+<script src="${resolve(__dirname, "../../packages/plugins/core/preset/dist/index.global.js")}"></script>
 <script>
 window.addEventListener("DOMContentLoaded", async () => {
     const plugins = PrintedjsPlugins.standardPreset();

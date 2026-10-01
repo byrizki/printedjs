@@ -77,9 +77,15 @@ importers:
       '@printedjs/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@printedjs/plugins':
+      '@printedjs/plugin-eta':
         specifier: workspace:*
-        version: link:../../packages/plugins
+        version: link:../../packages/plugins/community/eta
+      '@printedjs/plugin-preset':
+        specifier: workspace:*
+        version: link:../../packages/plugins/core/preset
+      '@printedjs/plugin-views':
+        specifier: workspace:*
+        version: link:../../packages/plugins/core/views
       dayjs:
         specifier: ^1.11.23
         version: 1.11.23
@@ -114,9 +120,9 @@ importers:
       '@printedjs/core':
         specifier: workspace:*
         version: link:../core
-      '@printedjs/plugins':
+      '@printedjs/plugin-preset':
         specifier: workspace:*
-        version: link:../plugins
+        version: link:../plugins/core/preset
       playwright:
         specifier: ^1.50.0
         version: 1.61.1
@@ -144,15 +150,165 @@ importers:
       '@printedjs/core':
         specifier: workspace:*
         version: link:../core
-      '@printedjs/plugins':
+      '@printedjs/plugin-preset':
         specifier: workspace:*
-        version: link:../plugins
+        version: link:../plugins/core/preset
 
-  packages/plugins:
+  packages/plugins/community/eta:
     dependencies:
       '@printedjs/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../../core
+      dayjs:
+        specifier: ^1.11.23
+        version: 1.11.23
+      eta:
+        specifier: ^3.5.0
+        version: 3.5.0
+      numeral:
+        specifier: ^2.0.6
+        version: 2.0.6
+
+  packages/plugins/community/page-flip:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/bookmarks:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/breaks:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/columns:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/counters:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/footnotes:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/generated-content:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/hyphenation:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/lists:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/math:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/page-rules:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/preset:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@printedjs/plugin-bookmarks':
+        specifier: workspace:*
+        version: link:../bookmarks
+      '@printedjs/plugin-breaks':
+        specifier: workspace:*
+        version: link:../breaks
+      '@printedjs/plugin-columns':
+        specifier: workspace:*
+        version: link:../columns
+      '@printedjs/plugin-counters':
+        specifier: workspace:*
+        version: link:../counters
+      '@printedjs/plugin-footnotes':
+        specifier: workspace:*
+        version: link:../footnotes
+      '@printedjs/plugin-generated-content':
+        specifier: workspace:*
+        version: link:../generated-content
+      '@printedjs/plugin-hyphenation':
+        specifier: workspace:*
+        version: link:../hyphenation
+      '@printedjs/plugin-lists':
+        specifier: workspace:*
+        version: link:../lists
+      '@printedjs/plugin-math':
+        specifier: workspace:*
+        version: link:../math
+      '@printedjs/plugin-page-rules':
+        specifier: workspace:*
+        version: link:../page-rules
+      '@printedjs/plugin-running-headers':
+        specifier: workspace:*
+        version: link:../running-headers
+      '@printedjs/plugin-strings':
+        specifier: workspace:*
+        version: link:../strings
+      '@printedjs/plugin-widows-orphans':
+        specifier: workspace:*
+        version: link:../widows-orphans
+
+  packages/plugins/core/running-headers:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@printedjs/plugin-generated-content':
+        specifier: workspace:*
+        version: link:../generated-content
+
+  packages/plugins/core/strings:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+
+  packages/plugins/core/views:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@printedjs/plugin-page-flip':
+        specifier: workspace:*
+        version: link:../../community/page-flip
+
+  packages/plugins/core/widows-orphans:
+    dependencies:
+      '@printedjs/core':
+        specifier: workspace:*
+        version: link:../../../core
 
   packages/polyfill: {}
 

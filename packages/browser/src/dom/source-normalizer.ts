@@ -3,6 +3,8 @@ import { PrintedjsInputError, type ContentSource } from "@printedjs/core";
 export interface NormalizedContent {
 	readonly root: Node;
 	readonly inlineStyles: readonly string[];
+	readonly externalStylesheets?: readonly string[] | undefined;
+	readonly documentBaseUrl?: string | undefined;
 }
 
 export function normalizeSource(
@@ -14,6 +16,8 @@ export function normalizeSource(
 	}
 
 	const inlineStyles: string[] = [];
+	const externalStylesheets: string[] = [];
+	let documentBaseUrl: string | undefined;
 	let root: Node;
 
 	if ("html" in content) {
@@ -25,6 +29,20 @@ export function normalizeSource(
 		if (win && typeof win.DOMParser !== "undefined") {
 			const parser = new win.DOMParser();
 			const parsedDoc = parser.parseFromString(content.html, "text/html");
+
+			const baseEl = parsedDoc.querySelector("base[href]");
+			if (baseEl) {
+				documentBaseUrl = baseEl.getAttribute("href") ?? undefined;
+			}
+
+			const links = parsedDoc.querySelectorAll("link[rel='stylesheet']");
+			links.forEach((l) => {
+				const href = l.getAttribute("href");
+				if (href) {
+					externalStylesheets.push(href);
+				}
+				l.remove();
+			});
 
 			const styles = parsedDoc.querySelectorAll("style");
 			styles.forEach((s) => {
@@ -54,6 +72,20 @@ export function normalizeSource(
 				typeof (root as ParentNode).querySelectorAll === "function"
 			) {
 				const parent = root as ParentNode;
+				const baseEl = parent.querySelector("base[href]");
+				if (baseEl) {
+					documentBaseUrl = baseEl.getAttribute("href") ?? undefined;
+				}
+
+				const links = parent.querySelectorAll("link[rel='stylesheet']");
+				links.forEach((l) => {
+					const href = l.getAttribute("href");
+					if (href) {
+						externalStylesheets.push(href);
+					}
+					l.remove();
+				});
+
 				const styles = parent.querySelectorAll("style");
 				styles.forEach((s) => {
 					if (s.textContent) {
@@ -76,6 +108,15 @@ export function normalizeSource(
 			typeof (root as ParentNode).querySelectorAll === "function"
 		) {
 			const parent = root as ParentNode;
+			const links = parent.querySelectorAll("link[rel='stylesheet']");
+			links.forEach((l) => {
+				const href = l.getAttribute("href");
+				if (href) {
+					externalStylesheets.push(href);
+				}
+				l.remove();
+			});
+
 			const styles = parent.querySelectorAll("style");
 			styles.forEach((s) => {
 				if (s.textContent) {
@@ -90,5 +131,10 @@ export function normalizeSource(
 		throw new PrintedjsInputError("Content source must specify either 'html' or 'node'");
 	}
 
-	return { root, inlineStyles };
+	return {
+		root,
+		inlineStyles,
+		...(externalStylesheets.length > 0 ? { externalStylesheets } : {}),
+		...(documentBaseUrl ? { documentBaseUrl } : {}),
+	};
 }

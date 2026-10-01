@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const workspacePackages = [
 	"packages/core",
 	"packages/browser",
-	"packages/plugins",
+	"packages/plugins/core/preset",
 	"packages/devtools",
 	"packages/polyfill",
 	"packages/minimal",

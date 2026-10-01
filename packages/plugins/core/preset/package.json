@@ -1,0 +1,39 @@
+{
+	"name": "@printedjs/plugin-preset",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./dist/*": "./dist/*"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"typecheck": "tsc --build"
+	},
+	"dependencies": {
+		"@printedjs/core": "workspace:*",
+		"@printedjs/plugin-bookmarks": "workspace:*",
+		"@printedjs/plugin-breaks": "workspace:*",
+		"@printedjs/plugin-columns": "workspace:*",
+		"@printedjs/plugin-counters": "workspace:*",
+		"@printedjs/plugin-footnotes": "workspace:*",
+		"@printedjs/plugin-generated-content": "workspace:*",
+		"@printedjs/plugin-hyphenation": "workspace:*",
+		"@printedjs/plugin-lists": "workspace:*",
+		"@printedjs/plugin-math": "workspace:*",
+		"@printedjs/plugin-page-rules": "workspace:*",
+		"@printedjs/plugin-running-headers": "workspace:*",
+		"@printedjs/plugin-strings": "workspace:*",
+		"@printedjs/plugin-widows-orphans": "workspace:*"
+	}
+}

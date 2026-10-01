@@ -20,26 +20,29 @@ export const CERTIFICATE_FIXTURE: PlaygroundFixture = {
 <style>
 	@page {
 		size: letter landscape;
-		margin: 15mm;
+		margin: 0;
 	}
 
+	html,
 	body {
 		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Georgia, serif;
 		color: #1e293b;
 		margin: 0;
 		padding: 0;
+		height: 100%;
 	}
 
 	.outer-border {
 		border: 4px double #0284c7;
 		padding: 24px;
-		height: 90%;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
 		text-align: center;
 		background: #ffffff;
 		box-sizing: border-box;
+		margin: 0;
 	}
 
 	.inner-frame {

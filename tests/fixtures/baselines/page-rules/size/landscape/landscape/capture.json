@@ -1,0 +1,21 @@
+{
+  "fixtureId": "page-rules/size/landscape/landscape",
+  "capturedAt": "2026-10-01T11:33:58.972Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 793.6875,
+      "height": 559.359375,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "64f783854980c4fbbe6e0e91286ad525b282f9e4673312b3168071009586c27d"
+}

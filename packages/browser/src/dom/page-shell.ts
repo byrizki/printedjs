@@ -549,16 +549,44 @@ function cls(name: string, pagedjsCompatible = false): string {
 	return `printedjs_${name}`;
 }
 
+export interface PageShellOptions {
+	readonly physicalPageNumber?: number | undefined;
+	readonly logicalPageNumber?: number | undefined;
+	readonly counterStyle?: string | undefined;
+	readonly counterFormatted?: string | undefined;
+	readonly counterReset?: number | undefined;
+}
+
 export function createPageShell(
 	pageNumber: number,
 	doc: Document = document,
 	pagedjsCompatible = false,
 	pageName?: string,
+	options?: PageShellOptions,
 ): HTMLElement {
 	const page = doc.createElement("div");
 	page.id = `page-${pageNumber}`;
-	page.setAttribute("data-page-number", String(pageNumber));
+
+	const physicalPage = options?.physicalPageNumber ?? pageNumber;
+	const logicalPage = options?.logicalPageNumber ?? pageNumber;
+	const counterStyle = options?.counterStyle ?? "decimal";
+	const formatted = options?.counterFormatted ?? String(logicalPage);
+
+	page.setAttribute("data-page-number", String(logicalPage));
+	page.setAttribute("data-physical-page-number", String(physicalPage));
+	page.setAttribute("data-page-style", counterStyle);
+	page.setAttribute("data-page-formatted", formatted);
 	page.setAttribute("data-printedjs-page", "");
+	page.style?.setProperty?.("--printedjs-page-number", String(logicalPage));
+
+	if (options?.counterReset !== undefined) {
+		const resetVal = Math.max(0, options.counterReset - 1);
+		if (page.style) {
+			page.style.counterReset = `page ${resetVal}`;
+		}
+		page.setAttribute("data-counter-reset", String(options.counterReset));
+	}
+
 	if (pageName) {
 		page.setAttribute("data-page", pageName);
 	}

@@ -1,0 +1,21 @@
+{
+  "fixtureId": "page-rules/size/margin/margin-0",
+  "capturedAt": "2026-10-01T11:33:59.099Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 151.171875,
+      "height": 151.171875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "4e9a0a64aeff3fed450679b95a9e6d43a47b27133d0ffebd6fc066a0fd72aef8"
+}

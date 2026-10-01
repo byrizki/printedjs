@@ -1,0 +1,21 @@
+{
+  "fixtureId": "page-rules/size/padding/padding-0",
+  "capturedAt": "2026-10-01T11:33:59.226Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 151.171875,
+      "height": 151.171875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "7f9e2b33f451cc5e0792ff5cc1342361ff068ac2a499ddaaa1fe04adab7c7c04"
+}

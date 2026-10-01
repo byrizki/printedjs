@@ -1,3 +1,4 @@
+import type { FlipBookController } from "@printedjs/plugin-views";
 import { ZOOM_PRESETS, type ViewMode } from "../types/editor.js";
 import type { RenderStats } from "../types/playground.js";
 
@@ -23,6 +24,7 @@ export class ViewportComponent {
 	private readonly zoomSelect: HTMLSelectElement;
 	private readonly singleViewBtn: HTMLButtonElement;
 	private readonly spreadViewBtn: HTMLButtonElement;
+	private readonly flipbookViewBtn: HTMLButtonElement;
 	private readonly pageIndicatorEl: HTMLElement;
 	private readonly overlayBtn: HTMLButtonElement;
 	private readonly traceBtn: HTMLButtonElement;
@@ -31,15 +33,25 @@ export class ViewportComponent {
 	private readonly traceSummaryEl: HTMLElement;
 	private readonly statusDot: HTMLElement;
 	private readonly statusLabel: HTMLElement;
+	private readonly floatingBarEl: HTMLElement;
+	private readonly gridControlsEl: HTMLElement;
+	private readonly gridColsSelect: HTMLSelectElement;
+	private readonly collapseBtn: HTMLButtonElement;
+	private readonly expandBtn: HTMLButtonElement;
+	private readonly bookSidePrev: HTMLButtonElement;
+	private readonly bookSideNext: HTMLButtonElement;
 
 	private currentZoom: number;
 	private currentViewMode: ViewMode;
 	private currentPageIndex: number = 1;
 	private totalPages: number = 0;
+	private gridCols: number = 2;
+	private isToolbarMinimized: boolean = false;
 	private isOverlayVisible: boolean = false;
 	private isTraceOpen: boolean = false;
 	private currentStats: RenderStats | null = null;
 	private readonly callbacks: ViewportCallbacks;
+	private readonly onFlipbookChange: (e: Event) => void;
 
 	constructor(options: ViewportOptions) {
 		const { initialZoom, initialViewMode, initialOverlayVisible, callbacks } = options;
@@ -48,15 +60,55 @@ export class ViewportComponent {
 		this.isOverlayVisible = initialOverlayVisible ?? false;
 		this.callbacks = callbacks;
 
+		this.onFlipbookChange = (e: Event) => {
+			const detail = (
+				e as CustomEvent<{
+					currentSpread: number;
+					totalSpreads: number;
+					currentPage: number;
+					leftPage?: number | null;
+					rightPage?: number | null;
+				}>
+			).detail;
+			if (
+				detail &&
+				(this.currentViewMode === "flipbook" ||
+					(this.currentViewMode as string) === "book")
+			) {
+				this.currentPageIndex = detail.currentPage;
+				this.updateBookPageIndicator(
+					detail.currentSpread,
+					detail.totalSpreads,
+					detail.currentPage,
+					detail.leftPage,
+					detail.rightPage,
+				);
+			}
+		};
+
 		this.element = document.createElement("main");
 		this.element.className = "pm-viewport-wrapper";
 		if (initialViewMode === "spread") {
 			this.element.classList.add("pm-spread-view");
+		} else if (initialViewMode === "flipbook") {
+			this.element.classList.add("pm-flipbook-view");
 		} else {
 			this.element.classList.add("pm-single-view");
 		}
 
 		this.element.innerHTML = `
+			<!-- Book View Side Navigation Arrows -->
+			<button id="pm-book-side-prev" class="pm-book-side-nav prev" title="Previous Spread / Page (or click left page / swipe right)">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="15 18 9 12 15 6"></polyline>
+				</svg>
+			</button>
+			<button id="pm-book-side-next" class="pm-book-side-nav next" title="Next Spread / Page (or click right page / swipe left)">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="9 18 15 12 9 6"></polyline>
+				</svg>
+			</button>
+
 			<div class="pm-canvas-scroll" id="pm-canvas-scroll">
 				<div class="pm-zoom-container" id="pm-zoom-container">
 					<div id="render-viewport">
@@ -84,26 +136,7 @@ export class ViewportComponent {
 
 				<div class="pm-toolbar-divider"></div>
 
-				<!-- View Mode Toggle -->
-				<div class="pm-toolbar-pill-group">
-					<button id="pm-single-view-btn" class="pm-pill-btn ${initialViewMode === "single" ? "active" : ""}" title="Single Page View">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-						</svg>
-						<span>Single</span>
-					</button>
-					<button id="pm-spread-view-btn" class="pm-pill-btn ${initialViewMode === "spread" ? "active" : ""}" title="Book Spread View (2-Page Facing)">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-							<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-						</svg>
-						<span>Spread</span>
-					</button>
-				</div>
-
-				<div class="pm-toolbar-divider"></div>
-
-				<!-- Page Navigation -->
+				<!-- Page Navigation (always visible so reader knows current position) -->
 				<div class="pm-toolbar-pill-group">
 					<button id="pm-prev-page-btn" class="pm-pill-btn pm-pill-icon" title="Previous Page">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -118,10 +151,59 @@ export class ViewportComponent {
 					</button>
 				</div>
 
-				<div class="pm-toolbar-divider"></div>
+				<!-- Expand Button (only visible when minimized) -->
+				<button id="pm-toolbar-expand-btn" class="pm-pill-btn pm-show-when-minimized" title="Expand Toolbar">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<polyline points="18 15 12 9 6 15"></polyline>
+					</svg>
+					<span>Controls</span>
+				</button>
+
+				<div class="pm-toolbar-divider pm-hide-when-minimized"></div>
+
+				<!-- View Mode Toggle -->
+				<div class="pm-toolbar-pill-group pm-hide-when-minimized">
+					<button id="pm-single-view-btn" class="pm-pill-btn ${initialViewMode === "single" ? "active" : ""}" title="Single Page View (Vertical Continuous Stack)">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+						</svg>
+						<span>Single</span>
+					</button>
+					<button id="pm-spread-view-btn" class="pm-pill-btn ${initialViewMode === "spread" ? "active" : ""}" title="Spread View (Grid Pages Display, Left to Right Flow)">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<rect x="3" y="3" width="7" height="7"></rect>
+							<rect x="14" y="3" width="7" height="7"></rect>
+							<rect x="14" y="14" width="7" height="7"></rect>
+							<rect x="3" y="14" width="7" height="7"></rect>
+						</svg>
+						<span>Spread</span>
+					</button>
+					<button id="pm-flipbook-view-btn" class="pm-pill-btn ${initialViewMode === "flipbook" ? "active" : ""}" title="Book View (Digital Book Reading Experience, Smooth 3D Flip)">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+							<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+						</svg>
+						<span>Book</span>
+					</button>
+				</div>
+
+				<!-- Grid Controls (Visible in Spread mode) -->
+				<div class="pm-toolbar-pill-group pm-grid-controls pm-hide-when-minimized" id="pm-grid-controls" style="display: ${initialViewMode === "spread" ? "flex" : "none"};">
+					<div class="pm-toolbar-divider"></div>
+					<span class="pm-grid-label">Grid</span>
+					<select id="pm-grid-cols-select" class="pm-zoom-select pm-grid-select" title="Grid Columns">
+						<option value="2" selected>2 Cols</option>
+						<option value="3">3 Cols</option>
+						<option value="4">4 Cols</option>
+						<option value="5">5 Cols</option>
+						<option value="6">6 Cols</option>
+					</select>
+				</div>
+
+				<div class="pm-toolbar-divider pm-hide-when-minimized"></div>
 
 				<!-- Zoom Controls -->
-				<div class="pm-toolbar-pill-group">
+				<div class="pm-toolbar-pill-group pm-hide-when-minimized">
 					<button id="pm-zoom-out-btn" class="pm-pill-btn pm-pill-icon" title="Zoom Out (-)">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<circle cx="11" cy="11" r="8"></circle>
@@ -148,10 +230,10 @@ export class ViewportComponent {
 					</button>
 				</div>
 
-				<div class="pm-toolbar-divider"></div>
+				<div class="pm-toolbar-divider pm-hide-when-minimized"></div>
 
 				<!-- Actions: Overlay, Print, Trace -->
-				<div class="pm-toolbar-pill-group">
+				<div class="pm-toolbar-pill-group pm-hide-when-minimized">
 					<button id="pm-float-overlay-btn" class="pm-pill-btn ${this.isOverlayVisible ? "active" : ""}" title="Toggle Devtools Box Sizing &amp; Layout Overlay">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -175,6 +257,17 @@ export class ViewportComponent {
 							<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
 						</svg>
 						<span>Trace</span>
+					</button>
+				</div>
+
+				<div class="pm-toolbar-divider pm-hide-when-minimized"></div>
+
+				<!-- Minimize Toolbar Handle -->
+				<div class="pm-toolbar-pill-group pm-hide-when-minimized">
+					<button id="pm-toolbar-collapse-btn" class="pm-pill-btn pm-pill-icon" title="Minimize toolbar to bottom">
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
 					</button>
 				</div>
 			</div>
@@ -205,6 +298,9 @@ export class ViewportComponent {
 			this.element.querySelector<HTMLButtonElement>("#pm-single-view-btn")!;
 		this.spreadViewBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-spread-view-btn")!;
+		this.flipbookViewBtn = this.element.querySelector<HTMLButtonElement>(
+			"#pm-flipbook-view-btn",
+		)!;
 		this.pageIndicatorEl = this.element.querySelector<HTMLElement>("#pm-page-indicator")!;
 		this.overlayBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-float-overlay-btn",
@@ -215,6 +311,27 @@ export class ViewportComponent {
 		this.traceSummaryEl = this.element.querySelector<HTMLElement>("#pm-trace-summary")!;
 		this.statusDot = this.element.querySelector<HTMLElement>("#pm-float-status-dot")!;
 		this.statusLabel = this.element.querySelector<HTMLElement>("#pm-float-status-label")!;
+		this.floatingBarEl = this.element.querySelector<HTMLElement>(
+			"#pm-floating-preview-bar",
+		)!;
+		this.gridControlsEl = this.element.querySelector<HTMLElement>("#pm-grid-controls")!;
+		this.gridColsSelect =
+			this.element.querySelector<HTMLSelectElement>("#pm-grid-cols-select")!;
+		this.collapseBtn = this.element.querySelector<HTMLButtonElement>(
+			"#pm-toolbar-collapse-btn",
+		)!;
+		this.expandBtn = this.element.querySelector<HTMLButtonElement>(
+			"#pm-toolbar-expand-btn",
+		)!;
+		this.bookSidePrev =
+			this.element.querySelector<HTMLButtonElement>("#pm-book-side-prev")!;
+		this.bookSideNext =
+			this.element.querySelector<HTMLButtonElement>("#pm-book-side-next")!;
+
+		const isInitialBook =
+			initialViewMode === "flipbook" || (initialViewMode as string) === "book";
+		this.bookSidePrev.style.display = isInitialBook ? "flex" : "none";
+		this.bookSideNext.style.display = isInitialBook ? "flex" : "none";
 
 		const zoomOutBtn = this.element.querySelector<HTMLButtonElement>("#pm-zoom-out-btn")!;
 		const zoomInBtn = this.element.querySelector<HTMLButtonElement>("#pm-zoom-in-btn")!;
@@ -247,6 +364,17 @@ export class ViewportComponent {
 			this.fitToView();
 		});
 
+		prevPageBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.handlePrevPage();
+		});
+		nextPageBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.handleNextPage();
+		});
+		this.bookSidePrev.addEventListener("click", () => this.handlePrevPage());
+		this.bookSideNext.addEventListener("click", () => this.handleNextPage());
+
 		this.singleViewBtn.addEventListener("click", () => {
 			this.setViewMode("single");
 			callbacks.onViewModeChange("single");
@@ -256,6 +384,51 @@ export class ViewportComponent {
 			this.setViewMode("spread");
 			callbacks.onViewModeChange("spread");
 		});
+
+		this.flipbookViewBtn.addEventListener("click", () => {
+			this.setViewMode("flipbook");
+			callbacks.onViewModeChange("flipbook");
+		});
+
+		this.collapseBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.setToolbarMinimized(true);
+		});
+
+		this.expandBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.setToolbarMinimized(false);
+		});
+
+		this.floatingBarEl.addEventListener("click", (e) => {
+			if (!this.isToolbarMinimized) return;
+			const target = e.target as HTMLElement | null;
+			if (
+				target?.closest(
+					"#pm-prev-page-btn, #pm-next-page-btn, #pm-page-indicator, button, select, input",
+				)
+			) {
+				return;
+			}
+			this.setToolbarMinimized(false);
+		});
+
+		this.gridColsSelect.addEventListener("change", () => {
+			this.gridCols = parseInt(this.gridColsSelect.value, 10) || 2;
+			this.applyGridDimensions();
+		});
+
+		if (typeof window !== "undefined") {
+			window.addEventListener("keydown", (e: KeyboardEvent) => {
+				if (
+					e.key === "Escape" &&
+					!(e.target instanceof HTMLInputElement) &&
+					!(e.target instanceof HTMLTextAreaElement)
+				) {
+					this.setToolbarMinimized(!this.isToolbarMinimized);
+				}
+			});
+		}
 
 		this.overlayBtn.addEventListener("click", () => {
 			this.isOverlayVisible = !this.isOverlayVisible;
@@ -279,15 +452,46 @@ export class ViewportComponent {
 			callbacks.onPrintClick?.();
 		});
 
-		prevPageBtn.addEventListener("click", () => {
-			this.scrollToPage(this.currentPageIndex - 1);
-		});
-
-		nextPageBtn.addEventListener("click", () => {
-			this.scrollToPage(this.currentPageIndex + 1);
-		});
+		this.renderViewport.addEventListener("flipbook:change", this.onFlipbookChange);
 
 		this.setZoom(initialZoom);
+	}
+
+	private getFlipBookController(): FlipBookController | null {
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument ?? this.renderViewport;
+		const pagesContainer = doc.querySelector<HTMLElement>(
+			".printedjs_pages, .pagedjs_pages",
+		);
+		if (!pagesContainer) return null;
+		return (
+			((pagesContainer as unknown as Record<string, unknown>).__printedjs_flipbook as
+				FlipBookController | undefined) ?? null
+		);
+	}
+
+	private handlePrevPage(): void {
+		if (this.currentViewMode === "flipbook") {
+			const flipBook = this.getFlipBookController();
+			if (flipBook) {
+				void flipBook.prev();
+				return;
+			}
+		}
+		this.scrollToPage(this.currentPageIndex - 1);
+	}
+
+	private handleNextPage(): void {
+		if (this.currentViewMode === "flipbook") {
+			const flipBook = this.getFlipBookController();
+			if (flipBook) {
+				void flipBook.next();
+				return;
+			}
+		}
+		this.scrollToPage(this.currentPageIndex + 1);
 	}
 
 	getContentWidth(): number {
@@ -295,59 +499,142 @@ export class ViewportComponent {
 			"iframe[data-playground-frame]",
 		);
 		const doc = iframe?.contentDocument ?? this.renderViewport;
+		const pagesContainer = doc.querySelector<HTMLElement>(
+			".printedjs_pages, .pagedjs_pages",
+		);
 		const pages = Array.from(
 			doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 		);
 
 		if (pages.length === 0) {
-			return this.currentViewMode === "spread" ? 1680 : 860;
+			return this.currentViewMode === "spread" || this.currentViewMode === "flipbook"
+				? 1680
+				: 860;
 		}
+
+		if (
+			this.currentViewMode === "flipbook" ||
+			(this.currentViewMode as string) === "book"
+		) {
+			const pinned = parseFloat(pagesContainer?.style.width || "");
+			if (pinned > 0) return Math.ceil(pinned + 48);
+		}
+
+		let maxPageWidth = 0;
+		for (const page of pages) {
+			const rect = page.getBoundingClientRect ? page.getBoundingClientRect() : null;
+			const w =
+				rect?.width ||
+				page.offsetWidth ||
+				parseFloat(page.style.width) ||
+				parseFloat(window.getComputedStyle(page).width) ||
+				794;
+			if (w > maxPageWidth) maxPageWidth = w;
+		}
+		if (maxPageWidth <= 0) maxPageWidth = 794;
 
 		if (this.currentViewMode === "single") {
-			let maxPageWidth = 0;
-			for (const page of pages) {
-				const w = page.offsetWidth || parseFloat(page.style.width) || 794;
-				if (w > maxPageWidth) maxPageWidth = w;
-			}
-			return Math.ceil(maxPageWidth);
+			return Math.max(860, Math.ceil(maxPageWidth + 64));
 		}
 
-		// In spread view, measure the pages container directly if available
+		if (
+			this.currentViewMode === "flipbook" ||
+			(this.currentViewMode as string) === "book"
+		) {
+			const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+			if (isMobile) return Math.ceil(maxPageWidth + 48);
+			return Math.ceil(maxPageWidth * 2 + 48);
+		}
+
+		if (this.currentViewMode === "spread") {
+			const cols = Math.max(1, this.gridCols);
+			return Math.ceil(maxPageWidth * cols + (cols - 1) * 24 + 32);
+		}
+
+		return 860;
+	}
+
+	private pageSize(): { width: number; height: number } {
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument ?? this.renderViewport;
+		const page = doc.querySelector<HTMLElement>(".printedjs_page, .pagedjs_page");
+		const isBook =
+			this.currentViewMode === "flipbook" || (this.currentViewMode as string) === "book";
+		const rect = isBook ? null : page?.getBoundingClientRect?.();
+		const width =
+			(!isBook ? rect?.width : 0) ||
+			parseFloat(page?.style.width || "") ||
+			page?.offsetWidth ||
+			794;
+		const height =
+			(!isBook ? rect?.height : 0) ||
+			parseFloat(page?.style.height || "") ||
+			page?.offsetHeight ||
+			1123;
+		return {
+			width: width > 0 ? width : 794,
+			height: height > 0 ? height : 1123,
+		};
+	}
+
+	getContentHeight(): number {
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument ?? this.renderViewport;
 		const pagesContainer = doc.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
-		if (pagesContainer && pagesContainer.offsetWidth > 0) {
-			return Math.ceil(pagesContainer.offsetWidth);
+		const pageHeight = this.pageSize().height;
+
+		if (
+			this.currentViewMode === "flipbook" ||
+			(this.currentViewMode as string) === "book"
+		) {
+			const pinned = parseFloat(pagesContainer?.style.height || "");
+			if (pinned > 0) return Math.ceil(pinned + 48);
+			return Math.ceil(pageHeight + 48);
 		}
 
-		if (pages.length === 1) {
-			const w = pages[0]?.offsetWidth || parseFloat(pages[0]?.style.width || "0") || 794;
-			return Math.ceil(w);
+		if (this.currentViewMode === "spread") {
+			const pageCount = doc.querySelectorAll(".printedjs_page, .pagedjs_page").length;
+			const cols = Math.max(1, this.gridCols);
+			const rows = Math.max(1, Math.ceil(pageCount / cols));
+			return Math.ceil(rows * pageHeight + Math.max(0, rows - 1) * 32 + 48);
 		}
 
-		let maxCol1 = 0;
-		let maxCol2 = 0;
-		for (let i = 0; i < pages.length; i++) {
-			const page = pages[i];
-			if (!page) continue;
-			const w = page.offsetWidth || parseFloat(page.style.width) || 794;
-			if (i % 2 === 0) {
-				if (w > maxCol1) maxCol1 = w;
-			} else {
-				if (w > maxCol2) maxCol2 = w;
-			}
-		}
-
-		return Math.ceil(maxCol1 + maxCol2 + 24);
+		if (pageHeight > 0) return pageHeight + 32;
+		return 1123;
 	}
 
 	fitToView(): void {
-		const availableWidth = this.canvasScrollEl.clientWidth - 80;
+		const canvasStyle = window.getComputedStyle?.(this.canvasScrollEl);
+		const padX = canvasStyle
+			? (parseFloat(canvasStyle.paddingLeft) || 0) +
+				(parseFloat(canvasStyle.paddingRight) || 0)
+			: 80;
+		const padY = canvasStyle
+			? (parseFloat(canvasStyle.paddingTop) || 0) +
+				(parseFloat(canvasStyle.paddingBottom) || 0)
+			: 180;
+		const availableWidth = this.canvasScrollEl.clientWidth - padX;
+		const availableHeight = this.canvasScrollEl.clientHeight - padY;
 		const contentWidth = this.getContentWidth();
+		const contentHeight = this.getContentHeight();
 		if (availableWidth <= 0 || contentWidth <= 0) return;
 
-		let calculatedZoom = Math.floor((availableWidth / contentWidth) * 20) / 20;
-		calculatedZoom = Math.max(0.3, Math.min(1.5, calculatedZoom));
+		const scaleX = availableWidth / contentWidth;
+		const isWideSpread = this.currentViewMode === "spread" && this.gridCols >= 3;
+		const scaleY =
+			!isWideSpread && availableHeight > 0 && contentHeight > 0
+				? availableHeight / contentHeight
+				: scaleX;
+
+		const bestScale = isWideSpread ? scaleX : Math.min(scaleX, scaleY);
+		let calculatedZoom = Math.floor(bestScale * 100) / 100;
+		calculatedZoom = Math.max(0.1, Math.min(1.5, calculatedZoom));
 		this.setZoom(calculatedZoom);
 		this.callbacks.onZoomChange(calculatedZoom);
 	}
@@ -355,12 +642,15 @@ export class ViewportComponent {
 	setZoom(zoom: number): void {
 		this.currentZoom = zoom;
 
-		if ("zoom" in this.zoomContainer.style) {
-			(this.zoomContainer.style as unknown as { zoom: string }).zoom = String(zoom);
-			this.zoomContainer.style.transform = "none";
+		const styleObj = this.zoomContainer.style;
+		const supportsZoom =
+			typeof (styleObj as unknown as Record<string, unknown>)["zoom"] !== "undefined";
+		if (supportsZoom) {
+			(styleObj as unknown as Record<string, unknown>)["zoom"] = String(zoom);
+			styleObj.transform = "none";
 		} else {
-			this.zoomContainer.style.transform = `scale(${zoom})`;
-			this.zoomContainer.style.transformOrigin = "top center";
+			styleObj.transform = `scale(${zoom})`;
+			styleObj.transformOrigin = "top center";
 		}
 
 		const zoomStr = String(zoom);
@@ -399,19 +689,80 @@ export class ViewportComponent {
 		this.overlayBtn.classList.toggle("active", visible);
 	}
 
+	setToolbarMinimized(minimized: boolean): void {
+		this.isToolbarMinimized = minimized;
+		this.floatingBarEl.classList.toggle("is-minimized", minimized);
+	}
+
+	private applyGridDimensions(): void {
+		const cols = this.gridCols;
+
+		this.renderViewport.style.setProperty("--pm-grid-cols", String(cols));
+
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument;
+		if (doc) {
+			if (doc.documentElement) {
+				doc.documentElement.style.setProperty("--pm-grid-cols", String(cols));
+			}
+			if (doc.body) {
+				doc.body.style.setProperty("--pm-grid-cols", String(cols));
+				const pagesContainer = doc.querySelector<HTMLElement>(
+					".printedjs_pages, .pagedjs_pages",
+				);
+				if (pagesContainer) {
+					pagesContainer.style.setProperty("--pm-grid-cols", String(cols));
+					pagesContainer.setAttribute("data-grid-cols", String(cols));
+				}
+			}
+		}
+
+		if (this.currentViewMode === "spread") {
+			this.adjustIframe();
+			this.fitToView();
+		}
+	}
+
 	setViewMode(mode: ViewMode): void {
 		this.currentViewMode = mode;
-		if (mode === "spread") {
-			this.element.classList.add("pm-spread-view");
-			this.element.classList.remove("pm-single-view");
-			this.spreadViewBtn.classList.add("active");
-			this.singleViewBtn.classList.remove("active");
-		} else {
-			this.element.classList.remove("pm-spread-view");
-			this.element.classList.add("pm-single-view");
-			this.singleViewBtn.classList.add("active");
-			this.spreadViewBtn.classList.remove("active");
+		const isSingle = mode === "single";
+		const isSpread = mode === "spread";
+		const isBook = mode === "flipbook" || (mode as string) === "book";
+
+		this.singleViewBtn.classList.toggle("active", isSingle);
+		this.spreadViewBtn.classList.toggle("active", isSpread);
+		this.flipbookViewBtn.classList.toggle("active", isBook);
+
+		this.element.classList.toggle("pm-single-view", isSingle);
+		this.element.classList.toggle("pm-spread-view", isSpread);
+		this.element.classList.toggle("pm-flipbook-view", isBook);
+
+		this.gridControlsEl.style.display = isSpread ? "flex" : "none";
+		this.bookSidePrev.style.display = isBook ? "flex" : "none";
+		this.bookSideNext.style.display = isBook ? "flex" : "none";
+
+		if (isSpread) {
+			this.applyGridDimensions();
 		}
+
+		if (isBook) {
+			const flipBook = this.getFlipBookController();
+			if (flipBook) {
+				this.currentPageIndex = flipBook.currentPage;
+				this.updateBookPageIndicator(
+					flipBook.currentSpread,
+					flipBook.totalSpreads,
+					flipBook.currentPage,
+				);
+			} else {
+				this.updateBookPageIndicator(0, Math.ceil((this.totalPages + 1) / 2), 1);
+			}
+		} else {
+			this.updatePageStats(this.totalPages);
+		}
+
 		this.adjustIframe();
 		this.fitToView();
 	}
@@ -425,11 +776,29 @@ export class ViewportComponent {
 		if (!iframe?.contentDocument || !iframe.contentDocument.body) return;
 		const doc = iframe.contentDocument;
 		const isSpread = this.currentViewMode === "spread";
+		const isFlipbook =
+			this.currentViewMode === "flipbook" || (this.currentViewMode as string) === "book";
 
 		doc.documentElement.classList.toggle("pm-spread-view", isSpread);
 		doc.body.classList.toggle("pm-spread-view", isSpread);
-		doc.documentElement.classList.toggle("pm-single-view", !isSpread);
-		doc.body.classList.toggle("pm-single-view", !isSpread);
+		doc.documentElement.classList.toggle("pm-flipbook-view", isFlipbook);
+		doc.body.classList.toggle("pm-flipbook-view", isFlipbook);
+		doc.documentElement.classList.toggle("pm-single-view", !isSpread && !isFlipbook);
+		doc.body.classList.toggle("pm-single-view", !isSpread && !isFlipbook);
+
+		if (isSpread) {
+			doc.documentElement.style.setProperty("--pm-grid-cols", String(this.gridCols));
+			doc.body.style.setProperty("--pm-grid-cols", String(this.gridCols));
+			const pagesContainer = doc.querySelector<HTMLElement>(
+				".printedjs_pages, .pagedjs_pages",
+			);
+			if (pagesContainer) {
+				pagesContainer.style.setProperty("--pm-grid-cols", String(this.gridCols));
+			}
+		}
+
+		doc.removeEventListener("flipbook:change", this.onFlipbookChange);
+		doc.addEventListener("flipbook:change", this.onFlipbookChange);
 
 		const pagesContainer = (doc.querySelector(".printedjs_pages") ??
 			doc.querySelector(".pagedjs_pages") ??
@@ -438,12 +807,18 @@ export class ViewportComponent {
 		const targetWidth = this.getContentWidth();
 		iframe.style.width = `${targetWidth}px`;
 
-		const contentHeight = Math.max(
-			doc.documentElement.scrollHeight,
-			doc.body.scrollHeight,
-			pagesContainer.scrollHeight + 48,
-		);
+		const contentHeight = isFlipbook
+			? this.getContentHeight() + 96
+			: Math.max(
+					doc.documentElement.scrollHeight,
+					doc.body.scrollHeight,
+					pagesContainer.scrollHeight + 48,
+				);
 		iframe.style.height = `${Math.ceil(contentHeight) + 48}px`;
+		iframe.style.overflow = "hidden";
+		iframe.setAttribute("scrolling", "no");
+		doc.documentElement.style.overflow = "hidden";
+		doc.body.style.overflow = isFlipbook ? "hidden" : "";
 	}
 
 	updatePageStats(pageCount: number): void {
@@ -454,6 +829,36 @@ export class ViewportComponent {
 		} else {
 			this.currentPageIndex = 1;
 			this.pageIndicatorEl.textContent = `1 of ${pageCount}`;
+		}
+	}
+
+	updateBookPageIndicator(
+		spread: number,
+		_totalSpreads: number,
+		currentPage?: number,
+		leftPage?: number | null,
+		rightPage?: number | null,
+	): void {
+		const total = this.totalPages;
+		if (total <= 0) {
+			this.pageIndicatorEl.textContent = "0 pages";
+			return;
+		}
+
+		const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+		if (isMobile) {
+			const pageNum = Math.min(total, Math.max(1, currentPage ?? spread + 1));
+			this.pageIndicatorEl.textContent = `${pageNum} of ${total}`;
+			return;
+		}
+
+		const right = rightPage ?? (spread === 0 ? 1 : Math.min(total, spread * 2 + 1));
+		const left = leftPage === undefined ? (spread === 0 ? null : right - 1) : leftPage;
+
+		if (left == null || left < 1 || left === right) {
+			this.pageIndicatorEl.textContent = `${right} of ${total}`;
+		} else {
+			this.pageIndicatorEl.textContent = `${left}–${right} of ${total}`;
 		}
 	}
 

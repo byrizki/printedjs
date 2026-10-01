@@ -1,3 +1,4 @@
+import { printDocument } from "@printedjs/browser";
 import { EditorPanelComponent } from "./components/editor-panel.js";
 import { HeaderComponent } from "./components/header.js";
 import { ViewportComponent } from "./components/viewport.js";
@@ -19,63 +20,23 @@ interface ExtendedPlaygroundState extends PlaygroundState {
 	isSidebarOpen: boolean;
 }
 
-interface PersistedPlaygroundState {
-	readonly fixtureId?: string;
-	readonly isCustomTemplate?: boolean;
-	readonly isCustomData?: boolean;
-	readonly templateContent?: string;
-	readonly dataJsonContent?: string;
-	readonly isolationMode?: "root" | "iframe";
-	readonly viewMode?: ViewMode;
-	readonly zoomLevel?: number;
-	readonly autoRender?: boolean;
-	readonly theme?: "light" | "dark";
-	readonly isSidebarOpen?: boolean;
-}
-
-const STORAGE_KEY = "printedjs_playground_v2";
-
-function loadPersistedState(): PersistedPlaygroundState | null {
+export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return null;
-		return JSON.parse(raw) as PersistedPlaygroundState;
-	} catch {
-		return null;
-	}
-}
-
-function savePersistedState(saved: PersistedPlaygroundState): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+		localStorage.removeItem("printedjs_playground_v2");
+		localStorage.removeItem("printedjs_playground_state");
 	} catch {
 		// Ignore storage quota or disabled errors
 	}
-}
 
-export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
-	const persisted = loadPersistedState();
-	const initialFixture: PlaygroundFixture =
-		(persisted?.fixtureId
-			? FIXTURE_CATALOG.find((f) => f.id === persisted.fixtureId)
-			: undefined) ?? FIXTURE_CATALOG[0]!;
-
-	const initialTemplate =
-		persisted?.isCustomTemplate && persisted.templateContent !== undefined
-			? persisted.templateContent
-			: initialFixture.html;
-
-	const initialDataJson =
-		persisted?.isCustomData && persisted.dataJsonContent !== undefined
-			? persisted.dataJsonContent
-			: JSON.stringify(initialFixture.data ?? {}, null, 2);
-
-	const initialIsolation = persisted?.isolationMode ?? "root";
-	const initialViewMode = persisted?.viewMode ?? "single";
-	const initialZoom = persisted?.zoomLevel ?? 1.0;
-	const initialAutoRender = persisted?.autoRender ?? true;
-	const initialTheme = persisted?.theme ?? "dark";
-	const initialSidebarOpen = persisted?.isSidebarOpen ?? true;
+	const initialFixture: PlaygroundFixture = FIXTURE_CATALOG[0]!;
+	const initialTemplate = initialFixture.html;
+	const initialDataJson = JSON.stringify(initialFixture.data ?? {}, null, 2);
+	const initialIsolation = "root";
+	const initialViewMode: ViewMode = "single";
+	const initialZoom = 1.0;
+	const initialAutoRender = true;
+	const initialTheme = "dark";
+	const initialSidebarOpen = true;
 
 	// Apply initial theme to document and monaco
 	document.documentElement.setAttribute("data-theme", initialTheme);
@@ -100,26 +61,6 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 	};
 
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-	const persistCurrentState = () => {
-		const isCustomTemplate = state.templateContent !== state.currentFixture.html;
-		const defaultDataJson = JSON.stringify(state.currentFixture.data ?? {}, null, 2);
-		const isCustomData = state.dataJsonContent.trim() !== defaultDataJson.trim();
-
-		savePersistedState({
-			fixtureId: state.currentFixture.id,
-			isCustomTemplate,
-			isCustomData,
-			...(isCustomTemplate ? { templateContent: state.templateContent } : {}),
-			...(isCustomData ? { dataJsonContent: state.dataJsonContent } : {}),
-			isolationMode: state.isolationMode,
-			viewMode: state.viewMode,
-			zoomLevel: state.zoomLevel,
-			autoRender: state.autoRender,
-			theme: state.theme,
-			isSidebarOpen: state.isSidebarOpen,
-		});
-	};
 
 	// App shell layout structure
 	rootElement.innerHTML = `
@@ -147,17 +88,17 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 	};
 
 	const handlePrint = () => {
-		if (state.isolationMode === "iframe") {
-			const iframe = viewportComponent.renderViewport.querySelector<HTMLIFrameElement>(
-				"iframe[data-playground-frame]",
-			);
-			if (iframe?.contentWindow) {
-				iframe.contentWindow.focus();
-				iframe.contentWindow.print();
-				return;
-			}
-		}
-		window.print();
+		const target =
+			state.isolationMode === "iframe"
+				? (viewportComponent.renderViewport.querySelector<HTMLIFrameElement>(
+						"iframe[data-playground-frame]",
+					) ?? window)
+				: window;
+		void printDocument({
+			target,
+			pageTitle: state.currentFixture.title,
+			cleanChrome: true,
+		});
 	};
 
 	const viewportComponent = new ViewportComponent({
@@ -167,11 +108,12 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		callbacks: {
 			onZoomChange(zoom) {
 				state.zoomLevel = zoom;
-				persistCurrentState();
 			},
 			onViewModeChange(mode: ViewMode) {
 				state.viewMode = mode;
-				persistCurrentState();
+				renderService.setViewMode(mode);
+				viewportComponent.adjustIframe();
+				viewportComponent.fitToView();
 			},
 			onOverlayToggle(visible) {
 				state.showDevtoolsOverlay = visible;
@@ -195,11 +137,10 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		headerComponent.setSidebarOpen(state.isSidebarOpen);
 		setTimeout(() => {
 			viewportComponent.adjustIframe();
-			if (state.viewMode === "spread") {
+			if (state.viewMode !== "single") {
 				viewportComponent.fitToView();
 			}
 		}, 200);
-		persistCurrentState();
 	};
 
 	const toggleTheme = () => {
@@ -208,7 +149,6 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		document.documentElement.setAttribute("data-theme", nextTheme);
 		setMonacoTheme(nextTheme);
 		headerComponent.setTheme(nextTheme);
-		persistCurrentState();
 	};
 
 	const editorPanelComponent = new EditorPanelComponent({
@@ -219,19 +159,16 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		callbacks: {
 			onTemplateChange(newTemplate) {
 				state.templateContent = newTemplate;
-				persistCurrentState();
 				scheduleAutoRender();
 			},
 			onDataChange(newDataJson) {
 				state.dataJsonContent = newDataJson;
-				persistCurrentState();
 				scheduleAutoRender();
 			},
 			onResetFixture() {
 				const fixture = state.currentFixture;
 				state.templateContent = fixture.html;
 				state.dataJsonContent = JSON.stringify(fixture.data ?? {}, null, 2);
-				persistCurrentState();
 				editorPanelComponent.setFixture(
 					fixture,
 					state.templateContent,
@@ -250,7 +187,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 
 	const resizeHandler = () => {
 		editorPanelComponent.layout();
-		if (state.viewMode === "spread") {
+		if (state.viewMode !== "single") {
 			viewportComponent.fitToView();
 		}
 	};
@@ -269,12 +206,10 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			},
 			onIsolationChange(isolation) {
 				state.isolationMode = isolation;
-				persistCurrentState();
 				void executePipeline();
 			},
 			onAutoRenderChange(autoRender) {
 				state.autoRender = autoRender;
-				persistCurrentState();
 			},
 			onRenderClick() {
 				void executePipeline();
@@ -333,7 +268,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			viewportComponent.updatePageStats(renderStats.pageCount);
 			viewportComponent.setSuccess(renderStats);
 			viewportComponent.adjustIframe();
-			if (state.viewMode === "spread") {
+			if (state.viewMode !== "single") {
 				viewportComponent.fitToView();
 			}
 		} catch (err: unknown) {
@@ -353,13 +288,12 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		state.currentFixture = match;
 		state.templateContent = match.html;
 		state.dataJsonContent = JSON.stringify(match.data ?? {}, null, 2);
-		persistCurrentState();
 
 		headerComponent.setFixture(match.id);
 		editorPanelComponent.setFixture(match, state.templateContent, state.dataJsonContent);
 
 		await executePipeline();
-		if (state.viewMode === "spread") {
+		if (state.viewMode !== "single") {
 			viewportComponent.fitToView();
 		}
 	}

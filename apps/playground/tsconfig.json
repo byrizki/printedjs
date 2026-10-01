@@ -8,7 +8,10 @@
 	"references": [
 		{ "path": "../../packages/core" },
 		{ "path": "../../packages/browser" },
-		{ "path": "../../packages/plugins" },
+		{ "path": "../../packages/plugins/core/preset" },
+		{ "path": "../../packages/plugins/core/views" },
+		{ "path": "../../packages/plugins/community/eta" },
+		{ "path": "../../packages/plugins/community/page-flip" },
 		{ "path": "../../packages/devtools" }
 	]
 }

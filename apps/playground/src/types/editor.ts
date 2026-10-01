@@ -1,6 +1,6 @@
 export type EditorTabId = "template" | "data";
 
-export type ViewMode = "single" | "spread";
+export type ViewMode = "single" | "spread" | "flipbook";
 
 export interface ZoomPreset {
 	readonly label: string;

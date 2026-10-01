@@ -1,0 +1,21 @@
+{
+  "fixtureId": "styles/simple",
+  "capturedAt": "2026-10-01T11:34:00.673Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "8aca5f9d4fce4baa44dceef01ba737c9f6c159d271133134fbc3d44dce975036"
+}

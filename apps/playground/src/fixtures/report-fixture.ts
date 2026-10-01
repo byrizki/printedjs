@@ -205,7 +205,7 @@ export const REPORT_FIXTURE: PlaygroundFixture = {
 	</div>
 </div>
 
-<table class="ledger-table">
+<table class="ledger-table repeat-header">
 	<thead>
 		<tr>
 			<th style="width: 70px;">Tx ID</th>

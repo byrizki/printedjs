@@ -1,0 +1,87 @@
+{
+  "fixtureId": "string/string-default",
+  "capturedAt": "2026-10-01T11:34:00.550Z",
+  "pageCount": 7,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "width": 529.125,
+      "height": 755.890625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "ce936d2329f6a46d6a1424bcfcf2474df7bb11bd4d73a016b8229298c0993527"
+}

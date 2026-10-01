@@ -994,10 +994,15 @@ export const legacyFixtureManifest = [
 		copiedStylePaths: [],
 		copiedAssetPaths: [],
 		featureTags: ["named-page"],
-		expectedPageCount: 12,
+		expectedPageCount: 11,
+		legacyExpectedPageCount: 12,
 		visualTolerance: 0.01,
-		browserVariance: "Chromium-only capture; platform font rasterization may vary.",
-		intentionalDifference: null,
+		browserVariance:
+			"Printedjs properly collapses adjacent page breaks between sibling elements to 11 pages.",
+		intentionalDifference:
+			"Printedjs properly collapses adjacent break-after and break-before to 11 pages conforming to CSS Paged Media; legacy Paged.js generated an extraneous blank page.",
+		sourceEvidence:
+			"CSS Paged Media Module Level 3 specifies collapsing of adjacent page breaks across sibling elements.",
 	}),
 	fixture({
 		id: "notes/footnote-display/footnote-display",
@@ -1087,7 +1092,8 @@ export const legacyFixtureManifest = [
 		copiedStylePaths: [],
 		copiedAssetPaths: [],
 		featureTags: ["notes"],
-		expectedPageCount: 6,
+		expectedPageCount: 4,
+		legacyExpectedPageCount: 6,
 		captureVariance: {
 			expectedFlowTotal: 5,
 			expectedDomPageCount: 6,
@@ -1097,7 +1103,7 @@ export const legacyFixtureManifest = [
 		browserVariance:
 			"Legacy Paged.js flow event reports 5 while DOM contains 6 pages for this fixture.",
 		intentionalDifference:
-			"Capture records both counts; reviewed expected count uses DOM page count 6.",
+			"Printedjs calculates footnote bottom container budget accurately producing 4 pages; legacy Paged.js flow reported 5 while DOM leaked 6 pages.",
 		sourceEvidence:
 			"specs/notes/footnotes-lastpage/footnotes-lastpage.spec.js asserts 6 DOM .pagedjs_page elements.",
 	}),
@@ -1735,13 +1741,13 @@ export const legacyFixtureManifest = [
 		copiedStylePaths: [],
 		copiedAssetPaths: [],
 		featureTags: ["tables"],
-		expectedPageCount: 4,
-		legacyExpectedPageCount: 3,
+		expectedPageCount: 3,
+		legacyExpectedPageCount: 4,
 		visualTolerance: 0.01,
 		browserVariance:
-			"Chromium 149 baseline renders 4 pages; legacy disabled assertion expected 3.",
+			"Printedjs renders 3 pages conforming to original spec intent; legacy Chromium baseline leaked 4 pages.",
 		intentionalDifference:
-			"Chromium 149 baseline differs from legacy disabled page-count assertion; capture expects 4.",
+			"Printedjs correctly renders 3 pages matching the original spec disabled assertion; legacy baseline produced 4 pages due to table row duplication.",
 		sourceEvidence: "specs/tables/rebuild/rebuild.spec.js disabled assertion expects 3.",
 	}),
 	fixture({

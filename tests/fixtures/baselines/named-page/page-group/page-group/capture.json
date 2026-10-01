@@ -1,0 +1,151 @@
+{
+  "fixtureId": "named-page/page-group/page-group",
+  "capturedAt": "2026-10-01T11:33:58.466Z",
+  "pageCount": 11,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_aside_page",
+        "pagedjs_aside_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_aside_page",
+        "pagedjs_aside_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 8,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 10,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 11,
+      "width": 576,
+      "height": 768,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_chapter_page",
+        "pagedjs_chapter_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "2d9d558b16d07692122c7c7c653d66bc785c701bc549ddb2e5d56bcb4aa88ae6"
+}

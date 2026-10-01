@@ -50,6 +50,9 @@ RenderRequest
 | **Phase 11** | Performance, Page Virtualization & Scale       | `@printedjs/browser`                       | **Completed** |
 | **Phase 12** | Headless PDF CLI, Dual Drivers & Polyfill      | `@printedjs/cli`, `@printedjs/polyfill`    | **Completed** |
 | **Phase 13** | Developer Tooling & Enterprise Fixture Parity  | Monorepo & Playground                      | **Completed** |
+| **Phase 14** | Core Layout Engine Conformance & Gap Closure   | `@printedjs/browser`, `@printedjs/core`    | **Completed** |
+| **Phase 15** | Baseline Modernization & Native Visual CI      | Test Suite & CI Automation                 | **Completed** |
+| **Phase 16** | Playground Test Catalog & Preset Polish        | `apps/playground`                          | **Completed** |
 
 ---
 
@@ -132,6 +135,42 @@ RenderRequest
 - Replaced static test server with instant-reload Vite development server (`pnpm dev`).
 - Validated real-world enterprise templates (proposals, multi-page financial reports, benefit summary tables, and illustration layouts).
 - Cleaned monorepo packaging, ensuring zero stray dependencies and strict export validation.
+
+### Phase 14 — Core Layout Engine Conformance & Gap Closure
+
+- **Parity Blank Page Insertion**: Implemented `break-after: left / recto / right / verso` support in `DomLayoutAdapter`, automatically calculating sheet parity and inserting blank pages to maintain physical book printing alignment.
+- **Undisplayed Node Trailing Page Fix**: Eliminated ghost trailing blank pages caused by non-rendered elements (`<script>`, `<style>`, `<template>`, `<noscript>`) and computed `display: none` subtrees.
+- **Base URL & Resource Resolution**: Added `baseUrl` option to `RenderRequest` and extracted `<base href>` in `SourceNormalizer` to ensure relative images, web fonts, and `@import` stylesheets resolve accurately in headless and isolated sandboxes.
+
+### Phase 15 — Baseline Modernization & Native Visual CI
+
+- **Native Baseline Capture Pipeline**: Built `pnpm baseline:capture:printedjs` (`scripts/capture-printedjs-baselines.ts`) establishing an authoritative Printedjs golden visual baseline with geometry metrics, sha256 hashes, and structured capture manifests.
+- **Cross-Engine Visual Parity Suite**: Expanded Playwright visual test matrix to 30 diverse fixtures (90 test cases) across Chromium, Firefox, and WebKit with 100% pass rates.
+- **CI Test Automation & Artifacts**: Updated `.github/workflows/ci.yml` to install and test Chromium, Firefox, and WebKit on every PR, with automated failure artifact uploads (`actions/upload-artifact@v4`) for rapid triage.
+
+### Phase 16 — Playground Test Catalog & Preset Polish
+
+- **Visual Fixture Playground Catalog**: Integrated all 30 visual test fixtures into the interactive Playground dropdown under `<optgroup label="Test Fixtures">` for real-time visual inspection and debugging.
+- **Zero-Margin Certificate Preset**: Refactored Certificate of Completion preset to use `@page { margin: 0; }` with full pagebox geometry anchoring, eliminating layout overflow and asymmetrical bottom margins.
+
+### Phase 17 — Enhanced Page Counter & Custom Numbering Pagination
+
+- **Multi-System Page Number Formatting**: Added zero-DOM `formatPageNumber(value, style)` in `@printedjs/core` and `@printedjs/plugins` supporting `lower-roman`, `upper-roman`, `lower-alpha`, `upper-alpha`, `decimal-leading-zero`, and standard `decimal`.
+- **Custom Pagination Reset & Style Attributes**: Extended `createPageShell` and `DomLayoutAdapter` to support `counter-reset: page <N>` and `counter-style`, emitting `data-counter-style`, `data-counter-formatted`, and custom properties (`--printedjs-logical-page-number`, `--printedjs-page-counter-style`).
+- **Format-Preserving Target Counters**: Enhanced `countersPlugin` to support `target-counter(attr(href), page, <style>)` CSS patterns, automatically injecting formatted target page attributes (`data-target-page-lower-roman`, etc.) and computing per-section page counts (`--printedjs-section-page-count`).
+
+### Phase 18 — Built-in Page View Plugins & Reader Modes
+
+- **Modular Page View Engine**: Moved viewing plugins from `apps/playground` directly into `@printedjs/plugins` (`singlePageViewPlugin`, `spreadPageViewPlugin`, `flipBookViewPlugin`, `pageViewsPlugin`).
+- **Spread View Mode**: CSS-driven two-page facing spreads with cover page offset and spine fold shadow.
+- **Realistic 3D Flip-Book Engine**: Zero-asset interactive 3D page flip animation with mouse/touch/arrow navigation and synthetic paper rustle sound via Web Audio API (`playPageTurnSound`).
+- **Unified Page Views Controller**: `pageViewsPlugin` provides seamless dynamic switching between `"single"`, `"spread"`, and `"flipbook"` modes via `DomPageViewsController`.
+
+### Phase 19 — Mirrored Margins, Interactive TOC Drawer & Client-Side PDF Export
+
+- **Mirrored Margins & Gutter Binding**: Added support for `@page` margin declarations `margin-inside`, `margin-outside`, and `gutter` in `pageRulesPlugin`, automatically computing facing-page offsets (`:right` spine on left, `:left` spine on right) with gutter binding math.
+- **Interactive TOC Bookmark Navigation Drawer**: Implemented `createBookmarksDrawer` in `@printedjs/plugins` featuring collapsible tree nodes, heading search filter, active section highlighting, keyboard navigation, and zero print leakage (`@media print` isolation).
+- **Client-Side Direct Print & PDF Export**: Added `printDocument`, `preparePrint`, and `exportToPdf` to `@printedjs/browser`, standardizing in-browser direct PDF printing with chrome isolation and automated document title management.
 
 ---
 

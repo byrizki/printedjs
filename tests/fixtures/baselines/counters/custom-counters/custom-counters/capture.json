@@ -1,0 +1,99 @@
+{
+  "fixtureId": "counters/custom-counters/custom-counters",
+  "capturedAt": "2026-10-01T11:34:01.555Z",
+  "pageCount": 7,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_frontmatter_page",
+        "pagedjs_frontmatter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_frontmatter_page",
+        "pagedjs_frontmatter_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_body-page_page",
+        "pagedjs_body-page_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_body-page_page",
+        "pagedjs_body-page_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_appendix-page_page",
+        "pagedjs_appendix-page_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_appendix-page_page",
+        "pagedjs_appendix-page_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "807d38f14f91c37b08eefa3d0a189a3ef6c6af067b7f24c7cbf85171a4020c67"
+}

@@ -1,0 +1,23 @@
+{
+  "fixtureId": "named-page/no-forced-page-break/no-forced-page-break",
+  "capturedAt": "2026-10-01T11:33:57.936Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 816,
+      "height": 1056,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_tableofcontents_page",
+        "pagedjs_tableofcontents_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "f71687cfc2d68f336ca489a7099a81cb60e6ecf59597baf696f55dfc0d15c394"
+}

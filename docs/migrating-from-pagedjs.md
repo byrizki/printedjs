@@ -6,16 +6,20 @@ This guide explains the architectural differences between legacy Paged.js and Pr
 
 ## 1. Key Differences
 
-| Feature             | Legacy Paged.js                             | Printedjs                                                  |
-| :------------------ | :------------------------------------------ | :--------------------------------------------------------- |
-| **Architecture**    | Monolithic bundle with global side effects  | Modular multi-package workspace (`@printedjs/*`)           |
-| **Core Runtime**    | Coupled to browser DOM & CSSOM              | Pure engine (`@printedjs/core`) with zero DOM dependencies |
-| **Isolation**       | Mutates host page elements and globals      | Surface isolation via `root` or `iframe` modes             |
-| **Teardown**        | Incomplete cleanup; leaks DOM and styles    | Deterministic `renderer.destroy()` with zero DOM residue   |
-| **Plugin API**      | Global `Handler` subclasses and loose hooks | Strongly-typed `PrintedjsPlugin` with topological ordering |
-| **Loop Resiliency** | Risk of infinite page generation loops      | `LayoutProgressGuard` preventing lockups with typed errors |
-| **TypeScript**      | None / Ambient declarations                 | 100% strict TypeScript with exported types                 |
-| **Bundle Options**  | Single legacy script                        | Modular packages, minimal bundle (`printedjs.min.js`), CLI |
+For an exhaustive feature-by-feature comparison and technical capabilities catalog, see the **[Printedjs Feature Catalog & Comparison](./features.md)**.
+
+| Feature             | Legacy Paged.js                             | Printedjs                                                       |
+| :------------------ | :------------------------------------------ | :-------------------------------------------------------------- |
+| **Architecture**    | Monolithic bundle with global side effects  | Modular multi-package workspace (`@printedjs/*`)                |
+| **Core Runtime**    | Coupled to browser DOM & CSSOM              | Pure engine (`@printedjs/core`) with zero DOM dependencies      |
+| **Isolation**       | Mutates host page elements and globals      | Surface isolation via `root` or `iframe` modes                  |
+| **Teardown**        | Incomplete cleanup; leaks DOM and styles    | Deterministic `renderer.destroy()` with zero DOM residue        |
+| **Plugin API**      | Global `Handler` subclasses and loose hooks | Strongly-typed `PrintedjsPlugin` with topological ordering      |
+| **Loop Resiliency** | Risk of infinite page generation loops      | `LayoutProgressGuard` preventing lockups with typed errors      |
+| **Table Layout**    | Inconsistent header repeats on splits       | Repeated `thead`/`tfoot`, `rowspan` continuation, auto col sync |
+| **Cross-Browser**   | Legacy Chromium focus                       | 100% verified across Chromium, Firefox, and WebKit              |
+| **TypeScript**      | None / Ambient declarations                 | 100% strict TypeScript with exported types                      |
+| **Bundle Options**  | Single legacy script                        | Modular packages, minimal bundle (`printedjs.min.js`), CLI      |
 
 ---
 

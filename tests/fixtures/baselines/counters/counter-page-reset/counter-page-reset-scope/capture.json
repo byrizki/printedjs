@@ -1,0 +1,69 @@
+{
+  "fixtureId": "counters/counter-page-reset/counter-page-reset-scope",
+  "capturedAt": "2026-10-01T11:33:55.346Z",
+  "pageCount": 5,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_cover_page",
+        "pagedjs_cover_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_frontmatter_page",
+        "pagedjs_frontmatter_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "3db10e427cf60df9f66f5640ca0cc1fa1c12524f1539cace85594bb8d158eb1a"
+}

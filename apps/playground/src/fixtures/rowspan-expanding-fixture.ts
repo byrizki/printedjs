@@ -272,7 +272,7 @@ tr:nth-child(even) td:not([rowspan]) {
   </div>
 </div>
 
-<table class="spanning-matrix repeat-spans">
+<table class="spanning-matrix repeat-spans repeat-header">
   <colgroup>
     <col style="width: 100px;">
     <col style="width: 38px;">

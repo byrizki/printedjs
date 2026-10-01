@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 const packageEntries = [
 	"@printedjs/core",
 	"@printedjs/browser",
-	"@printedjs/plugins",
+	"@printedjs/plugin-preset",
 	"@printedjs/minimal",
 	"@printedjs/polyfill",
 ];

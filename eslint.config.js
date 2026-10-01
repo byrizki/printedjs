@@ -10,6 +10,7 @@ export default tseslint.config(
 			"**/dist/**",
 			"**/coverage/**",
 			"**/node_modules/**",
+			"StPageFlip/**",
 			"tests/fixtures/jest.config.js",
 			"tests/fixtures/jest_helpers/**/*.js",
 			"tests/fixtures/media/all/all.spec..js",

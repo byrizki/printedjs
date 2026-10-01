@@ -1,0 +1,21 @@
+{
+  "fixtureId": "infinite-loop/infinite-loop",
+  "capturedAt": "2026-10-01T11:33:56.624Z",
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 75.578125,
+      "height": 75.578125,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "066217adce16c49e890b52850f8b501f3d86471c94801b294b5fea9dadf857a3"
+}

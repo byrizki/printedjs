@@ -1,0 +1,49 @@
+{
+  "fixtureId": "tables/rebuild-all-tds/rebuild-all-tds",
+  "capturedAt": "2026-10-01T11:12:12.323Z",
+  "pageCount": 3,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_matepro_page",
+        "pagedjs_matepro_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_matepro_page",
+        "pagedjs_matepro_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 793.6875,
+      "height": 1122.515625,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_matepro_page",
+        "pagedjs_matepro_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "42d71b777d808182d049cec090c0921571640e5dc50f279511a10263af2c6535"
+}

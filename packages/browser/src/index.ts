@@ -21,6 +21,13 @@ import {
 	type VirtualizeOptions,
 	type Virtualizer,
 } from "./surface/virtualizer.js";
+import {
+	exportToPdf,
+	preparePrint,
+	printDocument,
+	type ExportPdfOptions,
+	type PrintDocumentOptions,
+} from "./print/print.js";
 import type { PageResult, RenderResult } from "@printedjs/core";
 
 export {
@@ -46,6 +53,11 @@ export {
 	virtualizePages,
 	type VirtualizeOptions,
 	type Virtualizer,
+	printDocument,
+	preparePrint,
+	exportToPdf,
+	type PrintDocumentOptions,
+	type ExportPdfOptions,
 	type PageResult,
 	type RenderResult,
 };
@@ -65,6 +77,9 @@ if (typeof window !== "undefined") {
 		IframeSurface,
 		RootSurface,
 		virtualizePages,
+		printDocument,
+		preparePrint,
+		exportToPdf,
 	};
 	win.Printed = api;
 	win.Printedjs = api;

@@ -1,0 +1,26 @@
+{
+	"extends": "../../../../tsconfig.base.json",
+	"compilerOptions": {
+		"composite": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "./dist",
+		"rootDir": "./src"
+	},
+	"include": ["src/**/*.ts"],
+	"references": [
+		{ "path": "../../../core" },
+		{ "path": "../bookmarks" },
+		{ "path": "../breaks" },
+		{ "path": "../columns" },
+		{ "path": "../counters" },
+		{ "path": "../footnotes" },
+		{ "path": "../generated-content" },
+		{ "path": "../hyphenation" },
+		{ "path": "../lists" },
+		{ "path": "../math" },
+		{ "path": "../page-rules" },
+		{ "path": "../strings" },
+		{ "path": "../widows-orphans" }
+	]
+}

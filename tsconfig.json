@@ -3,10 +3,27 @@
 	"references": [
 		{ "path": "./packages/core" },
 		{ "path": "./packages/browser" },
-		{ "path": "./packages/plugins" },
 		{ "path": "./packages/devtools" },
 		{ "path": "./packages/polyfill" },
 		{ "path": "./packages/minimal" },
-		{ "path": "./packages/cli" }
+		{ "path": "./packages/cli" },
+		{ "path": "./packages/plugins/community/eta" },
+		{ "path": "./packages/plugins/community/page-flip" },
+		{ "path": "./packages/plugins/core/bookmarks" },
+		{ "path": "./packages/plugins/core/breaks" },
+		{ "path": "./packages/plugins/core/columns" },
+		{ "path": "./packages/plugins/core/counters" },
+		{ "path": "./packages/plugins/core/footnotes" },
+		{ "path": "./packages/plugins/core/generated-content" },
+		{ "path": "./packages/plugins/core/hyphenation" },
+		{ "path": "./packages/plugins/core/lists" },
+		{ "path": "./packages/plugins/core/math" },
+		{ "path": "./packages/plugins/core/page-rules" },
+		{ "path": "./packages/plugins/core/preset" },
+		{ "path": "./packages/plugins/core/running-headers" },
+		{ "path": "./packages/plugins/core/strings" },
+		{ "path": "./packages/plugins/core/views" },
+		{ "path": "./packages/plugins/core/widows-orphans" },
+		{ "path": "./apps/playground" }
 	]
 }

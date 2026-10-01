@@ -2,10 +2,12 @@ import type { PagedjsCompatibilityOptions } from "./compatibility.js";
 
 export type HtmlContent = {
 	readonly html: string;
+	readonly baseUrl?: string | undefined;
 };
 
 export type DomContent = {
 	readonly node: Node;
+	readonly baseUrl?: string | undefined;
 };
 
 export type ContentSource = HtmlContent | DomContent;
@@ -31,6 +33,7 @@ export type DiagnosticsLevel = "none" | "warn" | "debug" | "trace";
 
 export interface RenderRequest extends PagedjsCompatibilityOptions {
 	readonly content: ContentSource;
+	readonly baseUrl?: string | undefined;
 	readonly stylesheets?: readonly StylesheetSource[];
 	readonly limits?: RenderLimits;
 	readonly signal?: AbortSignal;

@@ -1,0 +1,54 @@
+{
+  "fixtureId": "page-rules/mirrored-margins/mirrored-margins",
+  "capturedAt": "2026-10-01T11:34:01.956Z",
+  "pageCount": 4,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_first_page",
+        "pagedjs_first_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_right_page",
+        "pagedjs_right_page"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "width": 559.359375,
+      "height": 793.6875,
+      "classes": [
+        "printedjs_page",
+        "pagedjs_page",
+        "printedjs_left_page",
+        "pagedjs_left_page"
+      ]
+    }
+  ],
+  "documentPngSha256": "060035f869d72bb5e2ddf43b2e95b51db26440717f6c7b4023134dff47e46df6"
+}

@@ -16,6 +16,9 @@ products
 products/
 pagedjs
 pagedjs/
+StPageFlip
+StPageFlip/
+
 
 # Local scripts with local machine paths or external dependencies
 scripts/test-uat-zip.ts
