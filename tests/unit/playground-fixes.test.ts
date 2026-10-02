@@ -15,6 +15,7 @@ import {
 	HTMLPage,
 	PageDensity,
 } from "../../packages/plugins/community/page-flip/src/index.js";
+import { ViewportComponent } from "../../apps/playground/src/components/viewport.js";
 
 describe("Playground & Engine Fixes Verification", () => {
 	describe("Item 0: Remove data persistence", () => {
@@ -494,10 +495,12 @@ describe("Playground & Engine Fixes Verification", () => {
 					},
 					matches: (sel: string) => {
 						if (idx === 0 && sel.includes("_first_page")) return true;
-						if ((idx === 1 || idx === 2) && sel.includes('data-page="frontmatter"')) return true;
+						if ((idx === 1 || idx === 2) && sel.includes('data-page="frontmatter"'))
+							return true;
 						if (idx === 3 && sel.includes('data-page="body-page"')) return true;
 						if (idx === 4 && sel.includes('data-page="appendix-page"')) return true;
-						if (sel.includes(".printedjs_page .printedjs_margin-bottom-right")) return true;
+						if (sel.includes(".printedjs_page .printedjs_margin-bottom-right"))
+							return true;
 						return false;
 					},
 					attrs: {} as Record<string, string>,
@@ -641,6 +644,497 @@ describe("Playground & Engine Fixes Verification", () => {
 					f.category.toLowerCase().includes(query3),
 			);
 			expect(matches3.length).toBeGreaterThan(3);
+		});
+	});
+
+	describe("Item 6: Active page emission and floating toolbar focus in single and spread views", () => {
+		interface MockElement {
+			id: string;
+			tagName: string;
+			nodeType: number;
+			textContent: string;
+			innerHTML: string;
+			value: string;
+			options: unknown[];
+			scrollHeight: number;
+			clientHeight: number;
+			scrollTop: number;
+			className: string;
+			parentElement?: MockElement | null;
+			style: Record<string, unknown> & {
+				setProperty: (k: string, v: string) => void;
+				display: string;
+			};
+			classList: {
+				add: (c: string) => void;
+				remove: (c: string) => void;
+				toggle: (c: string, force?: boolean) => boolean;
+				contains: (c: string) => boolean;
+			};
+			setAttribute: (k: string, v: string) => void;
+			getAttribute: (k: string) => string | null;
+			removeAttribute: (k: string) => void;
+			appendChild: (child: MockElement) => MockElement;
+			addEventListener: (type: string, fn: (e: Event) => void) => void;
+			removeEventListener: (type: string, fn: (e: Event) => void) => void;
+			dispatchEvent: (e: Event) => boolean;
+			querySelector: (sel: string) => MockElement | null;
+			querySelectorAll: (sel: string) => MockElement[];
+			getBoundingClientRect: () => {
+				top: number;
+				bottom: number;
+				left: number;
+				right: number;
+				width: number;
+				height: number;
+			};
+			scrollBy: () => void;
+			scrollTo: () => void;
+			scrollIntoView: () => void;
+			offsetTop: number;
+			offsetHeight: number;
+		}
+
+		function setupMockDom() {
+			const originalDoc = (globalThis as unknown as Record<string, unknown>).document;
+			const originalWin = (globalThis as unknown as Record<string, unknown>).window;
+			const originalRaf = (globalThis as unknown as Record<string, unknown>)
+				.requestAnimationFrame;
+
+			(globalThis as unknown as Record<string, unknown>).requestAnimationFrame = (
+				cb: () => void,
+			) => {
+				cb();
+				return 1;
+			};
+
+			function matchesSingle(el: MockElement, s: string): boolean {
+				s = s.trim();
+				if (s.startsWith("#")) return el.id === s.slice(1);
+				if (s.startsWith(".")) {
+					const className = s.slice(1);
+					return (
+						el.classList.contains(className) ||
+						(typeof el.className === "string" &&
+							el.className.split(/\s+/).includes(className))
+					);
+				}
+				if (s.includes("[data-page-number=")) {
+					const match = s.match(/\[data-page-number="([^"]+)"\]/);
+					if (match) return el.getAttribute("data-page-number") === match[1];
+				}
+				return false;
+			}
+
+			function matchesSel(el: MockElement, sel: string): boolean {
+				const parts = sel.split(",");
+				return parts.some((p) => matchesSingle(el, p));
+			}
+
+			function createMockElement(id = "", tag = "div"): MockElement {
+				const listeners = new Map<string, Set<(e: Event) => void>>();
+				const children: MockElement[] = [];
+				const attrs = new Map<string, string>();
+				const classListSet = new Set<string>();
+
+				const el: MockElement = {
+					id,
+					tagName: tag.toUpperCase(),
+					nodeType: 1,
+					textContent: "",
+					innerHTML: "",
+					value: "1",
+					options: [],
+					scrollHeight: 1000,
+					clientHeight: 500,
+					scrollTop: 0,
+					get className() {
+						return Array.from(classListSet).join(" ");
+					},
+					set className(val: string) {
+						classListSet.clear();
+						if (val) {
+							for (const c of val.split(/\s+/)) {
+								if (c) classListSet.add(c);
+							}
+						}
+					},
+					style: {
+						setProperty: (k: string, v: string) => {
+							(el.style as Record<string, unknown>)[k] = v;
+						},
+						display: "",
+					},
+					classList: {
+						add: (c: string) => {
+							classListSet.add(c);
+						},
+						remove: (c: string) => {
+							classListSet.delete(c);
+						},
+						toggle: (c: string, force?: boolean) => {
+							const has = classListSet.has(c);
+							const next = force !== undefined ? force : !has;
+							if (next) el.classList.add(c);
+							else el.classList.remove(c);
+							return next;
+						},
+						contains: (c: string) => classListSet.has(c),
+					},
+					setAttribute: (k: string, v: string) => {
+						attrs.set(k, v);
+					},
+					getAttribute: (k: string) => attrs.get(k) ?? null,
+					removeAttribute: (k: string) => {
+						attrs.delete(k);
+					},
+					appendChild: (child: MockElement) => {
+						children.push(child);
+						child.parentElement = el;
+						return child;
+					},
+					addEventListener: (type: string, fn: (e: Event) => void) => {
+						if (!listeners.has(type)) listeners.set(type, new Set());
+						listeners.get(type)!.add(fn);
+					},
+					removeEventListener: (type: string, fn: (e: Event) => void) => {
+						listeners.get(type)?.delete(fn);
+					},
+					dispatchEvent: (e: Event) => {
+						const fns = listeners.get(e.type);
+						if (fns) {
+							for (const fn of fns) fn(e);
+						}
+						return true;
+					},
+					querySelector: (sel: string) => {
+						for (const child of children) {
+							if (matchesSel(child, sel)) return child;
+							const found = child.querySelector?.(sel);
+							if (found) return found;
+						}
+						return null;
+					},
+					querySelectorAll: (sel: string) => {
+						const results: MockElement[] = [];
+						for (const child of children) {
+							if (matchesSel(child, sel)) results.push(child);
+							if (child.querySelectorAll) results.push(...child.querySelectorAll(sel));
+						}
+						return results;
+					},
+					getBoundingClientRect: () => ({
+						top: 0,
+						bottom: 0,
+						left: 0,
+						right: 0,
+						width: 0,
+						height: 0,
+					}),
+					scrollBy: () => {},
+					scrollTo: () => {},
+					scrollIntoView: () => {},
+					offsetTop: 0,
+					offsetHeight: 1000,
+				};
+				return el;
+			}
+
+			const elementMap = new Map<string, MockElement>();
+			const requiredIds = [
+				"pm-canvas-scroll",
+				"render-viewport",
+				"pm-zoom-container",
+				"pm-zoom-select",
+				"pm-single-view-btn",
+				"pm-spread-view-btn",
+				"pm-flipbook-view-btn",
+				"pm-page-indicator",
+				"pm-float-overlay-btn",
+				"pm-float-trace-btn",
+				"pm-trace-popover",
+				"pm-trace-content",
+				"pm-trace-summary",
+				"pm-float-status-dot",
+				"pm-float-status-label",
+				"pm-floating-preview-bar",
+				"pm-grid-controls",
+				"pm-grid-cols-select",
+				"pm-toolbar-collapse-btn",
+				"pm-toolbar-expand-btn",
+				"pm-book-side-prev",
+				"pm-book-side-next",
+				"pm-zoom-out-btn",
+				"pm-zoom-in-btn",
+				"pm-zoom-fit-btn",
+				"pm-prev-page-btn",
+				"pm-next-page-btn",
+				"pm-float-print-btn",
+				"pm-trace-close-btn",
+			];
+
+			for (const id of requiredIds) {
+				elementMap.set(id, createMockElement(id));
+			}
+
+			const mockDoc = {
+				createElement: (tag: string) => {
+					if (tag.toLowerCase() === "main") {
+						const mainEl = createMockElement("", "main");
+						mainEl.querySelector = (sel: string) => {
+							if (sel.startsWith("#")) {
+								const id = sel.slice(1);
+								if (elementMap.has(id)) return elementMap.get(id)!;
+							}
+							return null;
+						};
+						return mainEl;
+					}
+					return createMockElement("", tag);
+				},
+			};
+
+			(globalThis as unknown as Record<string, unknown>).document = mockDoc;
+			(globalThis as unknown as Record<string, unknown>).window = {
+				addEventListener: () => {},
+				removeEventListener: () => {},
+				innerWidth: 1200,
+			};
+
+			return {
+				elementMap,
+				createMockElement,
+				cleanup: () => {
+					(globalThis as unknown as Record<string, unknown>).document = originalDoc;
+					(globalThis as unknown as Record<string, unknown>).window = originalWin;
+					(globalThis as unknown as Record<string, unknown>).requestAnimationFrame =
+						originalRaf;
+				},
+			};
+		}
+
+		it("emits page:change and updates floating toolbar indicator in single view", () => {
+			const dom = setupMockDom();
+			try {
+				const events: CustomEvent[] = [];
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "single",
+					callbacks: {
+						onZoomChange: () => {},
+						onViewModeChange: () => {},
+					},
+				});
+
+				viewport.renderViewport.addEventListener("page:change", (e) => {
+					events.push(e as CustomEvent);
+				});
+
+				const pagesContainer = dom.createMockElement("", "div");
+				pagesContainer.classList.add("printedjs_pages");
+				pagesContainer.setAttribute("data-view-mode", "single");
+
+				for (let i = 1; i <= 5; i++) {
+					const page = dom.createMockElement("", "div");
+					page.classList.add("printedjs_page");
+					page.setAttribute("data-page-number", String(i));
+					pagesContainer.appendChild(page);
+				}
+
+				viewport.renderViewport.appendChild(pagesContainer);
+				viewport.updatePageStats(5);
+
+				const indicator = dom.elementMap.get("pm-page-indicator");
+				expect(indicator?.textContent).toBe("1 of 5");
+				expect(events.length).toBeGreaterThan(0);
+				expect(events[events.length - 1]?.detail).toMatchObject({
+					viewMode: "single",
+					currentPage: 1,
+					totalPages: 5,
+				});
+
+				// Navigate to page 3
+				viewport.scrollToPage(3);
+				expect(indicator?.textContent).toBe("3 of 5");
+				expect(events[events.length - 1]?.detail).toMatchObject({
+					viewMode: "single",
+					currentPage: 3,
+					totalPages: 5,
+				});
+			} finally {
+				dom.cleanup();
+			}
+		});
+
+		it("emits page:change and displays spread range in floating toolbar for spread view", () => {
+			const dom = setupMockDom();
+			try {
+				const events: CustomEvent[] = [];
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "spread",
+					callbacks: {
+						onZoomChange: () => {},
+						onViewModeChange: () => {},
+					},
+				});
+
+				viewport.renderViewport.addEventListener("page:change", (e) => {
+					events.push(e as CustomEvent);
+				});
+
+				const pagesContainer = dom.createMockElement("", "div");
+				pagesContainer.classList.add("printedjs_pages");
+				pagesContainer.setAttribute("data-view-mode", "spread");
+
+				for (let i = 1; i <= 6; i++) {
+					const page = dom.createMockElement("", "div");
+					page.classList.add("printedjs_page");
+					page.setAttribute("data-page-number", String(i));
+					pagesContainer.appendChild(page);
+				}
+
+				viewport.renderViewport.appendChild(pagesContainer);
+				viewport.updatePageStats(6);
+
+				const indicator = dom.elementMap.get("pm-page-indicator");
+				// Pages 1 and 2 form the first spread in 2-column view
+				expect(indicator?.textContent).toBe("1–2 of 6");
+				expect(events.length).toBeGreaterThan(0);
+				expect(events[events.length - 1]?.detail).toMatchObject({
+					viewMode: "spread",
+					currentPage: 1,
+					totalPages: 6,
+					leftPage: 1,
+					rightPage: 2,
+					visiblePages: [1, 2],
+				});
+
+				// Navigate to page 3 (second spread: 3–4)
+				viewport.scrollToPage(3);
+				expect(indicator?.textContent).toBe("3–4 of 6");
+				expect(events[events.length - 1]?.detail).toMatchObject({
+					viewMode: "spread",
+					currentPage: 3,
+					totalPages: 6,
+					leftPage: 3,
+					rightPage: 4,
+					visiblePages: [3, 4],
+				});
+			} finally {
+				dom.cleanup();
+			}
+		});
+
+		it("formats custom roman and prefix counters accurately in spread and single view", () => {
+			const dom = setupMockDom();
+			try {
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "spread",
+					callbacks: {
+						onZoomChange: () => {},
+						onViewModeChange: () => {},
+					},
+				});
+
+				const pagesContainer = dom.createMockElement("", "div");
+				pagesContainer.classList.add("printedjs_pages");
+				pagesContainer.setAttribute("data-view-mode", "spread");
+
+				const p1 = dom.createMockElement("", "div");
+				p1.classList.add("printedjs_page");
+				p1.setAttribute("data-page-number", "1");
+				p1.setAttribute("data-page-formatted", "i");
+
+				const p2 = dom.createMockElement("", "div");
+				p2.classList.add("printedjs_page");
+				p2.setAttribute("data-page-number", "2");
+				p2.setAttribute("data-page-formatted", "ii");
+
+				const p3 = dom.createMockElement("", "div");
+				p3.classList.add("printedjs_page");
+				p3.setAttribute("data-page-number", "3");
+				p3.setAttribute("data-page-formatted", "Page 1");
+
+				const p4 = dom.createMockElement("", "div");
+				p4.classList.add("printedjs_page");
+				p4.setAttribute("data-page-number", "4");
+				p4.setAttribute("data-page-formatted", "Page 2");
+
+				pagesContainer.appendChild(p1);
+				pagesContainer.appendChild(p2);
+				pagesContainer.appendChild(p3);
+				pagesContainer.appendChild(p4);
+
+				viewport.renderViewport.appendChild(pagesContainer);
+				viewport.updatePageStats(4);
+
+				const indicator = dom.elementMap.get("pm-page-indicator");
+				expect(indicator?.textContent).toBe("i–ii of 4");
+
+				viewport.scrollToPage(3);
+				expect(indicator?.textContent).toBe("Page 1–Page 2 of 4");
+
+				// Switch to single view
+				viewport.setViewMode("single");
+				viewport.scrollToPage(1);
+				expect(indicator?.textContent).toBe("i of 4");
+
+				viewport.scrollToPage(3);
+				expect(indicator?.textContent).toBe("Page 1 of 4");
+			} finally {
+				dom.cleanup();
+			}
+		});
+
+		it("floating toolbar receives external page:change events directly", () => {
+			const dom = setupMockDom();
+			try {
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "single",
+					callbacks: {
+						onZoomChange: () => {},
+						onViewModeChange: () => {},
+					},
+				});
+
+				viewport.updatePageStats(8);
+				const indicator = dom.elementMap.get("pm-page-indicator");
+
+				viewport.renderViewport.dispatchEvent(
+					new CustomEvent("page:change", {
+						detail: {
+							viewMode: "single",
+							currentPage: 5,
+							totalPages: 8,
+							leftPage: 5,
+						},
+						bubbles: true,
+					}),
+				);
+
+				expect(indicator?.textContent).toBe("5 of 8");
+
+				viewport.setViewMode("spread");
+				viewport.renderViewport.dispatchEvent(
+					new CustomEvent("page:change", {
+						detail: {
+							viewMode: "spread",
+							currentPage: 4,
+							totalPages: 8,
+							leftPage: 4,
+							rightPage: 5,
+						},
+						bubbles: true,
+					}),
+				);
+
+				expect(indicator?.textContent).toBe("4–5 of 8");
+			} finally {
+				dom.cleanup();
+			}
 		});
 	});
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { singlePageViewPlugin } from "./single-page/plugin.js";
 import { spreadPageViewPlugin } from "./spread-page/plugin.js";
-import { pageViewsPlugin } from "./manager.js";
+import { pageViewsPlugin, DomPageViewsController } from "./manager.js";
 import type { PageViewsController, ViewModeAdapter } from "./types.js";
 
 describe("Phase 18: Built-in Page View Plugins", () => {
@@ -212,6 +212,92 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		controller.setMode("flipbook");
 		expect(controller.currentMode).toBe("flipbook");
 		expect(containerAttrs["data-view-mode"]).toBe("flipbook");
+
+		controller.destroy();
+	});
+
+	it("DomPageViewsController manages active page state and emits page:change events", () => {
+		const events: { type: string; detail: unknown }[] = [];
+		const listeners = new Map<string, Set<(e: Event) => void>>();
+
+		const fakeContainer = {
+			style: {} as CSSStyleDeclaration,
+			classList: {
+				add: () => {},
+				remove: () => {},
+				contains: () => false,
+			},
+			setAttribute: () => {},
+			removeAttribute: () => {},
+			querySelectorAll: () => [],
+			querySelector: () => null,
+			addEventListener: (type: string, fn: (e: Event) => void) => {
+				if (!listeners.has(type)) listeners.set(type, new Set());
+				listeners.get(type)!.add(fn);
+			},
+			removeEventListener: (type: string, fn: (e: Event) => void) => {
+				listeners.get(type)?.delete(fn);
+			},
+			dispatchEvent: (event: Event) => {
+				const custom = event as CustomEvent;
+				events.push({ type: custom.type, detail: custom.detail });
+				const fns = listeners.get(event.type);
+				if (fns) {
+					for (const fn of fns) {
+						fn(event);
+					}
+				}
+				return true;
+			},
+		};
+
+		const controller = new DomPageViewsController(
+			fakeContainer as unknown as HTMLElement,
+			{ initialMode: "single" },
+		);
+
+		expect(controller.currentPage).toBe(1);
+		expect(controller.activePages).toEqual([1]);
+
+		// Emit page change
+		controller.emitPageChange({
+			viewMode: "single",
+			currentPage: 3,
+			totalPages: 10,
+			visiblePages: [3],
+			leftPage: 3,
+		});
+
+		expect(controller.currentPage).toBe(3);
+		expect(controller.activePages).toEqual([3]);
+
+		const pageChangeEvents = events.filter((e) => e.type === "page:change");
+		const viewsChangeEvents = events.filter((e) => e.type === "views:page-change");
+		expect(pageChangeEvents.length).toBe(1);
+		expect(viewsChangeEvents.length).toBe(1);
+		expect(pageChangeEvents[0]?.detail).toMatchObject({
+			viewMode: "single",
+			currentPage: 3,
+			totalPages: 10,
+			visiblePages: [3],
+		});
+
+		// External event dispatched on container updates controller state
+		fakeContainer.dispatchEvent(
+			new CustomEvent("page:change", {
+				detail: {
+					viewMode: "spread",
+					currentPage: 4,
+					totalPages: 10,
+					visiblePages: [4, 5],
+					leftPage: 4,
+					rightPage: 5,
+				},
+			}),
+		);
+
+		expect(controller.currentPage).toBe(4);
+		expect(controller.activePages).toEqual([4, 5]);
 
 		controller.destroy();
 	});

@@ -18,7 +18,9 @@ export interface FlipBookController {
 	readonly currentPage: number;
 	readonly currentSpread: number;
 	readonly totalSpreads: number;
-	readonly currentRange?: { left: string | number | null; right: string | number | null } | undefined;
+	readonly totalPages?: number | undefined;
+	readonly currentRange?:
+		{ left: string | number | null; right: string | number | null } | undefined;
 	next(): Promise<void>;
 	prev(): Promise<void>;
 	flipTo(pageNumber: number): Promise<void>;
@@ -209,7 +211,9 @@ function freezePageFolios(container: HTMLElement, pages: HTMLElement[]): void {
 			page.getAttribute("data-page-style") ||
 			page.getAttribute("data-counter-style") ||
 			page.getAttribute("data-page-counter-style")
-		)?.toLowerCase().trim();
+		)
+			?.toLowerCase()
+			.trim();
 		const logicalAttr = page.getAttribute("data-page-number")?.trim();
 		const logicalNum = logicalAttr ? parseInt(logicalAttr, 10) : i + 1;
 		const defaultStyle = (styleAttr || "decimal") as PageCounterStyle;
@@ -258,7 +262,8 @@ function freezePageFolios(container: HTMLElement, pages: HTMLElement[]): void {
 				const hasCounterExpr =
 					/counter\s*\(\s*page\b/i.test(computed) ||
 					/counter\s*\(\s*page\b/i.test(cleaned) ||
-					(matchedEntry !== null && /counter\s*\(\s*page\b/i.test(matchedEntry.contentPattern));
+					(matchedEntry !== null &&
+						/counter\s*\(\s*page\b/i.test(matchedEntry.contentPattern));
 
 				const isComputedFolio =
 					cleaned.length > 0 &&
@@ -353,6 +358,10 @@ export class PageFlipController implements FlipBookController {
 		return 1 + Math.ceil(Math.max(0, total - 1) / 2);
 	}
 
+	get totalPages(): number {
+		return this.pageElements.length;
+	}
+
 	get currentRange(): { left: string | number | null; right: string | number | null } {
 		const range = this.visibleRange();
 		return { left: range.left, right: range.right };
@@ -367,7 +376,9 @@ export class PageFlipController implements FlipBookController {
 		if (!page) return index + 1;
 		const frozen =
 			typeof page.querySelector === "function"
-				? page.querySelector<HTMLElement>('[data-folio-frozen="true"]')?.textContent?.trim()
+				? page
+						.querySelector<HTMLElement>('[data-folio-frozen="true"]')
+						?.textContent?.trim()
 				: null;
 		if (frozen) {
 			const num = Number(frozen);
@@ -382,7 +393,9 @@ export class PageFlipController implements FlipBookController {
 			page.getAttribute("data-page-style") ||
 			page.getAttribute("data-counter-style") ||
 			page.getAttribute("data-page-counter-style")
-		)?.toLowerCase().trim();
+		)
+			?.toLowerCase()
+			.trim();
 		const logicalAttr = page.getAttribute("data-page-number")?.trim();
 		const logical = logicalAttr ? parseInt(logicalAttr, 10) : index + 1;
 		if (style && style !== "decimal" && Number.isFinite(logical)) {
@@ -455,25 +468,54 @@ export class PageFlipController implements FlipBookController {
 	private emitChange(): void {
 		const range = this.visibleRange();
 		this._currentPage = range.current;
+		const detail = {
+			currentSpread: this._currentSpread,
+			totalSpreads: this.totalSpreads,
+			currentPage: this._currentPage,
+			leftPage: range.left,
+			rightPage: range.right,
+		};
 		this.container.dispatchEvent(
 			new CustomEvent("flipbook:change", {
-				detail: {
-					currentSpread: this._currentSpread,
-					totalSpreads: this.totalSpreads,
-					currentPage: this._currentPage,
-					leftPage: range.left,
-					rightPage: range.right,
-				},
+				detail,
+				bubbles: true,
+			}),
+		);
+		const fullDetail = {
+			...detail,
+			viewMode: "flipbook",
+			totalPages: this.totalPages,
+			visiblePages: [
+				...(range.left != null
+					? [typeof range.left === "number" ? range.left : this._currentPage]
+					: []),
+				...(range.right != null
+					? [typeof range.right === "number" ? range.right : this._currentPage]
+					: []),
+			],
+		};
+		this.container.dispatchEvent(
+			new CustomEvent("page:change", {
+				detail: fullDetail,
+				bubbles: true,
+			}),
+		);
+		this.container.dispatchEvent(
+			new CustomEvent("views:page-change", {
+				detail: fullDetail,
 				bubbles: true,
 			}),
 		);
 	}
 
 	private init(): void {
-		const existing = (this.container as unknown as Record<string, unknown>).__printedjs_flipbook as
-			| { destroy?: () => void }
-			| undefined;
-		if (existing && existing !== (this as unknown) && typeof existing.destroy === "function") {
+		const existing = (this.container as unknown as Record<string, unknown>)
+			.__printedjs_flipbook as { destroy?: () => void } | undefined;
+		if (
+			existing &&
+			existing !== (this as unknown) &&
+			typeof existing.destroy === "function"
+		) {
 			existing.destroy();
 		}
 
@@ -884,7 +926,9 @@ export class PageFlipController implements FlipBookController {
 		this.container.style.maxWidth = "";
 		this.container.style.height = "";
 		this.container.removeAttribute("data-view-mode");
-		if ((this.container as unknown as Record<string, unknown>).__printedjs_flipbook === this) {
+		if (
+			(this.container as unknown as Record<string, unknown>).__printedjs_flipbook === this
+		) {
 			delete (this.container as unknown as Record<string, unknown>).__printedjs_flipbook;
 		}
 	}

@@ -2,6 +2,7 @@ import type { PluginContext, PrintedjsPlugin } from "@printedjs/core";
 import { singlePageViewPlugin } from "./single-page/plugin.js";
 import { spreadPageViewPlugin } from "./spread-page/plugin.js";
 import type {
+	ActivePageChangeDetail,
 	PageViewsController,
 	PageViewsPluginOptions,
 	ViewMode,
@@ -13,13 +14,29 @@ export class DomPageViewsController implements PageViewsController {
 	private readonly options: PageViewsPluginOptions;
 	private readonly adapters = new Map<string, ViewModeAdapter>();
 	private _currentMode: ViewMode;
+	private _currentPage: number = 1;
+	private _activePages: readonly number[] = [1];
 	private activeAdapter: ViewModeAdapter | null = null;
 	private activeController: unknown = null;
+	private readonly onPageChange = (e: Event): void => {
+		const detail = (e as CustomEvent<ActivePageChangeDetail>).detail;
+		if (detail?.currentPage) {
+			this._currentPage = detail.currentPage;
+			if (detail.visiblePages && detail.visiblePages.length > 0) {
+				this._activePages = [...detail.visiblePages];
+			} else {
+				this._activePages = [detail.currentPage];
+			}
+		}
+	};
 
 	constructor(container: HTMLElement, options: PageViewsPluginOptions = {}) {
 		this.container = container;
 		this.options = options;
 		this._currentMode = options.initialMode ?? "single";
+
+		this.container.addEventListener("page:change", this.onPageChange);
+		this.container.addEventListener("flipbook:change", this.onPageChange);
 
 		if (options.adapters) {
 			for (const adapter of options.adapters) {
@@ -32,6 +49,26 @@ export class DomPageViewsController implements PageViewsController {
 
 	get currentMode(): ViewMode {
 		return this._currentMode;
+	}
+
+	get currentPage(): number {
+		return this._currentPage;
+	}
+
+	get activePages(): readonly number[] {
+		return this._activePages;
+	}
+
+	emitPageChange(detail: ActivePageChangeDetail): void {
+		this._currentPage = detail.currentPage;
+		this._activePages =
+			detail.visiblePages && detail.visiblePages.length > 0
+				? [...detail.visiblePages]
+				: [detail.currentPage];
+
+		const eventInit = { detail, bubbles: true, composed: true };
+		this.container.dispatchEvent(new CustomEvent("page:change", eventInit));
+		this.container.dispatchEvent(new CustomEvent("views:page-change", eventInit));
 	}
 
 	registerAdapter(adapter: ViewModeAdapter): void {
@@ -58,7 +95,8 @@ export class DomPageViewsController implements PageViewsController {
 
 	getFlipBook(): unknown {
 		return (
-			((this.container as unknown as Record<string, unknown>).__printedjs_flipbook as unknown) ??
+			((this.container as unknown as Record<string, unknown>)
+				.__printedjs_flipbook as unknown) ??
 			this.getAdapterController("flipbook") ??
 			this.getAdapterController("book")
 		);
@@ -81,6 +119,8 @@ export class DomPageViewsController implements PageViewsController {
 	}
 
 	destroy(): void {
+		this.container.removeEventListener("page:change", this.onPageChange);
+		this.container.removeEventListener("flipbook:change", this.onPageChange);
 		if (this.activeAdapter) {
 			this.activeAdapter.detach?.(this.container);
 			this.activeAdapter = null;

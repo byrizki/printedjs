@@ -64,10 +64,7 @@ if (flipBook) {
 ### Standalone View Plugins
 
 ```typescript
-import {
-	singlePageViewPlugin,
-	spreadPageViewPlugin,
-} from "@printedjs/plugin-views";
+import { singlePageViewPlugin, spreadPageViewPlugin } from "@printedjs/plugin-views";
 
 // Use only single page layout:
 renderer.use(singlePageViewPlugin());
@@ -80,9 +77,8 @@ renderer.use(spreadPageViewPlugin({ gap: "24px" }));
 
 ## View Modes
 
-| Mode         | Identifier              | Description                          | Provider |
-| :----------- | :---------------------- | :----------------------------------- | :------- |
-| **Single**   | `"single"`              | Vertical column of isolated pages    | Built-in |
-| **Spread**   | `"spread"`              | Side-by-side facing page pairs       | Built-in |
+| Mode         | Identifier              | Description                          | Provider                      |
+| :----------- | :---------------------- | :----------------------------------- | :---------------------------- |
+| **Single**   | `"single"`              | Vertical column of isolated pages    | Built-in                      |
+| **Spread**   | `"spread"`              | Side-by-side facing page pairs       | Built-in                      |
 | **Flipbook** | `"flipbook"` / `"book"` | Interactive 3D animated book turning | `@printedjs/plugin-page-flip` |
-

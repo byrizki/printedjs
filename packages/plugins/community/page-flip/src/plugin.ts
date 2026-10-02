@@ -135,9 +135,8 @@ export function flipBookViewAdapter(options: PageFlipOptions = {}): ViewModeAdap
 			return controller;
 		},
 		detach(container: HTMLElement): void {
-			const existing = (container as unknown as Record<string, unknown>).__printedjs_flipbook as
-				| { destroy?: () => void }
-				| undefined;
+			const existing = (container as unknown as Record<string, unknown>)
+				.__printedjs_flipbook as { destroy?: () => void } | undefined;
 			if (existing && typeof existing.destroy === "function") {
 				existing.destroy();
 			}

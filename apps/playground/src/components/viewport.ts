@@ -1,4 +1,6 @@
+import { formatPageNumber, type PageCounterStyle } from "@printedjs/core";
 import type { FlipBookController } from "@printedjs/plugin-page-flip";
+import type { ActivePageChangeDetail } from "@printedjs/plugin-views";
 import { ZOOM_PRESETS, type ViewMode } from "../types/editor.js";
 import type { RenderStats } from "../types/playground.js";
 
@@ -52,6 +54,9 @@ export class ViewportComponent {
 	private currentStats: RenderStats | null = null;
 	private readonly callbacks: ViewportCallbacks;
 	private readonly onFlipbookChange: (e: Event) => void;
+	private readonly onPageChangeEvent: (e: Event) => void;
+	private readonly onCanvasScroll: () => void;
+	private scrollRafId: number | null = null;
 
 	constructor(options: ViewportOptions) {
 		const { initialZoom, initialViewMode, initialOverlayVisible, callbacks } = options;
@@ -84,6 +89,41 @@ export class ViewportComponent {
 					detail.rightPage,
 				);
 			}
+		};
+
+		this.onPageChangeEvent = (e: Event) => {
+			const detail = (e as CustomEvent<ActivePageChangeDetail>).detail;
+			if (!detail) return;
+			if (
+				detail.viewMode === "flipbook" ||
+				(detail.viewMode as string) === "book" ||
+				this.currentViewMode === "flipbook" ||
+				(this.currentViewMode as string) === "book"
+			) {
+				return;
+			}
+			this.currentPageIndex = detail.currentPage;
+			if (detail.viewMode === "single") {
+				const label = detail.leftPage ?? detail.currentPage;
+				this.pageIndicatorEl.textContent = `${label} of ${this.totalPages}`;
+			} else if (detail.viewMode === "spread") {
+				const left = detail.leftPage;
+				const right = detail.rightPage;
+				if (left != null && right != null && left !== right) {
+					this.pageIndicatorEl.textContent = `${left}–${right} of ${this.totalPages}`;
+				} else {
+					const single = right ?? left ?? detail.currentPage;
+					this.pageIndicatorEl.textContent = `${single} of ${this.totalPages}`;
+				}
+			}
+		};
+
+		this.onCanvasScroll = () => {
+			if (this.scrollRafId !== null) return;
+			this.scrollRafId = requestAnimationFrame(() => {
+				this.scrollRafId = null;
+				this.updateActivePagesFromScroll();
+			});
 		};
 
 		this.element = document.createElement("main");
@@ -453,6 +493,16 @@ export class ViewportComponent {
 		});
 
 		this.renderViewport.addEventListener("flipbook:change", this.onFlipbookChange);
+		this.renderViewport.addEventListener("page:change", this.onPageChangeEvent);
+		this.renderViewport.addEventListener("views:page-change", this.onPageChangeEvent);
+		this.canvasScrollEl.addEventListener("scroll", this.onCanvasScroll, {
+			passive: true,
+		});
+		if (typeof window !== "undefined") {
+			window.addEventListener("resize", this.onCanvasScroll, {
+				passive: true,
+			});
+		}
 
 		this.setZoom(initialZoom);
 	}
@@ -480,6 +530,28 @@ export class ViewportComponent {
 				return;
 			}
 		}
+
+		if (this.currentViewMode === "spread") {
+			const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+				"iframe[data-playground-frame]",
+			);
+			const doc = iframe?.contentDocument ?? this.renderViewport;
+			const pages = Array.from(
+				doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
+			);
+			const rows = this.getPageRows(pages);
+			const currentRowIndex = rows.findIndex((row) =>
+				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
+			);
+			if (currentRowIndex > 0) {
+				const prevRow = rows[currentRowIndex - 1]!;
+				const targetPage = this.getPageNumber(prevRow[0]!);
+				this.scrollToPage(targetPage);
+				return;
+			}
+			return;
+		}
+
 		this.scrollToPage(this.currentPageIndex - 1);
 	}
 
@@ -491,6 +563,28 @@ export class ViewportComponent {
 				return;
 			}
 		}
+
+		if (this.currentViewMode === "spread") {
+			const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+				"iframe[data-playground-frame]",
+			);
+			const doc = iframe?.contentDocument ?? this.renderViewport;
+			const pages = Array.from(
+				doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
+			);
+			const rows = this.getPageRows(pages);
+			const currentRowIndex = rows.findIndex((row) =>
+				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
+			);
+			if (currentRowIndex >= 0 && currentRowIndex < rows.length - 1) {
+				const nextRow = rows[currentRowIndex + 1]!;
+				const targetPage = this.getPageNumber(nextRow[0]!);
+				this.scrollToPage(targetPage);
+				return;
+			}
+			return;
+		}
+
 		this.scrollToPage(this.currentPageIndex + 1);
 	}
 
@@ -626,9 +720,7 @@ export class ViewportComponent {
 
 		const scaleX = availableWidth / contentWidth;
 		const scaleY =
-			availableHeight > 0 && contentHeight > 0
-				? availableHeight / contentHeight
-				: scaleX;
+			availableHeight > 0 && contentHeight > 0 ? availableHeight / contentHeight : scaleX;
 
 		const bestScale = Math.min(scaleX, scaleY);
 		let calculatedZoom = Math.floor(bestScale * 100) / 100;
@@ -765,6 +857,9 @@ export class ViewportComponent {
 
 		this.adjustIframe();
 		this.fitToView();
+		if (!isBook) {
+			this.updateActivePagesFromScroll();
+		}
 	}
 
 	adjustIframe(targetIframe?: HTMLIFrameElement | null): void {
@@ -799,6 +894,10 @@ export class ViewportComponent {
 
 		doc.removeEventListener("flipbook:change", this.onFlipbookChange);
 		doc.addEventListener("flipbook:change", this.onFlipbookChange);
+		doc.removeEventListener("page:change", this.onPageChangeEvent);
+		doc.addEventListener("page:change", this.onPageChangeEvent);
+		doc.removeEventListener("views:page-change", this.onPageChangeEvent);
+		doc.addEventListener("views:page-change", this.onPageChangeEvent);
 
 		const pagesContainer = (doc.querySelector(".printedjs_pages") ??
 			doc.querySelector(".pagedjs_pages") ??
@@ -819,6 +918,10 @@ export class ViewportComponent {
 		iframe.setAttribute("scrolling", "no");
 		doc.documentElement.style.overflow = "hidden";
 		doc.body.style.overflow = isFlipbook ? "hidden" : "";
+
+		if (!isFlipbook) {
+			this.updateActivePagesFromScroll();
+		}
 	}
 
 	updatePageStats(pageCount: number): void {
@@ -848,8 +951,234 @@ export class ViewportComponent {
 			}
 			return;
 		}
+		if (this.currentViewMode === "single" || this.currentViewMode === "spread") {
+			this.updateActivePagesFromScroll();
+			return;
+		}
 		this.currentPageIndex = 1;
 		this.pageIndicatorEl.textContent = `1 of ${pageCount}`;
+	}
+
+	getPageNumber(pageEl: HTMLElement, fallbackIndex = 1): number {
+		const attr = pageEl.getAttribute("data-page-number")?.trim();
+		if (attr) {
+			const parsed = parseInt(attr, 10);
+			if (Number.isFinite(parsed) && parsed > 0) return parsed;
+		}
+		return fallbackIndex;
+	}
+
+	getPageLabel(pageEl: HTMLElement, fallbackNumber: number): string | number {
+		const frozen = pageEl
+			.querySelector<HTMLElement>('[data-folio-frozen="true"]')
+			?.textContent?.trim();
+		if (frozen) {
+			const num = Number(frozen);
+			return Number.isFinite(num) && String(num) === frozen ? num : frozen;
+		}
+		const formatted = pageEl.getAttribute("data-page-formatted")?.trim();
+		if (formatted) {
+			const num = Number(formatted);
+			return Number.isFinite(num) && String(num) === formatted ? num : formatted;
+		}
+		const style = (
+			pageEl.getAttribute("data-page-style") ||
+			pageEl.getAttribute("data-counter-style") ||
+			pageEl.getAttribute("data-page-counter-style")
+		)
+			?.toLowerCase()
+			.trim();
+		const logical = this.getPageNumber(pageEl, fallbackNumber);
+		if (style && style !== "decimal" && Number.isFinite(logical)) {
+			return formatPageNumber(logical, style as PageCounterStyle);
+		}
+		return logical;
+	}
+
+	getPageRows(pages: HTMLElement[]): HTMLElement[][] {
+		if (pages.length === 0) return [];
+		if (this.currentViewMode === "single") {
+			return pages.map((p) => [p]);
+		}
+
+		const firstTop = pages[0]?.offsetTop ?? 0;
+		const secondTop = pages[1]?.offsetTop ?? 0;
+		const hasLayoutOffsets = pages.length > 1 && (firstTop !== 0 || secondTop !== 0);
+
+		if (hasLayoutOffsets) {
+			const rows: HTMLElement[][] = [];
+			let currentRow: HTMLElement[] = [];
+			let currentRowTop: number | null = null;
+
+			for (const page of pages) {
+				const top = page.offsetTop;
+				if (currentRowTop === null || Math.abs(top - currentRowTop) <= 8) {
+					currentRow.push(page);
+					if (currentRowTop === null) currentRowTop = top;
+				} else {
+					rows.push(currentRow);
+					currentRow = [page];
+					currentRowTop = top;
+				}
+			}
+			if (currentRow.length > 0) {
+				rows.push(currentRow);
+			}
+			return rows;
+		}
+
+		const cols = Math.max(1, this.gridCols);
+		const rows: HTMLElement[][] = [];
+		const hasCoverOffset =
+			pages[0]?.classList.contains("printedjs_right_page") ||
+			pages[0]?.style.gridColumn === "2";
+		let startIndex = 0;
+		if (hasCoverOffset && cols === 2) {
+			rows.push([pages[0]!]);
+			startIndex = 1;
+		}
+		for (let i = startIndex; i < pages.length; i += cols) {
+			rows.push(pages.slice(i, i + cols));
+		}
+		return rows;
+	}
+
+	updateActivePagesFromScroll(): void {
+		if (
+			this.currentViewMode === "flipbook" ||
+			(this.currentViewMode as string) === "book"
+		) {
+			return;
+		}
+		if (this.totalPages <= 0) return;
+
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument ?? this.renderViewport;
+		const pages = Array.from(
+			doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
+		);
+		if (pages.length === 0) {
+			this.currentPageIndex = 1;
+			this.pageIndicatorEl.textContent = `1 of ${this.totalPages}`;
+			return;
+		}
+
+		const rows = this.getPageRows(pages);
+		if (rows.length === 0) return;
+
+		const containerRect = this.canvasScrollEl.getBoundingClientRect();
+		const iframeRect = iframe ? iframe.getBoundingClientRect() : null;
+		const hasContainerDimensions = containerRect.height > 0;
+
+		let bestRowIndex = 0;
+
+		if (hasContainerDimensions) {
+			let maxVisibleHeight = -1;
+			let minCenterDistance = Number.POSITIVE_INFINITY;
+			const viewportCenter = containerRect.height / 2;
+
+			for (let i = 0; i < rows.length; i++) {
+				const row = rows[i]!;
+				const firstPage = row[0]!;
+				const pageRect = firstPage.getBoundingClientRect();
+				const pageTopInWindow = (iframeRect ? iframeRect.top : 0) + pageRect.top;
+				const relTop = pageTopInWindow - containerRect.top;
+				const relBottom = relTop + pageRect.height;
+
+				const visibleTop = Math.max(0, relTop);
+				const visibleBottom = Math.min(containerRect.height, relBottom);
+				const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+				const rowCenter = (relTop + relBottom) / 2;
+				const centerDist = Math.abs(rowCenter - viewportCenter);
+
+				if (visibleHeight > maxVisibleHeight) {
+					maxVisibleHeight = visibleHeight;
+					minCenterDistance = centerDist;
+					bestRowIndex = i;
+				} else if (
+					Math.abs(visibleHeight - maxVisibleHeight) < 5 &&
+					centerDist < minCenterDistance
+				) {
+					minCenterDistance = centerDist;
+					bestRowIndex = i;
+				}
+			}
+		} else if (this.canvasScrollEl.scrollTop > 0) {
+			const maxScroll = Math.max(
+				1,
+				this.canvasScrollEl.scrollHeight - this.canvasScrollEl.clientHeight,
+			);
+			const ratio = Math.max(0, Math.min(1, this.canvasScrollEl.scrollTop / maxScroll));
+			bestRowIndex = Math.min(rows.length - 1, Math.floor(ratio * rows.length));
+		} else if (this.currentPageIndex > 1) {
+			const foundIdx = rows.findIndex((row) =>
+				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
+			);
+			bestRowIndex = foundIdx >= 0 ? foundIdx : 0;
+		}
+
+		const winningRow = rows[bestRowIndex] ?? rows[0]!;
+		const firstPage = winningRow[0]!;
+		const lastPage = winningRow[winningRow.length - 1]!;
+
+		const firstPageNum = this.getPageNumber(firstPage, 1);
+		const lastPageNum = this.getPageNumber(lastPage, firstPageNum);
+
+		const firstLabel = this.getPageLabel(firstPage, firstPageNum);
+		const lastLabel = this.getPageLabel(lastPage, lastPageNum);
+
+		const rowNumbers = winningRow.map((p, idx) =>
+			this.getPageNumber(p, firstPageNum + idx),
+		);
+
+		this.currentPageIndex = firstPageNum;
+
+		if (this.currentViewMode === "single") {
+			this.pageIndicatorEl.textContent = `${firstLabel} of ${this.totalPages}`;
+		} else {
+			if (winningRow.length === 1) {
+				this.pageIndicatorEl.textContent = `${firstLabel} of ${this.totalPages}`;
+			} else {
+				this.pageIndicatorEl.textContent = `${firstLabel}–${lastLabel} of ${this.totalPages}`;
+			}
+		}
+
+		this.emitActivePageChange({
+			viewMode: this.currentViewMode,
+			currentPage: this.currentPageIndex,
+			totalPages: this.totalPages,
+			currentSpread: bestRowIndex,
+			totalSpreads: rows.length,
+			leftPage: firstLabel,
+			rightPage: winningRow.length > 1 ? lastLabel : null,
+			visiblePages: rowNumbers,
+		});
+	}
+
+	private emitActivePageChange(detail: ActivePageChangeDetail): void {
+		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
+			"iframe[data-playground-frame]",
+		);
+		const doc = iframe?.contentDocument;
+		const pagesContainer = doc?.querySelector<HTMLElement>(
+			".printedjs_pages, .pagedjs_pages",
+		);
+
+		const eventInit = { detail, bubbles: true, composed: true };
+
+		if (pagesContainer) {
+			pagesContainer.dispatchEvent(new CustomEvent("page:change", eventInit));
+			pagesContainer.dispatchEvent(new CustomEvent("views:page-change", eventInit));
+		}
+		if (doc) {
+			doc.dispatchEvent(new CustomEvent("page:change", eventInit));
+			doc.dispatchEvent(new CustomEvent("views:page-change", eventInit));
+		}
+		this.renderViewport.dispatchEvent(new CustomEvent("page:change", eventInit));
+		this.renderViewport.dispatchEvent(new CustomEvent("views:page-change", eventInit));
 	}
 
 	updateBookPageIndicator(
@@ -867,7 +1196,7 @@ export class ViewportComponent {
 
 		const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 		if (isMobile) {
-			const pageNum = rightPage ?? (currentPage ?? spread + 1);
+			const pageNum = rightPage ?? currentPage ?? spread + 1;
 			this.pageIndicatorEl.textContent = `${pageNum} of ${total}`;
 			return;
 		}
@@ -901,11 +1230,24 @@ export class ViewportComponent {
 			"iframe[data-playground-frame]",
 		);
 		const doc = iframe?.contentDocument ?? this.renderViewport;
-		const pageEl = doc.querySelector(`[data-page-number="${targetPageNumber}"]`);
+		const pageEl = doc.querySelector(
+			`[data-page-number="${targetPageNumber}"]`,
+		) as HTMLElement | null;
 		if (pageEl) {
-			pageEl.scrollIntoView({ behavior: "smooth", block: "start" });
+			const containerRect = this.canvasScrollEl.getBoundingClientRect();
+			const iframeRect = iframe ? iframe.getBoundingClientRect() : null;
+			const pageRect = pageEl.getBoundingClientRect();
+
+			if (containerRect.height > 0 && pageRect.height > 0) {
+				const pageTopInWindow = (iframeRect ? iframeRect.top : 0) + pageRect.top;
+				const delta = pageTopInWindow - containerRect.top - 24;
+				this.canvasScrollEl.scrollBy({ top: delta, behavior: "smooth" });
+			} else {
+				pageEl.scrollIntoView({ behavior: "smooth", block: "start" });
+			}
+
 			this.currentPageIndex = targetPageNumber;
-			this.pageIndicatorEl.textContent = `${targetPageNumber} of ${this.totalPages}`;
+			this.updateActivePagesFromScroll();
 		}
 	}
 

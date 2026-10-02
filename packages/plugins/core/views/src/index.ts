@@ -2,6 +2,7 @@ export { singlePageViewPlugin } from "./single-page/plugin.js";
 export { spreadPageViewPlugin } from "./spread-page/plugin.js";
 export { pageViewsPlugin, DomPageViewsController } from "./manager.js";
 export type {
+	ActivePageChangeDetail,
 	PageViewsController,
 	PageViewsPluginOptions,
 	SinglePageViewOptions,

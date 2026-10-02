@@ -30,10 +30,24 @@ export interface PageViewsPluginOptions {
 	readonly adapters?: readonly ViewModeAdapter[] | undefined;
 }
 
+export interface ActivePageChangeDetail {
+	readonly currentSpread?: number | undefined;
+	readonly totalSpreads?: number | undefined;
+	readonly currentPage: number;
+	readonly totalPages: number;
+	readonly leftPage?: number | string | null | undefined;
+	readonly rightPage?: number | string | null | undefined;
+	readonly visiblePages?: readonly number[] | undefined;
+	readonly viewMode?: ViewMode | undefined;
+}
+
 export interface PageViewsController {
 	readonly currentMode: ViewMode;
+	readonly currentPage?: number | undefined;
+	readonly activePages?: readonly number[] | undefined;
 	setMode(mode: ViewMode, options?: unknown): void;
 	getAdapterController<T = unknown>(mode?: string): T | null;
 	getFlipBook?(): unknown;
+	emitPageChange?(detail: ActivePageChangeDetail): void;
 	destroy(): void;
 }

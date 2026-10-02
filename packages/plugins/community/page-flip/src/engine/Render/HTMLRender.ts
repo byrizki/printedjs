@@ -75,7 +75,7 @@ export class HTMLRender extends Render {
 			transform-origin: 0 0;
 			pointer-events: none;
 			background: linear-gradient(to right,
-				rgba(0, 0, 0, ${(this.shadow.opacity * progress) / 100 * 0.4}) 0%,
+				rgba(0, 0, 0, ${((this.shadow.opacity * progress) / 100) * 0.4}) 0%,
 				rgba(0, 0, 0, 0) 100%);
 		`;
 
@@ -265,7 +265,8 @@ export class HTMLRender extends Render {
 
 	private drawRightPage(): void {
 		if (this.rightPage === null) return;
-		if (this.rightPage === this.flippingPage || this.rightPage === this.bottomPage) return;
+		if (this.rightPage === this.flippingPage || this.rightPage === this.bottomPage)
+			return;
 
 		if (
 			this.direction === FlipDirection.FORWARD &&
