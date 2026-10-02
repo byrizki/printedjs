@@ -28,6 +28,21 @@ jobs:
       - name: Install Playwright browsers (Chromium, Firefox, WebKit)
         run: pnpm exec playwright install --with-deps chromium firefox webkit
 
+      - name: Install system fonts
+        run: |
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo add-apt-repository multiverse
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fontconfig \
+            ttf-mscorefonts-installer \
+            fonts-liberation \
+            fonts-freefont-ttf \
+            fonts-dejavu-core
+          sudo fc-cache -f -v
+          fc-match "Georgia"
+          fc-match "Times New Roman"
+
       - name: Build packages
         run: pnpm build
 
