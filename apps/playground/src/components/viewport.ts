@@ -522,12 +522,12 @@ export class ViewportComponent {
 
 		let maxPageWidth = 0;
 		for (const page of pages) {
-			const rect = page.getBoundingClientRect ? page.getBoundingClientRect() : null;
+			const view = page.ownerDocument?.defaultView || window;
+			const computed = view.getComputedStyle ? view.getComputedStyle(page) : null;
 			const w =
-				rect?.width ||
+				parseFloat(computed?.width || "") ||
 				page.offsetWidth ||
 				parseFloat(page.style.width) ||
-				parseFloat(window.getComputedStyle(page).width) ||
 				794;
 			if (w > maxPageWidth) maxPageWidth = w;
 		}
@@ -560,18 +560,20 @@ export class ViewportComponent {
 		);
 		const doc = iframe?.contentDocument ?? this.renderViewport;
 		const page = doc.querySelector<HTMLElement>(".printedjs_page, .pagedjs_page");
-		const isBook =
-			this.currentViewMode === "flipbook" || (this.currentViewMode as string) === "book";
-		const rect = isBook ? null : page?.getBoundingClientRect?.();
+		if (!page) {
+			return { width: 794, height: 1123 };
+		}
+		const view = page.ownerDocument?.defaultView || window;
+		const computed = view.getComputedStyle ? view.getComputedStyle(page) : null;
 		const width =
-			(!isBook ? rect?.width : 0) ||
-			parseFloat(page?.style.width || "") ||
-			page?.offsetWidth ||
+			parseFloat(computed?.width || "") ||
+			page.offsetWidth ||
+			parseFloat(page.style.width || "") ||
 			794;
 		const height =
-			(!isBook ? rect?.height : 0) ||
-			parseFloat(page?.style.height || "") ||
-			page?.offsetHeight ||
+			parseFloat(computed?.height || "") ||
+			page.offsetHeight ||
+			parseFloat(page.style.height || "") ||
 			1123;
 		return {
 			width: width > 0 ? width : 794,
@@ -599,10 +601,7 @@ export class ViewportComponent {
 		}
 
 		if (this.currentViewMode === "spread") {
-			const pageCount = doc.querySelectorAll(".printedjs_page, .pagedjs_page").length;
-			const cols = Math.max(1, this.gridCols);
-			const rows = Math.max(1, Math.ceil(pageCount / cols));
-			return Math.ceil(rows * pageHeight + Math.max(0, rows - 1) * 32 + 48);
+			return Math.ceil(pageHeight + 48);
 		}
 
 		if (pageHeight > 0) return pageHeight + 32;
@@ -626,13 +625,12 @@ export class ViewportComponent {
 		if (availableWidth <= 0 || contentWidth <= 0) return;
 
 		const scaleX = availableWidth / contentWidth;
-		const isWideSpread = this.currentViewMode === "spread" && this.gridCols >= 3;
 		const scaleY =
-			!isWideSpread && availableHeight > 0 && contentHeight > 0
+			availableHeight > 0 && contentHeight > 0
 				? availableHeight / contentHeight
 				: scaleX;
 
-		const bestScale = isWideSpread ? scaleX : Math.min(scaleX, scaleY);
+		const bestScale = Math.min(scaleX, scaleY);
 		let calculatedZoom = Math.floor(bestScale * 100) / 100;
 		calculatedZoom = Math.max(0.1, Math.min(1.5, calculatedZoom));
 		this.setZoom(calculatedZoom);
@@ -826,10 +824,28 @@ export class ViewportComponent {
 		if (pageCount === 0) {
 			this.pageIndicatorEl.textContent = "0 pages";
 			this.currentPageIndex = 0;
-		} else {
-			this.currentPageIndex = 1;
-			this.pageIndicatorEl.textContent = `1 of ${pageCount}`;
+			return;
 		}
+		if (
+			this.currentViewMode === "flipbook" ||
+			(this.currentViewMode as string) === "book"
+		) {
+			const flipBook = this.getFlipBookController();
+			if (flipBook) {
+				this.currentPageIndex = flipBook.currentPage;
+				this.updateBookPageIndicator(
+					flipBook.currentSpread,
+					flipBook.totalSpreads,
+					flipBook.currentPage,
+				);
+			} else {
+				this.currentPageIndex = 1;
+				this.updateBookPageIndicator(0, Math.ceil((pageCount + 1) / 2), 1);
+			}
+			return;
+		}
+		this.currentPageIndex = 1;
+		this.pageIndicatorEl.textContent = `1 of ${pageCount}`;
 	}
 
 	updateBookPageIndicator(

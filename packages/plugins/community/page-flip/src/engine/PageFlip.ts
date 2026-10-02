@@ -38,8 +38,9 @@ export class PageFlip extends EventObject {
 	}
 
 	public destroy(): void {
+		this.render?.destroy();
 		this.ui?.destroy();
-		this.block.remove();
+		this.pages?.destroy();
 	}
 
 	public update(): void {

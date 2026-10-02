@@ -9,6 +9,7 @@ const pageFlipCss = `
 	transform: translateZ(0) !important;
 	touch-action: pan-y !important;
 	margin: 0 auto !important;
+	box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5);
 }
 
 .stf__wrapper {
@@ -38,10 +39,29 @@ const pageFlipCss = `
 }
 
 .stf__item {
-	display: none;
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
 	position: absolute !important;
 	transform-style: preserve-3d !important;
 	box-sizing: border-box !important;
+	overflow: hidden !important;
+	background-color: #ffffff;
+}
+
+.stf__item,
+.stf__parent :is(.printedjs_page, .pagedjs_page) {
+	box-shadow: none !important;
+	border-radius: 0 !important;
+	border: none !important;
+}
+
+.stf__item.--left {
+	box-shadow: inset -10px 0 16px -8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stf__item.--right {
+	box-shadow: inset 10px 0 16px -8px rgba(0, 0, 0, 0.15) !important;
 }
 
 .stf__outerShadow,
@@ -49,19 +69,13 @@ const pageFlipCss = `
 .stf__hardShadow,
 .stf__hardInnerShadow {
 	position: absolute !important;
-	left: 0 !important;
-	top: 0 !important;
+	pointer-events: none !important;
 }
 
 .stf__item[data-flip-clone="true"],
 .stf__item[data-flip-clone="true"] * {
 	counter-increment: none !important;
 	counter-reset: none !important;
-}
-
-.printedjs_margin-content[data-folio-frozen="true"]::after,
-.pagedjs_margin-content[data-folio-frozen="true"]::after {
-	content: none !important;
 }
 
 @media print {

@@ -240,11 +240,13 @@ describe("Playground & Engine Fixes Verification", () => {
 			await controller.prev();
 			expect(controller.currentSpread).toBe(0);
 			expect(pageElements[0].getAttribute("data-flipbook-side")).toBe("right");
+			expect(pageElements[0].style.display).toBe("block");
+			expect(pageElements[1].style.display).toBe("none");
 
 			controller.destroy();
 		});
 
-		it("preserves running headers and only freezes actual page counter folios", async () => {
+		it("preserves running headers and margin contents without corrupting native CSS pseudo-elements", async () => {
 			const { container, pageElements } = createMockBookContainer(3);
 			const leftMarginContent = {
 				textContent: "",
@@ -313,9 +315,9 @@ describe("Playground & Engine Fixes Verification", () => {
 				turnDurationMs: 0,
 			});
 
-			// Left margin content had counter(page) -> frozen with folio "2"
-			expect(leftMarginContent.textContent).toBe("2");
-			expect(leftMarginContent.attrs["data-folio-frozen"]).toBe("true");
+			// Margin content remains clean for native CSS counter / string pseudo-elements
+			expect(leftMarginContent.textContent).toBe("");
+			expect(leftMarginContent.attrs["data-folio-frozen"]).toBeUndefined();
 
 			// Right margin content had book title -> untouched!
 			expect(rightMarginContent.textContent).toBe("");
@@ -324,7 +326,7 @@ describe("Playground & Engine Fixes Verification", () => {
 			controller.destroy();
 		});
 
-		it("correctly freezes footer page counter folios when browser computed style is counter(page) and leaves other content untouched", async () => {
+		it("preserves footer page counter folios and leaves margin contents untouched for native CSS counters", async () => {
 			const { container, pageElements } = createMockBookContainer(3);
 			const footerLeftContent = {
 				textContent: "",
@@ -396,9 +398,9 @@ describe("Playground & Engine Fixes Verification", () => {
 				turnDurationMs: 0,
 			});
 
-			// Footer left matches counter(page) -> frozen with page 2 folio
-			expect(footerLeftContent.textContent).toBe("2");
-			expect(footerLeftContent.attrs["data-folio-frozen"]).toBe("true");
+			// Footer left remains clean to allow native CSS counter evaluation (e.g. roman, alpha, custom colors)
+			expect(footerLeftContent.textContent).toBe("");
+			expect(footerLeftContent.attrs["data-folio-frozen"]).toBeUndefined();
 
 			// Footer center is arbitrary notes -> left alone
 			expect(footerCenterContent.textContent).toBe("");

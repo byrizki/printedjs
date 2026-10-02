@@ -75,14 +75,17 @@ export class HTMLPage extends Page {
 		const s = this.element.style;
 		s.position = "absolute";
 		s.display = "block";
+		s.visibility = "visible";
+		s.opacity = "1";
+		s.pointerEvents = "";
 		s.left = "0px";
 		s.top = "0px";
-		s.width = `${pageWidth}px`;
-		s.height = `${pageHeight}px`;
+		s.setProperty("width", `${pageWidth}px`, "important");
+		s.setProperty("height", `${pageHeight}px`, "important");
 	}
 
 	private drawHard(pageWidth: number, pageHeight: number): void {
-		const pos = this.render.getRect().left + this.render.getRect().width / 2;
+		const rect = this.render.getRect();
 		const angle = this.state.hardDrawingAngle;
 
 		this.applyCommonStyle(pageWidth, pageHeight);
@@ -91,13 +94,18 @@ export class HTMLPage extends Page {
 		s.setProperty("-webkit-backface-visibility", "hidden");
 		s.clipPath = "none";
 		s.setProperty("-webkit-clip-path", "none");
+		s.outline = "1px solid transparent";
+
+		s.top = `${rect.top}px`;
 
 		if (this.orientation === PageOrientation.LEFT) {
-			s.transformOrigin = `${this.render.getRect().pageWidth}px 0`;
-			s.transform = `translate3d(0, 0, 0) rotateY(${angle}deg)`;
+			s.left = `${rect.left}px`;
+			s.transformOrigin = `${pageWidth}px 0`;
+			s.transform = `rotateY(${angle}deg)`;
 		} else {
+			s.left = `${rect.left + pageWidth}px`;
 			s.transformOrigin = "0 0";
-			s.transform = `translate3d(${pos}px, 0, 0) rotateY(${angle}deg)`;
+			s.transform = `rotateY(${angle}deg)`;
 		}
 	}
 
@@ -147,10 +155,13 @@ export class HTMLPage extends Page {
 		const s = this.element.style;
 		s.position = "absolute";
 		s.display = "block";
-		s.height = `${pageHeight}px`;
+		s.visibility = "visible";
+		s.opacity = "1";
+		s.pointerEvents = "";
+		s.setProperty("height", `${pageHeight}px`, "important");
 		s.left = `${x}px`;
 		s.top = `${y}px`;
-		s.width = `${pageWidth}px`;
+		s.setProperty("width", `${pageWidth}px`, "important");
 		s.zIndex = String(this.render.getSettings().startZIndex + 1);
 		s.transform = "";
 		s.clipPath = "";

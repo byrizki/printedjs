@@ -1,4 +1,3 @@
-import { formatPageNumber, type PageCounterStyle } from "@printedjs/core";
 import { PageFlip } from "./engine/PageFlip.js";
 import { playPageTurnSound } from "./sound.js";
 
@@ -24,154 +23,26 @@ export interface FlipBookController {
 	destroy(): void;
 }
 
-interface PageRuleEntry {
-	selector: string;
-	contentPattern: string;
+function setPageProp(
+	el: HTMLElement | null | undefined,
+	prop: string,
+	val: string,
+	priority = "",
+): void {
+	if (!el || !el.style) return;
+	if (typeof el.style.setProperty === "function") {
+		el.style.setProperty(prop, val, priority);
+	} else {
+		(el.style as unknown as Record<string, string>)[prop] = val;
+	}
 }
 
-function collectCssRules(
-	rules: CSSRuleList | CSSRule[] | null | undefined,
-): CSSStyleRule[] {
-	if (!rules) return [];
-	const list: CSSStyleRule[] = [];
-	for (const rule of Array.from(rules)) {
-		if ("selectorText" in rule && "style" in rule) {
-			list.push(rule as CSSStyleRule);
-		} else if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
-			list.push(...collectCssRules((rule as CSSGroupingRule).cssRules));
-		}
-	}
-	return list;
-}
-
-function resolveCounterText(
-	pattern: string | null,
-	folio: string,
-	logicalNumber: number,
-	totalPages: number,
-): string {
-	if (!pattern) return folio;
-
-	const pageMatch = pattern.match(
-		/counter\s*\(\s*page\s*(?:,\s*([a-zA-Z0-9_-]+))?\s*\)/i,
-	);
-	let pageStr = folio;
-	if (pageMatch && pageMatch[1]) {
-		const counterStyle = pageMatch[1].toLowerCase() as PageCounterStyle;
-		pageStr = formatPageNumber(logicalNumber, counterStyle);
-	}
-
-	let text = pattern;
-	text = text.replace(
-		/counter\s*\(\s*pages\s*(?:,\s*([a-zA-Z0-9_-]+))?\s*\)/gi,
-		(_, rawStyle) => {
-			const pagesStyle = (
-				rawStyle ? rawStyle.toLowerCase() : "decimal"
-			) as PageCounterStyle;
-			return formatPageNumber(totalPages, pagesStyle);
-		},
-	);
-	text = text.replace(/counter\s*\(\s*page\s*(?:,\s*[a-zA-Z0-9_-]+)?\s*\)/gi, pageStr);
-
-	text = text.replace(/["']/g, "").replace(/\s+/g, " ").trim();
-
-	return text || folio;
-}
-
-function freezePageFolios(container: HTMLElement, pages: HTMLElement[]): void {
-	const doc =
-		container.ownerDocument ?? (typeof document !== "undefined" ? document : null);
-	if (!doc) return;
-
-	const pageRuleEntries: PageRuleEntry[] = [];
-	try {
-		for (const sheet of Array.from(doc.styleSheets)) {
-			try {
-				const styleRules = collectCssRules(sheet.cssRules);
-				for (const rule of styleRules) {
-					const content = (
-						rule.style.content ||
-						rule.style.getPropertyValue("content") ||
-						""
-					).trim();
-					if (content && /counter\s*\(\s*page\b/i.test(content)) {
-						for (const rawSel of rule.selectorText.split(",")) {
-							const selector = rawSel.replace(/::?(?:after|before)\s*$/i, "").trim();
-							if (selector) {
-								pageRuleEntries.push({ selector, contentPattern: content });
-							}
-						}
-					}
-				}
-			} catch {
-				// Ignore cross-origin stylesheet access restriction
-			}
-		}
-	} catch {
-		// Ignore
-	}
-
-	const view = doc.defaultView;
-	const totalPages = pages.length;
-
-	for (let i = 0; i < pages.length; i++) {
-		const page = pages[i];
-		if (!page) continue;
-		if (typeof page.querySelectorAll !== "function") continue;
-		const formatted = page.getAttribute("data-page-formatted")?.trim();
-		const logicalAttr = page.getAttribute("data-page-number")?.trim();
-		const logicalNum = logicalAttr ? parseInt(logicalAttr, 10) : i + 1;
-		const folio =
-			formatted || (Number.isFinite(logicalNum) ? String(logicalNum) : String(i + 1));
-
-		page
-			.querySelectorAll<HTMLElement>(".printedjs_margin-content, .pagedjs_margin-content")
-			.forEach((node) => {
-				if (node.getAttribute("data-folio-frozen") === "true") return;
-				if (node.firstElementChild !== null) return;
-				if (node.textContent?.trim()) return;
-
-				const computed = view?.getComputedStyle(node, "::after")?.content ?? "";
-				const cleaned = computed.replace(/^["']|["']$/g, "").trim();
-				if (cleaned === "none" || cleaned === "normal") return;
-
-				let matchedEntry: PageRuleEntry | null = null;
-				for (const entry of pageRuleEntries) {
-					try {
-						if (typeof node.matches === "function" && node.matches(entry.selector)) {
-							matchedEntry = entry;
-							break;
-						}
-					} catch {
-						// Ignore invalid selector
-					}
-				}
-
-				const hasCounterExpr =
-					/counter\s*\(\s*page\b/i.test(computed) ||
-					/counter\s*\(\s*page\b/i.test(cleaned);
-
-				const isPageCounter = matchedEntry !== null || hasCounterExpr;
-
-				const isFolio =
-					cleaned.length > 0 &&
-					(cleaned === folio ||
-						(logicalAttr !== undefined && cleaned === logicalAttr) ||
-						(Number.isFinite(Number(cleaned)) && String(Number(cleaned)) === folio));
-
-				if (isPageCounter || isFolio) {
-					const pattern =
-						matchedEntry?.contentPattern ?? (hasCounterExpr ? cleaned : null);
-					const frozenText = resolveCounterText(
-						pattern,
-						folio,
-						Number.isFinite(logicalNum) ? logicalNum : i + 1,
-						totalPages,
-					);
-					node.textContent = frozenText;
-					node.setAttribute("data-folio-frozen", "true");
-				}
-			});
+function removePageProp(el: HTMLElement | null | undefined, prop: string): void {
+	if (!el || !el.style) return;
+	if (typeof el.style.removeProperty === "function") {
+		el.style.removeProperty(prop);
+	} else {
+		delete (el.style as unknown as Record<string, string>)[prop];
 	}
 }
 
@@ -297,25 +168,51 @@ export class PageFlipController implements FlipBookController {
 	}
 
 	private init(): void {
+		const existing = (this.container as unknown as Record<string, unknown>).__printedjs_flipbook as
+			| { destroy?: () => void }
+			| undefined;
+		if (existing && existing !== (this as unknown) && typeof existing.destroy === "function") {
+			existing.destroy();
+		}
+
+		if (this.pageFlip) {
+			this.destroy();
+		}
+
+		(this.container as unknown as Record<string, unknown>).__printedjs_flipbook = this;
+
 		this.pageElements = Array.from(
 			this.container.querySelectorAll<HTMLElement>(
 				":scope > :is(.printedjs_page, .pagedjs_page)",
 			),
 		);
+		if (this.pageElements.length === 0) {
+			this.pageElements = Array.from(
+				this.container.querySelectorAll<HTMLElement>(
+					":is(.printedjs_page, .pagedjs_page)",
+				),
+			);
+		}
 		if (this.pageElements.length === 0) return;
 
 		const firstPage = this.pageElements[0];
-		const rect = firstPage?.getBoundingClientRect?.();
+		const view =
+			firstPage?.ownerDocument?.defaultView ??
+			(typeof window !== "undefined" ? window : null);
+		const computed = view && firstPage ? view.getComputedStyle(firstPage) : null;
+		const compW = computed ? parseFloat(computed.width) : 0;
+		const compH = computed ? parseFloat(computed.height) : 0;
+
 		const pageWidth = Math.round(
-			rect?.width ||
+			(compW > 0 ? compW : 0) ||
 				firstPage?.offsetWidth ||
-				parseFloat(firstPage?.style?.width || "794") ||
+				parseFloat(firstPage?.style?.width || "") ||
 				794,
 		);
 		const pageHeight = Math.round(
-			rect?.height ||
+			(compH > 0 ? compH : 0) ||
 				firstPage?.offsetHeight ||
-				parseFloat(firstPage?.style?.height || "1123") ||
+				parseFloat(firstPage?.style?.height || "") ||
 				1123,
 		);
 
@@ -331,7 +228,70 @@ export class PageFlipController implements FlipBookController {
 		this.container.style.height = `${pageHeight}px`;
 		this.container.style.minHeight = `${pageHeight}px`;
 
-		freezePageFolios(this.container, this.pageElements);
+		for (const page of this.pageElements) {
+			if (!page || !page.style) continue;
+
+			let naturalWidth = Number(page.getAttribute?.("data-natural-width"));
+			let naturalHeight = Number(page.getAttribute?.("data-natural-height"));
+
+			if (!naturalWidth || !naturalHeight) {
+				const view =
+					page.ownerDocument?.defaultView ??
+					(typeof window !== "undefined" ? window : null);
+				const computed = view ? view.getComputedStyle(page) : null;
+				const compW = computed ? parseFloat(computed.width) : 0;
+				const compH = computed ? parseFloat(computed.height) : 0;
+
+				naturalWidth =
+					(compW > 0 ? compW : 0) ||
+					page.offsetWidth ||
+					parseFloat(page.style?.width || "") ||
+					pageWidth;
+				naturalHeight =
+					(compH > 0 ? compH : 0) ||
+					page.offsetHeight ||
+					parseFloat(page.style?.height || "") ||
+					pageHeight;
+
+				page.setAttribute?.("data-natural-width", String(naturalWidth));
+				page.setAttribute?.("data-natural-height", String(naturalHeight));
+			}
+
+			setPageProp(page, "width", `${pageWidth}px`, "important");
+			setPageProp(page, "height", `${pageHeight}px`, "important");
+			setPageProp(page, "overflow", "hidden", "important");
+
+			const contentEl =
+				(typeof page.querySelector === "function"
+					? page.querySelector<HTMLElement>(".printedjs_sheet, .pagedjs_sheet")
+					: null) ?? (page.firstElementChild as HTMLElement | null);
+
+			if (contentEl) {
+				const rawScale = Math.min(
+					pageWidth / naturalWidth,
+					pageHeight / naturalHeight,
+					1,
+				);
+				const scale = rawScale >= 0.99 ? 1 : rawScale;
+
+				if (scale < 1) {
+					const scaledWidth = naturalWidth * scale;
+					const scaledHeight = naturalHeight * scale;
+					const offsetX = Math.max(0, (pageWidth - scaledWidth) / 2);
+					const offsetY = Math.max(0, (pageHeight - scaledHeight) / 2);
+
+					setPageProp(contentEl, "width", `${naturalWidth}px`, "important");
+					setPageProp(contentEl, "height", `${naturalHeight}px`, "important");
+					setPageProp(contentEl, "transform-origin", "0 0", "important");
+					setPageProp(
+						contentEl,
+						"transform",
+						`translate(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px) scale(${scale.toFixed(6)})`,
+						"important",
+					);
+				}
+			}
+		}
 
 		try {
 			this.pageFlip = new PageFlip(this.container, {
@@ -401,14 +361,24 @@ export class PageFlipController implements FlipBookController {
 			const page = this.pageElements[i];
 			if (!page) continue;
 			page.removeAttribute?.("data-flipbook-side");
-			if (page.style) page.style.display = "none";
+			if (page.style) {
+				page.style.display = "none";
+				page.style.visibility = "hidden";
+				page.style.opacity = "0";
+				page.style.pointerEvents = "none";
+			}
 		}
 
 		if (this._currentSpread === 0) {
 			const first = this.pageElements[0];
 			if (first) {
 				first.setAttribute?.("data-flipbook-side", "right");
-				if (first.style) first.style.display = "block";
+				if (first.style) {
+					first.style.display = "block";
+					first.style.visibility = "visible";
+					first.style.opacity = "1";
+					first.style.pointerEvents = "";
+				}
 			}
 			return;
 		}
@@ -420,7 +390,12 @@ export class PageFlipController implements FlipBookController {
 			const last = this.pageElements[leftIdx];
 			if (last) {
 				last.setAttribute?.("data-flipbook-side", "right");
-				if (last.style) last.style.display = "block";
+				if (last.style) {
+					last.style.display = "block";
+					last.style.visibility = "visible";
+					last.style.opacity = "1";
+					last.style.pointerEvents = "";
+				}
 			}
 			return;
 		}
@@ -429,7 +404,12 @@ export class PageFlipController implements FlipBookController {
 			const left = this.pageElements[leftIdx];
 			if (left) {
 				left.setAttribute?.("data-flipbook-side", "left");
-				if (left.style) left.style.display = "block";
+				if (left.style) {
+					left.style.display = "block";
+					left.style.visibility = "visible";
+					left.style.opacity = "1";
+					left.style.pointerEvents = "";
+				}
 			}
 		}
 
@@ -437,7 +417,12 @@ export class PageFlipController implements FlipBookController {
 			const right = this.pageElements[rightIdx];
 			if (right) {
 				right.setAttribute?.("data-flipbook-side", "right");
-				if (right.style) right.style.display = "block";
+				if (right.style) {
+					right.style.display = "block";
+					right.style.visibility = "visible";
+					right.style.opacity = "1";
+					right.style.pointerEvents = "";
+				}
 			}
 		}
 	}
@@ -501,17 +486,68 @@ export class PageFlipController implements FlipBookController {
 
 		for (const page of this.pageElements) {
 			page.removeAttribute?.("data-flipbook-side");
+			page.removeAttribute?.("data-natural-width");
+			page.removeAttribute?.("data-natural-height");
 			if (page.style) {
 				page.style.display = "";
+				page.style.visibility = "";
+				page.style.opacity = "";
+				page.style.pointerEvents = "";
+				removePageProp(page, "width");
+				removePageProp(page, "height");
+				removePageProp(page, "--printedjs-pagebox-width");
+				removePageProp(page, "--printedjs-pagebox-height");
+				removePageProp(page, "--pagedjs-pagebox-width");
+				removePageProp(page, "--pagedjs-pagebox-height");
+				removePageProp(page, "--printedjs-width");
+				removePageProp(page, "--printedjs-height");
+				removePageProp(page, "--pagedjs-width");
+				removePageProp(page, "--pagedjs-height");
+				removePageProp(page, "overflow");
+				page.style.position = "";
+				page.style.left = "";
+				page.style.top = "";
+				page.style.zIndex = "";
+				page.style.transform = "";
+				page.style.clipPath = "";
 			}
-			if (typeof page.querySelectorAll === "function") {
-				page
-					.querySelectorAll<HTMLElement>('[data-folio-frozen="true"]')
-					.forEach((node) => {
-						node.textContent = "";
-						node.removeAttribute("data-folio-frozen");
-					});
+			const contentEl =
+				(typeof page.querySelector === "function"
+					? page.querySelector<HTMLElement>(".printedjs_sheet, .pagedjs_sheet")
+					: null) ?? (page.firstElementChild as HTMLElement | null);
+			if (contentEl) {
+				removePageProp(contentEl, "width");
+				removePageProp(contentEl, "height");
+				removePageProp(contentEl, "transform-origin");
+				removePageProp(contentEl, "transform");
 			}
+			if (typeof page.querySelector === "function") {
+				const pagebox = page.querySelector<HTMLElement>(
+					".printedjs_pagebox, .pagedjs_pagebox",
+				);
+				removePageProp(pagebox, "width");
+				removePageProp(pagebox, "height");
+			}
+			page.classList?.remove(
+				"stf__item",
+				"--simple",
+				"--left",
+				"--right",
+				"--hard",
+				"--soft",
+			);
+		}
+
+		if (typeof this.container.querySelectorAll === "function") {
+			this.container
+				.querySelectorAll<HTMLElement>('[data-flip-clone="true"]')
+				.forEach((node) => {
+					if (typeof node?.remove === "function") {
+						node.remove();
+					} else if (node?.parentNode) {
+						node.parentNode.removeChild(node);
+					}
+				});
 		}
 
 		if (this.pageFlip) {
@@ -535,5 +571,8 @@ export class PageFlipController implements FlipBookController {
 		this.container.style.maxWidth = "";
 		this.container.style.height = "";
 		this.container.removeAttribute("data-view-mode");
+		if ((this.container as unknown as Record<string, unknown>).__printedjs_flipbook === this) {
+			delete (this.container as unknown as Record<string, unknown>).__printedjs_flipbook;
+		}
 	}
 }

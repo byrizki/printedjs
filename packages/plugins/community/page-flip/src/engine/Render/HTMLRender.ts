@@ -70,11 +70,13 @@ export class HTMLRender extends Render {
 			z-index: ${(this.getSettings().startZIndex + 5).toString(10)};
 			width: ${innerShadowSize}px;
 			height: ${rect.height}px;
-			background: linear-gradient(to right,
-				rgba(0, 0, 0, ${(this.shadow.opacity * progress) / 100}) 5%,
-				rgba(0, 0, 0, 0) 100%);
+			top: ${rect.top}px;
 			left: ${rect.left + rect.width / 2}px;
 			transform-origin: 0 0;
+			pointer-events: none;
+			background: linear-gradient(to right,
+				rgba(0, 0, 0, ${(this.shadow.opacity * progress) / 100 * 0.4}) 0%,
+				rgba(0, 0, 0, 0) 100%);
 		`;
 
 		newStyle +=
@@ -101,11 +103,13 @@ export class HTMLRender extends Render {
 			z-index: ${(this.getSettings().startZIndex + 4).toString(10)};
 			width: ${shadowSize}px;
 			height: ${rect.height}px;
-			background: linear-gradient(to left, rgba(0, 0, 0, ${
-				this.shadow.opacity
-			}) 5%, rgba(0, 0, 0, 0) 100%);
+			top: ${rect.top}px;
 			left: ${rect.left + rect.width / 2}px;
 			transform-origin: 0 0;
+			pointer-events: none;
+			background: linear-gradient(to right,
+				rgba(0, 0, 0, ${this.shadow.opacity * 0.4}) 0%,
+				rgba(0, 0, 0, 0) 100%);
 		`;
 
 		newStyle +=
@@ -241,6 +245,7 @@ export class HTMLRender extends Render {
 
 	private drawLeftPage(): void {
 		if (this.orientation === Orientation.PORTRAIT || this.leftPage === null) return;
+		if (this.leftPage === this.flippingPage || this.leftPage === this.bottomPage) return;
 
 		if (
 			this.direction === FlipDirection.BACK &&
@@ -260,6 +265,7 @@ export class HTMLRender extends Render {
 
 	private drawRightPage(): void {
 		if (this.rightPage === null) return;
+		if (this.rightPage === this.flippingPage || this.rightPage === this.bottomPage) return;
 
 		if (
 			this.direction === FlipDirection.FORWARD &&
@@ -278,7 +284,7 @@ export class HTMLRender extends Render {
 	}
 
 	private drawBottomPage(): void {
-		if (this.bottomPage === null) return;
+		if (this.bottomPage === null || this.bottomPage === this.flippingPage) return;
 
 		const tempDensity =
 			this.flippingPage != null ? this.flippingPage.getDrawingDensity() : undefined;
@@ -325,13 +331,18 @@ export class HTMLRender extends Render {
 		if (!collection) return;
 
 		for (const page of collection.getPages()) {
-			if (
-				page !== this.leftPage &&
-				page !== this.rightPage &&
-				page !== this.flippingPage &&
-				page !== this.bottomPage
-			) {
-				(page as HTMLPage).getElement().style.display = "none";
+			const isLeft = page === this.leftPage;
+			const isRight = page === this.rightPage;
+			const isFlipping = page === this.flippingPage;
+			const isBottom = page === this.bottomPage;
+
+			const shouldKeep = isLeft || isRight || isFlipping || isBottom;
+
+			if (!shouldKeep) {
+				const el = (page as HTMLPage).getElement();
+				el.style.visibility = "hidden";
+				el.style.opacity = "0";
+				el.style.pointerEvents = "none";
 			}
 
 			if (page.getTemporaryCopy() !== this.flippingPage) {

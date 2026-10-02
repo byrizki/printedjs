@@ -31,7 +31,9 @@
 }
 
 .stf__item {
-	display: none;
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
 	position: absolute;
 	transform-style: preserve-3d;
 }

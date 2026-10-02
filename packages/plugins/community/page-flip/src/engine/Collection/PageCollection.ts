@@ -127,7 +127,9 @@ export abstract class PageCollection {
 
 		if (!spread) return null;
 
-		if (spread.length === 1) return this.pages[spread[0]!] ?? null;
+		if (spread.length === 1) {
+			return this.pages[spread[0]!] ?? null;
+		}
 
 		return direction === FlipDirection.FORWARD
 			? (this.pages[spread[0]!] ?? null)

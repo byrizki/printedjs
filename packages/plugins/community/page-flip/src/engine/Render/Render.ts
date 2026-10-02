@@ -128,6 +128,9 @@ export abstract class Render {
 		this.drawFrame();
 	}
 
+	private isDestroyed = false;
+	private animationFrameId: number | null = null;
+
 	/**
 	 * Running requestAnimationFrame, and rendering process
 	 */
@@ -140,11 +143,25 @@ export abstract class Render {
 		}
 
 		const loop = (timer: number): void => {
+			if (this.isDestroyed) return;
+			const dist = this.app.getUI().getDistElement();
+			if (dist && typeof dist.isConnected === "boolean" && !dist.isConnected) {
+				this.destroy();
+				return;
+			}
 			this.render(timer);
-			requestAnimationFrame(loop);
+			this.animationFrameId = requestAnimationFrame(loop);
 		};
 
-		requestAnimationFrame(loop);
+		this.animationFrameId = requestAnimationFrame(loop);
+	}
+
+	public destroy(): void {
+		this.isDestroyed = true;
+		if (this.animationFrameId !== null && typeof cancelAnimationFrame !== "undefined") {
+			cancelAnimationFrame(this.animationFrameId);
+			this.animationFrameId = null;
+		}
 	}
 
 	/**
