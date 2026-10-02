@@ -11,6 +11,7 @@ import {
 	type PageViewsController,
 	type ViewMode,
 } from "@printedjs/plugin-views";
+import { flipBookViewAdapter } from "@printedjs/plugin-page-flip";
 import type { RenderStats } from "../types/playground.js";
 
 export interface RenderServiceOptions {
@@ -128,9 +129,18 @@ body {
 		overflow: hidden !important;
 	}
 	.pm-flipbook-view .printedjs_pages:not(.stf__parent) > .printedjs_page,
-	.pm-flipbook-view .pagedjs_pages:not(.stf__parent) > .pagedjs_page {
+	.pm-flipbook-view .pagedjs_pages:not(.stf__parent) > .pagedjs_page,
+	.pm-flipbook-view .printedjs_page,
+	.pm-flipbook-view .pagedjs_page,
+	.pm-flipbook-view .stf__item {
 		margin-bottom: 0 !important;
 		flex-shrink: 0 !important;
+		transition: none !important;
+		animation: none !important;
+	}
+	.printedjs_margin-content[data-folio-frozen="true"]::after,
+	.pagedjs_margin-content[data-folio-frozen="true"]::after {
+		content: none !important;
 	}
 
 	.printedjs_page table,
@@ -217,6 +227,7 @@ export class RenderService {
 
 		const views = pageViewsPlugin({
 			initialMode: options.viewMode ?? "single",
+			adapters: [flipBookViewAdapter()],
 		});
 		const plugins = [...standardPreset(), views, devtools];
 

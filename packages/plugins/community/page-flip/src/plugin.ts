@@ -47,13 +47,20 @@ const pageFlipCss = `
 	box-sizing: border-box !important;
 	overflow: hidden !important;
 	background-color: #ffffff;
+	transition: none !important;
+	animation: none !important;
 }
 
 .stf__item,
-.stf__parent :is(.printedjs_page, .pagedjs_page) {
+.stf__item *,
+.stf__parent :is(.printedjs_page, .pagedjs_page),
+.stf__parent :is(.printedjs_page, .pagedjs_page) * {
 	box-shadow: none !important;
 	border-radius: 0 !important;
 	border: none !important;
+	transition: none !important;
+	backface-visibility: hidden !important;
+	-webkit-backface-visibility: hidden !important;
 }
 
 .stf__item.--left {
@@ -78,6 +85,11 @@ const pageFlipCss = `
 	counter-reset: none !important;
 }
 
+.printedjs_margin-content[data-folio-frozen="true"]::after,
+.pagedjs_margin-content[data-folio-frozen="true"]::after {
+	content: none !important;
+}
+
 @media print {
 	.stf__parent {
 		position: static !important;
@@ -100,6 +112,44 @@ const pageFlipCss = `
 	}
 }
 `;
+
+export interface ViewModeAdapter {
+	readonly mode: string | readonly string[];
+	attach(container: HTMLElement, options?: unknown): unknown;
+	detach?(container: HTMLElement): void;
+	transformStyles?(css: string, context?: PluginContext): string;
+}
+
+export function flipBookViewAdapter(options: PageFlipOptions = {}): ViewModeAdapter {
+	return {
+		mode: ["flipbook", "book"],
+		attach(container: HTMLElement, overrideOptions?: unknown): PageFlipController {
+			const merged = {
+				...options,
+				...(typeof overrideOptions === "object" && overrideOptions !== null
+					? overrideOptions
+					: {}),
+			};
+			const controller = new PageFlipController(container, merged);
+			(container as unknown as Record<string, unknown>).__printedjs_flipbook = controller;
+			return controller;
+		},
+		detach(container: HTMLElement): void {
+			const existing = (container as unknown as Record<string, unknown>).__printedjs_flipbook as
+				| { destroy?: () => void }
+				| undefined;
+			if (existing && typeof existing.destroy === "function") {
+				existing.destroy();
+			}
+			delete (container as unknown as Record<string, unknown>).__printedjs_flipbook;
+		},
+		transformStyles(css: string): string {
+			return `${css}\n\n${pageFlipCss}`;
+		},
+	};
+}
+
+export const flipBookViewPlugin = pageFlipPlugin;
 
 export function pageFlipPlugin(options: PageFlipOptions = {}): PrintedjsPlugin {
 	return {

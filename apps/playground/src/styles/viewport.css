@@ -151,9 +151,12 @@
 	}
 
 	.pm-flipbook-view #render-viewport .printedjs_pages:not(.stf__parent) > .printedjs_page,
-	.pm-flipbook-view #render-viewport .pagedjs_pages:not(.stf__parent) > .pagedjs_page {
+	.pm-flipbook-view #render-viewport .pagedjs_pages:not(.stf__parent) > .pagedjs_page,
+	.pm-flipbook-view :is(.printedjs_page, .pagedjs_page, .stf__item) {
 		margin-bottom: 0 !important;
 		flex-shrink: 0 !important;
+		transition: none !important;
+		animation: none !important;
 	}
 
 	#render-viewport .printedjs_page table,

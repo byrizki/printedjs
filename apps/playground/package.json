@@ -16,6 +16,7 @@
 		"@printedjs/plugin-eta": "workspace:*",
 		"@printedjs/plugin-preset": "workspace:*",
 		"@printedjs/plugin-views": "workspace:*",
+		"@printedjs/plugin-page-flip": "workspace:*",
 		"dayjs": "^1.11.23",
 		"eta": "^3.5.0",
 		"monaco-editor": "^0.57.0",

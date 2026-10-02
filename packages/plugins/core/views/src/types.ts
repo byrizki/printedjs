@@ -1,4 +1,6 @@
-export type ViewMode = "single" | "spread" | "flipbook" | "book";
+import type { PluginContext } from "@printedjs/core";
+
+export type ViewMode = "single" | "spread" | (string & {});
 
 export interface SinglePageViewOptions {
 	readonly gap?: number | string | undefined;
@@ -14,32 +16,24 @@ export interface SpreadPageViewOptions {
 	readonly gutter?: number | string | undefined;
 }
 
-export interface FlipBookViewOptions {
-	readonly sound?: boolean | undefined;
-	readonly turnDurationMs?: number | undefined;
-	readonly keyboardNavigation?: boolean | undefined;
+export interface ViewModeAdapter<TOptions = unknown, TController = unknown> {
+	readonly mode: string | readonly string[];
+	attach(container: HTMLElement, options?: TOptions): TController;
+	detach?(container: HTMLElement): void;
+	transformStyles?(css: string, context?: PluginContext): string;
 }
 
 export interface PageViewsPluginOptions {
 	readonly initialMode?: ViewMode | undefined;
 	readonly single?: SinglePageViewOptions | undefined;
 	readonly spread?: SpreadPageViewOptions | undefined;
-	readonly flipbook?: FlipBookViewOptions | undefined;
-}
-
-export interface FlipBookController {
-	readonly currentPage: number;
-	readonly currentSpread: number;
-	readonly totalSpreads: number;
-	next(): Promise<void>;
-	prev(): Promise<void>;
-	flipTo(pageNumber: number): Promise<void>;
-	destroy(): void;
+	readonly adapters?: readonly ViewModeAdapter[] | undefined;
 }
 
 export interface PageViewsController {
 	readonly currentMode: ViewMode;
-	setMode(mode: ViewMode): void;
-	getFlipBook(): FlipBookController | null;
+	setMode(mode: ViewMode, options?: unknown): void;
+	getAdapterController<T = unknown>(mode?: string): T | null;
+	getFlipBook?(): unknown;
 	destroy(): void;
 }

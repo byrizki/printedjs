@@ -1,4 +1,4 @@
-import type { FlipBookController } from "@printedjs/plugin-views";
+import type { FlipBookController } from "@printedjs/plugin-page-flip";
 import { ZOOM_PRESETS, type ViewMode } from "../types/editor.js";
 import type { RenderStats } from "../types/playground.js";
 
@@ -66,8 +66,8 @@ export class ViewportComponent {
 					currentSpread: number;
 					totalSpreads: number;
 					currentPage: number;
-					leftPage?: number | null;
-					rightPage?: number | null;
+					leftPage?: number | string | null;
+					rightPage?: number | string | null;
 				}>
 			).detail;
 			if (
@@ -753,6 +753,8 @@ export class ViewportComponent {
 					flipBook.currentSpread,
 					flipBook.totalSpreads,
 					flipBook.currentPage,
+					flipBook.currentRange?.left,
+					flipBook.currentRange?.right,
 				);
 			} else {
 				this.updateBookPageIndicator(0, Math.ceil((this.totalPages + 1) / 2), 1);
@@ -837,6 +839,8 @@ export class ViewportComponent {
 					flipBook.currentSpread,
 					flipBook.totalSpreads,
 					flipBook.currentPage,
+					flipBook.currentRange?.left,
+					flipBook.currentRange?.right,
 				);
 			} else {
 				this.currentPageIndex = 1;
@@ -852,8 +856,8 @@ export class ViewportComponent {
 		spread: number,
 		_totalSpreads: number,
 		currentPage?: number,
-		leftPage?: number | null,
-		rightPage?: number | null,
+		leftPage?: number | string | null,
+		rightPage?: number | string | null,
 	): void {
 		const total = this.totalPages;
 		if (total <= 0) {
@@ -863,15 +867,28 @@ export class ViewportComponent {
 
 		const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 		if (isMobile) {
-			const pageNum = Math.min(total, Math.max(1, currentPage ?? spread + 1));
+			const pageNum = rightPage ?? (currentPage ?? spread + 1);
 			this.pageIndicatorEl.textContent = `${pageNum} of ${total}`;
 			return;
 		}
 
 		const right = rightPage ?? (spread === 0 ? 1 : Math.min(total, spread * 2 + 1));
-		const left = leftPage === undefined ? (spread === 0 ? null : right - 1) : leftPage;
+		const left =
+			leftPage === undefined
+				? spread === 0
+					? null
+					: typeof right === "number"
+						? right - 1
+						: null
+				: leftPage;
 
-		if (left == null || left < 1 || left === right) {
+		const isLeftValid =
+			left != null &&
+			left !== "" &&
+			(typeof left === "number" ? left >= 1 : true) &&
+			left !== right;
+
+		if (!isLeftValid) {
 			this.pageIndicatorEl.textContent = `${right} of ${total}`;
 		} else {
 			this.pageIndicatorEl.textContent = `${left}–${right} of ${total}`;

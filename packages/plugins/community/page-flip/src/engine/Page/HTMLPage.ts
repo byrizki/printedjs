@@ -85,9 +85,21 @@ export class HTMLPage extends Page {
 	}
 
 	private drawHard(pageWidth: number, pageHeight: number): void {
-		const rect = this.render.getRect();
-		const angle = this.state.hardDrawingAngle;
+		const angle = Number.isFinite(this.state.hardDrawingAngle)
+			? this.state.hardDrawingAngle
+			: 0;
+		const rad = (angle * Math.PI) / 180;
 
+		if (Math.cos(rad) <= 1e-4) {
+			const s = this.element.style;
+			s.display = "none";
+			s.visibility = "hidden";
+			s.opacity = "0";
+			s.pointerEvents = "none";
+			return;
+		}
+
+		const rect = this.render.getRect();
 		this.applyCommonStyle(pageWidth, pageHeight);
 		const s = this.element.style;
 		s.backfaceVisibility = "hidden";

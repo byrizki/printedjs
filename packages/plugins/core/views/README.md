@@ -2,22 +2,16 @@
 
 Page view modes and interactive viewing controller plugin for Printedjs.
 
-Provides multiple document viewing layouts: single page scrolling, two-page facing spreads, and realistic 3D animated flipbooks.
-
----
-
-## Credits & Attribution
-
-The 3D flipbook engine in this package is powered by `@printedjs/plugin-page-flip`, which is adapted from the open-source **[StPageFlip](https://github.com/Nodlik/StPageFlip)** library created by **[Oleg Nodlik](https://github.com/Nodlik)**.
+Provides core document viewing layouts: single page scrolling, two-page facing spreads, and an extensible `ViewModeAdapter` architecture for pluggable custom view modes (e.g., 3D flipbooks via `@printedjs/plugin-page-flip`).
 
 ---
 
 ## Features
 
-- **Multi-Mode View Controller (`DomPageViewsController`)** — Seamless runtime switching between `single`, `spread`, and `flipbook` modes.
+- **Multi-Mode View Controller (`DomPageViewsController`)** — Seamless runtime switching between `single`, `spread`, and pluggable adapter modes.
 - **Single Page View (`singlePageViewPlugin`)** — Vertical stacked page view optimized for continuous scrolling and standard previews.
 - **Two-Page Spread View (`spreadPageViewPlugin`)** — Side-by-side facing pages (book spread) with automatic recto/verso alignment.
-- **Interactive Flipbook (`flipBookViewPlugin`)** — 3D page curl physics, page dragging, navigation buttons, and page turn audio.
+- **Pluggable View Adapters (`ViewModeAdapter`)** — Register custom view modes (e.g. `@printedjs/plugin-page-flip`).
 
 ---
 
@@ -36,6 +30,7 @@ pnpm add @printedjs/plugin-views @printedjs/core
 ```typescript
 import { createRenderer } from "@printedjs/browser";
 import { pageViewsPlugin, DomPageViewsController } from "@printedjs/plugin-views";
+import { flipBookViewAdapter } from "@printedjs/plugin-page-flip";
 
 const target = document.querySelector("#viewport") as HTMLElement;
 
@@ -43,11 +38,8 @@ const renderer = createRenderer({
 	target,
 	plugins: [
 		pageViewsPlugin({
-			initialMode: "spread", // "single" | "spread" | "flipbook"
-			flipBook: {
-				sound: true,
-				flippingTime: 700,
-			},
+			initialMode: "spread", // "single" | "spread" | custom adapter mode
+			adapters: [flipBookViewAdapter({ sound: true })],
 		}),
 	],
 });
@@ -57,11 +49,13 @@ await renderer.render({
 });
 
 // Access the runtime controller:
-const controller = new DomPageViewsController(target);
+const controller = new DomPageViewsController(target, {
+	adapters: [flipBookViewAdapter()],
+});
 controller.setMode("flipbook");
 
-// Programmatic flipbook navigation:
-const flipBook = controller.getFlipBook();
+// Programmatic adapter navigation:
+const flipBook = controller.getAdapterController("flipbook");
 if (flipBook) {
 	await flipBook.next();
 }
@@ -73,7 +67,6 @@ if (flipBook) {
 import {
 	singlePageViewPlugin,
 	spreadPageViewPlugin,
-	flipBookViewPlugin,
 } from "@printedjs/plugin-views";
 
 // Use only single page layout:
@@ -81,17 +74,15 @@ renderer.use(singlePageViewPlugin());
 
 // Or use only two-page spread layout:
 renderer.use(spreadPageViewPlugin({ gap: "24px" }));
-
-// Or use only 3D flipbook layout:
-renderer.use(flipBookViewPlugin({ sound: true }));
 ```
 
 ---
 
 ## View Modes
 
-| Mode         | Identifier              | Description                          |
-| :----------- | :---------------------- | :----------------------------------- |
-| **Single**   | `"single"`              | Vertical column of isolated pages    |
-| **Spread**   | `"spread"`              | Side-by-side facing page pairs       |
-| **Flipbook** | `"flipbook"` / `"book"` | Interactive 3D animated book turning |
+| Mode         | Identifier              | Description                          | Provider |
+| :----------- | :---------------------- | :----------------------------------- | :------- |
+| **Single**   | `"single"`              | Vertical column of isolated pages    | Built-in |
+| **Spread**   | `"spread"`              | Side-by-side facing page pairs       | Built-in |
+| **Flipbook** | `"flipbook"` / `"book"` | Interactive 3D animated book turning | `@printedjs/plugin-page-flip` |
+

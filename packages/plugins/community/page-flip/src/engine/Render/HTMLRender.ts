@@ -340,6 +340,7 @@ export class HTMLRender extends Render {
 
 			if (!shouldKeep) {
 				const el = (page as HTMLPage).getElement();
+				el.style.display = "none";
 				el.style.visibility = "hidden";
 				el.style.opacity = "0";
 				el.style.pointerEvents = "none";

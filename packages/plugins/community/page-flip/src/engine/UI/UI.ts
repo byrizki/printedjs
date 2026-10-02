@@ -53,13 +53,20 @@ export const ST_PAGE_FLIP_CSS = `
 	position: absolute !important;
 	transform-style: preserve-3d !important;
 	box-sizing: border-box !important;
+	transition: none !important;
+	animation: none !important;
 }
 
 .stf__item,
-.stf__parent :is(.printedjs_page, .pagedjs_page) {
+.stf__item *,
+.stf__parent :is(.printedjs_page, .pagedjs_page),
+.stf__parent :is(.printedjs_page, .pagedjs_page) * {
 	box-shadow: none !important;
 	border-radius: 0 !important;
 	border: none !important;
+	transition: none !important;
+	backface-visibility: hidden !important;
+	-webkit-backface-visibility: hidden !important;
 }
 
 .stf__item.--left {
@@ -82,6 +89,11 @@ export const ST_PAGE_FLIP_CSS = `
 .stf__item[data-flip-clone="true"] * {
 	counter-increment: none !important;
 	counter-reset: none !important;
+}
+
+.printedjs_margin-content[data-folio-frozen="true"]::after,
+.pagedjs_margin-content[data-folio-frozen="true"]::after {
+	content: none !important;
 }
 
 @media print {

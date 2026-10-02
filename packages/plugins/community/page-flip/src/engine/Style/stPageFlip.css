@@ -36,6 +36,15 @@
 	pointer-events: none;
 	position: absolute;
 	transform-style: preserve-3d;
+	transition: none !important;
+	animation: none !important;
+}
+
+.stf__item,
+.stf__item * {
+	backface-visibility: hidden !important;
+	-webkit-backface-visibility: hidden !important;
+	transition: none !important;
 }
 
 .stf__outerShadow {

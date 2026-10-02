@@ -1,25 +1,32 @@
-import type { PrintedjsPlugin, PluginContext } from "@printedjs/core";
+import type { PluginContext, PrintedjsPlugin } from "@printedjs/core";
 import { singlePageViewPlugin } from "./single-page/plugin.js";
 import { spreadPageViewPlugin } from "./spread-page/plugin.js";
-import { flipBookViewPlugin } from "./flip-book/plugin.js";
-import { DomFlipBookController } from "./flip-book/controller.js";
 import type {
-	FlipBookController,
 	PageViewsController,
 	PageViewsPluginOptions,
 	ViewMode,
+	ViewModeAdapter,
 } from "./types.js";
 
 export class DomPageViewsController implements PageViewsController {
 	private readonly container: HTMLElement;
 	private readonly options: PageViewsPluginOptions;
+	private readonly adapters = new Map<string, ViewModeAdapter>();
 	private _currentMode: ViewMode;
-	private flipBookController: DomFlipBookController | null = null;
+	private activeAdapter: ViewModeAdapter | null = null;
+	private activeController: unknown = null;
 
 	constructor(container: HTMLElement, options: PageViewsPluginOptions = {}) {
 		this.container = container;
 		this.options = options;
 		this._currentMode = options.initialMode ?? "single";
+
+		if (options.adapters) {
+			for (const adapter of options.adapters) {
+				this.registerAdapter(adapter);
+			}
+		}
+
 		this.applyMode(this._currentMode);
 	}
 
@@ -27,42 +34,59 @@ export class DomPageViewsController implements PageViewsController {
 		return this._currentMode;
 	}
 
-	setMode(mode: ViewMode): void {
+	registerAdapter(adapter: ViewModeAdapter): void {
+		const modes = Array.isArray(adapter.mode) ? adapter.mode : [adapter.mode];
+		for (const mode of modes) {
+			this.adapters.set(mode, adapter);
+		}
+	}
+
+	setMode(mode: ViewMode, overrideOptions?: unknown): void {
 		if (this._currentMode === mode) return;
 		this._currentMode = mode;
-		this.applyMode(mode);
+		this.applyMode(mode, overrideOptions);
 	}
 
-	getFlipBook(): FlipBookController | null {
-		return this.flipBookController;
+	getAdapterController<T = unknown>(mode?: string): T | null {
+		const targetMode = mode ?? this._currentMode;
+		const adapter = this.adapters.get(targetMode);
+		if (adapter && adapter === this.activeAdapter) {
+			return (this.activeController as T) ?? null;
+		}
+		return null;
 	}
 
-	private applyMode(mode: ViewMode): void {
-		if (this.flipBookController) {
-			this.flipBookController.destroy();
-			this.flipBookController = null;
+	getFlipBook(): unknown {
+		return (
+			((this.container as unknown as Record<string, unknown>).__printedjs_flipbook as unknown) ??
+			this.getAdapterController("flipbook") ??
+			this.getAdapterController("book")
+		);
+	}
+
+	private applyMode(mode: ViewMode, overrideOptions?: unknown): void {
+		if (this.activeAdapter) {
+			this.activeAdapter.detach?.(this.container);
+			this.activeAdapter = null;
+			this.activeController = null;
 		}
 
 		this.container.setAttribute("data-view-mode", mode);
 
-		if (mode === "flipbook" || mode === "book") {
-			this.flipBookController = new DomFlipBookController(
-				this.container,
-				this.options.flipbook ?? {},
-			);
-			(this.container as unknown as Record<string, unknown>).__printedjs_flipbook =
-				this.flipBookController;
-		} else {
-			delete (this.container as unknown as Record<string, unknown>).__printedjs_flipbook;
+		const adapter = this.adapters.get(mode);
+		if (adapter) {
+			this.activeAdapter = adapter;
+			this.activeController = adapter.attach(this.container, overrideOptions);
 		}
 	}
 
 	destroy(): void {
-		if (this.flipBookController) {
-			this.flipBookController.destroy();
-			this.flipBookController = null;
+		if (this.activeAdapter) {
+			this.activeAdapter.detach?.(this.container);
+			this.activeAdapter = null;
+			this.activeController = null;
 		}
-		delete (this.container as unknown as Record<string, unknown>).__printedjs_flipbook;
+		delete (this.container as unknown as Record<string, unknown>).__printedjs_page_views;
 		this.container.removeAttribute("data-view-mode");
 	}
 }
@@ -70,7 +94,7 @@ export class DomPageViewsController implements PageViewsController {
 export function pageViewsPlugin(options: PageViewsPluginOptions = {}): PrintedjsPlugin {
 	const singlePlugin = singlePageViewPlugin(options.single);
 	const spreadPlugin = spreadPageViewPlugin(options.spread);
-	const flipbookPlugin = flipBookViewPlugin(options.flipbook);
+	const adapters = options.adapters ?? [];
 
 	return {
 		name: "page-views",
@@ -82,8 +106,10 @@ export function pageViewsPlugin(options: PageViewsPluginOptions = {}): Printedjs
 			if (spreadPlugin.transformStyles) {
 				result = spreadPlugin.transformStyles(result, context) as string;
 			}
-			if (flipbookPlugin.transformStyles) {
-				result = flipbookPlugin.transformStyles(result, context) as string;
+			for (const adapter of adapters) {
+				if (adapter.transformStyles) {
+					result = adapter.transformStyles(result, context);
+				}
 			}
 			return result;
 		},

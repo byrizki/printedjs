@@ -1,3 +1,4 @@
+import { formatPageNumber, type PageCounterStyle } from "@printedjs/core";
 import { PageFlip } from "./engine/PageFlip.js";
 import { playPageTurnSound } from "./sound.js";
 
@@ -17,10 +18,283 @@ export interface FlipBookController {
 	readonly currentPage: number;
 	readonly currentSpread: number;
 	readonly totalSpreads: number;
+	readonly currentRange?: { left: string | number | null; right: string | number | null } | undefined;
 	next(): Promise<void>;
 	prev(): Promise<void>;
 	flipTo(pageNumber: number): Promise<void>;
 	destroy(): void;
+}
+
+interface PageRuleEntry {
+	selector: string;
+	contentPattern: string;
+	specificity: number;
+}
+
+function getSelectorSpecificity(selector: string, index: number): number {
+	let score = index;
+	if (/\[data-page[~*^$|]?=/i.test(selector)) {
+		score += 10000;
+	}
+	if (/\.(printedjs|pagedjs)_(first|left|right|blank)_page/i.test(selector)) {
+		score += 5000;
+	}
+	const classes = (selector.match(/\.[\w-]+/g) || []).length;
+	const attrs = (selector.match(/\[[^\]]+\]/g) || []).length;
+	score += (classes + attrs) * 100;
+	return score;
+}
+
+function doesRuleMatchNode(
+	entry: PageRuleEntry,
+	node: HTMLElement,
+	page: HTMLElement,
+	pageIndex: number,
+): boolean {
+	try {
+		if (typeof node.matches === "function" && node.matches(entry.selector)) {
+			return true;
+		}
+	} catch {
+		// Ignore selector syntax error in matches()
+	}
+
+	const sel = entry.selector;
+
+	const pageNameMatch = sel.match(/\[data-page[~*^$|]?=["']?([^"'\]]+)["']?\]/i);
+	if (pageNameMatch && pageNameMatch[1]) {
+		const targetPage = pageNameMatch[1].trim();
+		const actualPage = page.getAttribute("data-page")?.trim();
+		if (actualPage !== targetPage) {
+			return false;
+		}
+	}
+
+	if (/(?:_first_page|:first\b)/i.test(sel)) {
+		const isFirst =
+			pageIndex === 0 ||
+			page.classList.contains("printedjs_first_page") ||
+			page.classList.contains("pagedjs_first_page");
+		if (!isFirst) return false;
+	}
+	if (/(?:_left_page|:left\b)/i.test(sel)) {
+		const isLeft =
+			page.classList.contains("printedjs_left_page") ||
+			page.classList.contains("pagedjs_left_page");
+		if (!isLeft) return false;
+	}
+	if (/(?:_right_page|:right\b)/i.test(sel)) {
+		const isRight =
+			page.classList.contains("printedjs_right_page") ||
+			page.classList.contains("pagedjs_right_page");
+		if (!isRight) return false;
+	}
+
+	const parent = node.parentElement;
+	if (parent) {
+		const marginBoxMatch = sel.match(/(?:printedjs|pagedjs)_margin-([a-z-]+)/i);
+		if (marginBoxMatch && marginBoxMatch[1]) {
+			const expectedBox = marginBoxMatch[1].toLowerCase();
+			const parentClass = parent.className || "";
+			if (!parentClass.includes(expectedBox)) {
+				return false;
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function collectCssRules(
+	rules: CSSRuleList | CSSRule[] | null | undefined,
+): CSSStyleRule[] {
+	if (!rules) return [];
+	const list: CSSStyleRule[] = [];
+	for (const rule of Array.from(rules)) {
+		if ("selectorText" in rule && "style" in rule) {
+			list.push(rule as CSSStyleRule);
+		} else if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
+			list.push(...collectCssRules((rule as CSSGroupingRule).cssRules));
+		}
+	}
+	return list;
+}
+
+function resolveCounterText(
+	pattern: string | null,
+	folio: string,
+	logicalNumber: number,
+	totalPages: number,
+	defaultStyle: PageCounterStyle = "decimal",
+): string {
+	if (!pattern) return folio;
+
+	const pageMatch = pattern.match(
+		/counter\s*\(\s*page\s*(?:,\s*([a-zA-Z0-9_-]+))?\s*\)/i,
+	);
+	let pageStr = folio;
+	if (pageMatch) {
+		const counterStyle = (
+			pageMatch[1] ? pageMatch[1].toLowerCase() : defaultStyle
+		) as PageCounterStyle;
+		pageStr = formatPageNumber(logicalNumber, counterStyle);
+	}
+
+	let text = pattern;
+	text = text.replace(
+		/counter\s*\(\s*pages\s*(?:,\s*([a-zA-Z0-9_-]+))?\s*\)/gi,
+		(_, rawStyle) => {
+			const pagesStyle = (
+				rawStyle ? rawStyle.toLowerCase() : defaultStyle
+			) as PageCounterStyle;
+			return formatPageNumber(totalPages, pagesStyle);
+		},
+	);
+	text = text.replace(/counter\s*\(\s*page\s*(?:,\s*[a-zA-Z0-9_-]+)?\s*\)/gi, pageStr);
+
+	text = text.replace(/["']/g, "").replace(/\s+/g, " ").trim();
+
+	return text || folio;
+}
+
+function freezePageFolios(container: HTMLElement, pages: HTMLElement[]): void {
+	const doc =
+		container.ownerDocument ?? (typeof document !== "undefined" ? document : null);
+	if (!doc) return;
+
+	const pageRuleEntries: PageRuleEntry[] = [];
+	let ruleIndex = 0;
+	try {
+		for (const sheet of Array.from(doc.styleSheets)) {
+			try {
+				const styleRules = collectCssRules(sheet.cssRules);
+				for (const rule of styleRules) {
+					const content = (
+						rule.style.content ||
+						rule.style.getPropertyValue("content") ||
+						""
+					).trim();
+					if (content) {
+						for (const rawSel of rule.selectorText.split(",")) {
+							const selector = rawSel.replace(/::?(?:after|before)\s*$/i, "").trim();
+							if (selector) {
+								pageRuleEntries.push({
+									selector,
+									contentPattern: content,
+									specificity: getSelectorSpecificity(selector, ruleIndex++),
+								});
+							}
+						}
+					}
+				}
+			} catch {
+				// Ignore cross-origin stylesheet access restriction
+			}
+		}
+	} catch {
+		// Ignore
+	}
+
+	const view = doc.defaultView;
+	const totalPages = pages.length;
+
+	for (let i = 0; i < pages.length; i++) {
+		const page = pages[i];
+		if (!page) continue;
+		if (typeof page.querySelectorAll !== "function") continue;
+
+		const formattedAttr = page.getAttribute("data-page-formatted")?.trim();
+		const styleAttr = (
+			page.getAttribute("data-page-style") ||
+			page.getAttribute("data-counter-style") ||
+			page.getAttribute("data-page-counter-style")
+		)?.toLowerCase().trim();
+		const logicalAttr = page.getAttribute("data-page-number")?.trim();
+		const logicalNum = logicalAttr ? parseInt(logicalAttr, 10) : i + 1;
+		const defaultStyle = (styleAttr || "decimal") as PageCounterStyle;
+		const folio =
+			formattedAttr ||
+			(styleAttr && styleAttr !== "decimal"
+				? formatPageNumber(logicalNum, defaultStyle)
+				: Number.isFinite(logicalNum)
+					? String(logicalNum)
+					: String(i + 1));
+
+		page
+			.querySelectorAll<HTMLElement>(".printedjs_margin-content, .pagedjs_margin-content")
+			.forEach((node) => {
+				if (node.getAttribute("data-folio-frozen") === "true") return;
+				if (node.firstElementChild !== null) return;
+				if (node.textContent?.trim()) return;
+
+				const matchingRules: PageRuleEntry[] = [];
+				for (const entry of pageRuleEntries) {
+					if (doesRuleMatchNode(entry, node, page, i)) {
+						matchingRules.push(entry);
+					}
+				}
+
+				matchingRules.sort((a, b) => b.specificity - a.specificity);
+				const matchedEntry = matchingRules[0] ?? null;
+
+				if (
+					matchedEntry &&
+					(matchedEntry.contentPattern === "none" ||
+						matchedEntry.contentPattern === "normal" ||
+						matchedEntry.contentPattern === '""' ||
+						matchedEntry.contentPattern === "''")
+				) {
+					return;
+				}
+
+				const computed = view?.getComputedStyle(node, "::after")?.content ?? "";
+				const cleaned = computed.replace(/^["']|["']$/g, "").trim();
+
+				if (!matchedEntry && (cleaned === "none" || cleaned === "normal" || !cleaned)) {
+					return;
+				}
+
+				const hasCounterExpr =
+					/counter\s*\(\s*page\b/i.test(computed) ||
+					/counter\s*\(\s*page\b/i.test(cleaned) ||
+					(matchedEntry !== null && /counter\s*\(\s*page\b/i.test(matchedEntry.contentPattern));
+
+				const isComputedFolio =
+					cleaned.length > 0 &&
+					(cleaned === folio ||
+						(logicalAttr !== undefined && cleaned === logicalAttr) ||
+						(Number.isFinite(Number(cleaned)) && String(Number(cleaned)) === folio) ||
+						cleaned === formatPageNumber(logicalNum, "lower-roman") ||
+						cleaned === formatPageNumber(logicalNum, "upper-roman") ||
+						cleaned === formatPageNumber(logicalNum, "lower-alpha") ||
+						cleaned === formatPageNumber(logicalNum, "upper-alpha") ||
+						cleaned === formatPageNumber(logicalNum, "decimal-leading-zero"));
+
+				const isPageCounter = hasCounterExpr || isComputedFolio;
+
+				if (isPageCounter) {
+					const pattern =
+						matchedEntry?.contentPattern ??
+						(/counter\s*\(\s*page\b/i.test(cleaned) ? cleaned : null);
+
+					const frozenText = resolveCounterText(
+						pattern,
+						isComputedFolio && !pattern ? cleaned : folio,
+						Number.isFinite(logicalNum) ? logicalNum : i + 1,
+						totalPages,
+						defaultStyle,
+					);
+
+					node.textContent = frozenText;
+					node.setAttribute("data-folio-frozen", "true");
+
+					if (!formattedAttr || formattedAttr === String(logicalNum)) {
+						page.setAttribute("data-page-formatted", frozenText);
+					}
+				}
+			});
+	}
 }
 
 function setPageProp(
@@ -79,22 +353,50 @@ export class PageFlipController implements FlipBookController {
 		return 1 + Math.ceil(Math.max(0, total - 1) / 2);
 	}
 
+	get currentRange(): { left: string | number | null; right: string | number | null } {
+		const range = this.visibleRange();
+		return { left: range.left, right: range.right };
+	}
+
 	public getPageFlip(): PageFlip | null {
 		return this.pageFlip;
 	}
 
-	private pageLabel(index: number): number {
+	private pageLabel(index: number): string | number {
 		const page = this.pageElements[index];
 		if (!page) return index + 1;
+		const frozen =
+			typeof page.querySelector === "function"
+				? page.querySelector<HTMLElement>('[data-folio-frozen="true"]')?.textContent?.trim()
+				: null;
+		if (frozen) {
+			const num = Number(frozen);
+			return Number.isFinite(num) && String(num) === frozen ? num : frozen;
+		}
 		const formatted = page.getAttribute("data-page-formatted")?.trim();
-		const printed = Number(formatted);
-		if (formatted && Number.isFinite(printed) && printed > 0) return printed;
-		const logical = Number(page.getAttribute("data-page-number"));
+		if (formatted) {
+			const num = Number(formatted);
+			return Number.isFinite(num) && String(num) === formatted ? num : formatted;
+		}
+		const style = (
+			page.getAttribute("data-page-style") ||
+			page.getAttribute("data-counter-style") ||
+			page.getAttribute("data-page-counter-style")
+		)?.toLowerCase().trim();
+		const logicalAttr = page.getAttribute("data-page-number")?.trim();
+		const logical = logicalAttr ? parseInt(logicalAttr, 10) : index + 1;
+		if (style && style !== "decimal" && Number.isFinite(logical)) {
+			return formatPageNumber(logical, style as PageCounterStyle);
+		}
 		if (Number.isFinite(logical) && logical > 0) return logical;
 		return index + 1;
 	}
 
-	private visibleRange(): { left: number | null; right: number | null; current: number } {
+	private visibleRange(): {
+		left: string | number | null;
+		right: string | number | null;
+		current: number;
+	} {
 		const total = this.pageElements.length;
 		if (total === 0) return { left: null, right: null, current: 1 };
 
@@ -110,8 +412,8 @@ export class PageFlipController implements FlipBookController {
 					this.pageFlip ? this.pageFlip.getCurrentPageIndex() : this._currentPage - 1,
 				),
 			);
-			const current = this.pageLabel(idx);
-			return { left: null, right: current, current };
+			const label = this.pageLabel(idx);
+			return { left: null, right: label, current: idx + 1 };
 		}
 
 		if (this.pageFlip) {
@@ -125,29 +427,29 @@ export class PageFlipController implements FlipBookController {
 					const idx = spread[0]!;
 					const label = this.pageLabel(idx);
 					if (idx === total - 1 && total > 1) {
-						return { left: label, right: null, current: label };
+						return { left: label, right: null, current: idx + 1 };
 					}
-					return { left: null, right: label, current: label };
+					return { left: null, right: label, current: idx + 1 };
 				}
 				const left = this.pageLabel(spread[0]!);
 				const right = this.pageLabel(spread[1]!);
-				return { left, right, current: left };
+				return { left, right, current: spread[0]! + 1 };
 			}
 		}
 
 		if (this._currentSpread === 0) {
 			const right = this.pageLabel(0);
-			return { left: null, right, current: right };
+			return { left: null, right, current: 1 };
 		}
 		const candidateLeft = (this._currentSpread - 1) * 2 + 1;
 		const candidateRight = candidateLeft + 1;
 		if (candidateLeft === total - 1 && total > 2) {
 			const left = this.pageLabel(candidateLeft);
-			return { left, right: null, current: left };
+			return { left, right: null, current: candidateLeft + 1 };
 		}
 		const left = candidateLeft < total ? this.pageLabel(candidateLeft) : null;
 		const right = candidateRight < total ? this.pageLabel(candidateRight) : null;
-		return { left, right, current: left ?? right ?? 1 };
+		return { left, right, current: candidateLeft + 1 };
 	}
 
 	private emitChange(): void {
@@ -260,6 +562,7 @@ export class PageFlipController implements FlipBookController {
 			setPageProp(page, "width", `${pageWidth}px`, "important");
 			setPageProp(page, "height", `${pageHeight}px`, "important");
 			setPageProp(page, "overflow", "hidden", "important");
+			setPageProp(page, "transition", "none", "important");
 
 			const contentEl =
 				(typeof page.querySelector === "function"
@@ -292,6 +595,8 @@ export class PageFlipController implements FlipBookController {
 				}
 			}
 		}
+
+		freezePageFolios(this.container, this.pageElements);
 
 		try {
 			this.pageFlip = new PageFlip(this.container, {
@@ -536,6 +841,14 @@ export class PageFlipController implements FlipBookController {
 				"--hard",
 				"--soft",
 			);
+			if (typeof page.querySelectorAll === "function") {
+				page
+					.querySelectorAll<HTMLElement>('[data-folio-frozen="true"]')
+					.forEach((node) => {
+						node.textContent = "";
+						node.removeAttribute("data-folio-frozen");
+					});
+			}
 		}
 
 		if (typeof this.container.querySelectorAll === "function") {

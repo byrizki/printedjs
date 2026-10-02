@@ -10,7 +10,11 @@ import {
 import { compileTemplate } from "../../apps/playground/src/services/template-service.js";
 import { parseBreakStyles } from "../../packages/plugins/core/breaks/src/parser.js";
 import { getNamedPage } from "../../packages/browser/src/dom/layout-adapter.js";
-import { DomFlipBookController } from "../../packages/plugins/core/views/src/flip-book/controller.js";
+import {
+	DomFlipBookController,
+	HTMLPage,
+	PageDensity,
+} from "../../packages/plugins/community/page-flip/src/index.js";
 
 describe("Playground & Engine Fixes Verification", () => {
 	describe("Item 0: Remove data persistence", () => {
@@ -246,7 +250,48 @@ describe("Playground & Engine Fixes Verification", () => {
 			controller.destroy();
 		});
 
-		it("preserves running headers and margin contents without corrupting native CSS pseudo-elements", async () => {
+		it("hides hard page when rotated away from reader (cos <= 0) to avoid showing mirrored back content", () => {
+			const fakeStyle = {
+				display: "block",
+				visibility: "visible",
+				opacity: "1",
+				pointerEvents: "",
+				setProperty: () => {},
+			};
+			const fakeElement = {
+				style: fakeStyle,
+				classList: { add: () => {}, remove: () => {} },
+			} as unknown as HTMLElement;
+
+			const fakeRender = {
+				getRect: () => ({ left: 0, top: 0, width: 800, height: 600, pageWidth: 400 }),
+				convertToGlobal: (p: { x: number; y: number }) => p,
+			} as unknown as ConstructorParameters<typeof HTMLPage>[0];
+
+			const page = new HTMLPage(fakeRender, fakeElement, PageDensity.HARD);
+
+			// At 0 deg (facing reader) -> should remain visible
+			page.setHardDrawingAngle(0);
+			page.draw(PageDensity.HARD);
+			expect(fakeStyle.display).toBe("block");
+			expect(fakeStyle.visibility).toBe("visible");
+
+			// At 180 deg (facing away from reader) -> should be hidden
+			page.setHardDrawingAngle(180);
+			page.draw(PageDensity.HARD);
+			expect(fakeStyle.display).toBe("none");
+			expect(fakeStyle.visibility).toBe("hidden");
+			expect(fakeStyle.opacity).toBe("0");
+
+			// At 45 deg (facing reader) -> should be restored to visible
+			page.setHardDrawingAngle(45);
+			page.draw(PageDensity.HARD);
+			expect(fakeStyle.display).toBe("block");
+			expect(fakeStyle.visibility).toBe("visible");
+			expect(fakeStyle.opacity).toBe("1");
+		});
+
+		it("preserves running headers and only freezes actual page counter folios", async () => {
 			const { container, pageElements } = createMockBookContainer(3);
 			const leftMarginContent = {
 				textContent: "",
@@ -315,9 +360,9 @@ describe("Playground & Engine Fixes Verification", () => {
 				turnDurationMs: 0,
 			});
 
-			// Margin content remains clean for native CSS counter / string pseudo-elements
-			expect(leftMarginContent.textContent).toBe("");
-			expect(leftMarginContent.attrs["data-folio-frozen"]).toBeUndefined();
+			// Left margin content had counter(page) -> frozen with folio "2"
+			expect(leftMarginContent.textContent).toBe("2");
+			expect(leftMarginContent.attrs["data-folio-frozen"]).toBe("true");
 
 			// Right margin content had book title -> untouched!
 			expect(rightMarginContent.textContent).toBe("");
@@ -398,15 +443,147 @@ describe("Playground & Engine Fixes Verification", () => {
 				turnDurationMs: 0,
 			});
 
-			// Footer left remains clean to allow native CSS counter evaluation (e.g. roman, alpha, custom colors)
-			expect(footerLeftContent.textContent).toBe("");
-			expect(footerLeftContent.attrs["data-folio-frozen"]).toBeUndefined();
+			// Footer left matches counter(page) -> frozen with page 2 folio
+			expect(footerLeftContent.textContent).toBe("2");
+			expect(footerLeftContent.attrs["data-folio-frozen"]).toBe("true");
 
 			// Footer center is arbitrary notes -> left alone
 			expect(footerCenterContent.textContent).toBe("");
 			expect(footerCenterContent.attrs["data-folio-frozen"]).toBeUndefined();
 
 			controller.destroy();
+		});
+
+		it("correctly freezes custom page counters (lower-roman, upper-alpha, custom prefixes) on page flip", async () => {
+			const { container, pageElements } = createMockBookContainer(5);
+
+			// Page 0: Cover (:first)
+			pageElements[0].setAttribute("data-page-number", "1");
+			pageElements[0].classList.add("printedjs_first_page");
+
+			// Page 1: Frontmatter TOC (i)
+			pageElements[1].setAttribute("data-page", "frontmatter");
+			pageElements[1].setAttribute("data-page-number", "1");
+			pageElements[1].setAttribute("data-page-style", "lower-roman");
+
+			// Page 2: Frontmatter Preface (ii)
+			pageElements[2].setAttribute("data-page", "frontmatter");
+			pageElements[2].setAttribute("data-page-number", "2");
+			pageElements[2].setAttribute("data-page-style", "lower-roman");
+
+			// Page 3: Main Body (Page 1)
+			pageElements[3].setAttribute("data-page", "body-page");
+			pageElements[3].setAttribute("data-page-number", "1");
+
+			// Page 4: Appendix (Appendix A)
+			pageElements[4].setAttribute("data-page", "appendix-page");
+			pageElements[4].setAttribute("data-page-number", "1");
+
+			const marginContents = pageElements.map((page, idx) => {
+				const marginNode = {
+					textContent: "",
+					parentElement: {
+						className: "printedjs_margin printedjs_margin-bottom-right",
+					},
+					getAttribute: (k: string) => marginNode.attrs[k] ?? null,
+					setAttribute: (k: string, v: string) => {
+						marginNode.attrs[k] = v;
+					},
+					removeAttribute: (k: string) => {
+						delete marginNode.attrs[k];
+					},
+					matches: (sel: string) => {
+						if (idx === 0 && sel.includes("_first_page")) return true;
+						if ((idx === 1 || idx === 2) && sel.includes('data-page="frontmatter"')) return true;
+						if (idx === 3 && sel.includes('data-page="body-page"')) return true;
+						if (idx === 4 && sel.includes('data-page="appendix-page"')) return true;
+						if (sel.includes(".printedjs_page .printedjs_margin-bottom-right")) return true;
+						return false;
+					},
+					attrs: {} as Record<string, string>,
+					firstElementChild: null,
+				};
+				(page as unknown as Record<string, unknown>).querySelectorAll = (sel: string) => {
+					if (sel.includes("margin-content")) return [marginNode];
+					if (sel.includes("data-folio-frozen")) {
+						return marginNode.attrs["data-folio-frozen"] ? [marginNode] : [];
+					}
+					return [];
+				};
+				return marginNode;
+			});
+
+			const mockDoc = {
+				styleSheets: [
+					{
+						cssRules: [
+							{
+								style: { content: "counter(page)" },
+								selectorText:
+									".printedjs_page .printedjs_margin-bottom-right > .printedjs_margin-content::after",
+							},
+							{
+								style: { content: "none" },
+								selectorText:
+									".printedjs_page.printedjs_first_page .printedjs_margin-bottom-right > .printedjs_margin-content::after",
+							},
+							{
+								style: { content: "counter(page, lower-roman)" },
+								selectorText:
+									'.printedjs_page[data-page="frontmatter"] .printedjs_margin-bottom-right > .printedjs_margin-content::after',
+							},
+							{
+								style: { content: '"Page " counter(page, decimal)' },
+								selectorText:
+									'.printedjs_page[data-page="body-page"] .printedjs_margin-bottom-right > .printedjs_margin-content::after',
+							},
+							{
+								style: { content: '"Appendix " counter(page, upper-alpha)' },
+								selectorText:
+									'.printedjs_page[data-page="appendix-page"] .printedjs_margin-bottom-right > .printedjs_margin-content::after',
+							},
+						],
+					},
+				],
+				defaultView: {
+					getComputedStyle: () => ({ content: "none" }),
+				},
+			};
+
+			(container as unknown as Record<string, unknown>).ownerDocument = mockDoc;
+
+			const controller = new DomFlipBookController(container, {
+				sound: false,
+				turnDurationMs: 0,
+			});
+
+			// Page 0 (Cover) -> content: none -> untouched
+			expect(marginContents[0].textContent).toBe("");
+			expect(marginContents[0].attrs["data-folio-frozen"]).toBeUndefined();
+
+			// Page 1 (Frontmatter TOC) -> frozen to "i"
+			expect(marginContents[1].textContent).toBe("i");
+			expect(marginContents[1].attrs["data-folio-frozen"]).toBe("true");
+
+			// Page 2 (Frontmatter Preface) -> frozen to "ii"
+			expect(marginContents[2].textContent).toBe("ii");
+			expect(marginContents[2].attrs["data-folio-frozen"]).toBe("true");
+
+			// Page 3 (Body Chapter 1) -> frozen to "Page 1"
+			expect(marginContents[3].textContent).toBe("Page 1");
+			expect(marginContents[3].attrs["data-folio-frozen"]).toBe("true");
+
+			// Page 4 (Appendix A) -> frozen to "Appendix A"
+			expect(marginContents[4].textContent).toBe("Appendix A");
+			expect(marginContents[4].attrs["data-folio-frozen"]).toBe("true");
+
+			controller.destroy();
+
+			// Cleanup verified
+			for (let i = 1; i <= 4; i++) {
+				expect(marginContents[i].textContent).toBe("");
+				expect(marginContents[i].attrs["data-folio-frozen"]).toBeUndefined();
+			}
 		});
 	});
 
