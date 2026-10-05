@@ -18,6 +18,37 @@ export interface ViewportOptions {
 	readonly callbacks: ViewportCallbacks;
 }
 
+interface FlipbookChangeEventDetail {
+	currentSpread: number;
+	totalSpreads: number;
+	currentPage: number;
+	leftPage?: number | string | null;
+	rightPage?: number | string | null;
+}
+
+interface FlipbookHostElement extends HTMLElement {
+	__printedjs_flipbook?: FlipBookController | undefined;
+}
+
+interface PageDimensions {
+	readonly width: number;
+	readonly height: number;
+}
+
+interface CSSStyleDeclarationWithZoom extends Omit<CSSStyleDeclaration, "zoom"> {
+	zoom?: string | undefined;
+}
+
+function isNumber(value: unknown): value is number {
+	return (
+		Number.isFinite(value) && Object.prototype.toString.call(value) === "[object Number]"
+	);
+}
+
+function isFlipbookMode(mode: string | undefined): boolean {
+	return mode === "flipbook" || mode === "book";
+}
+
 export class ViewportComponent {
 	readonly element: HTMLElement;
 	readonly renderViewport: HTMLElement;
@@ -66,20 +97,10 @@ export class ViewportComponent {
 		this.callbacks = callbacks;
 
 		this.onFlipbookChange = (e: Event) => {
-			const detail = (
-				e as CustomEvent<{
-					currentSpread: number;
-					totalSpreads: number;
-					currentPage: number;
-					leftPage?: number | string | null;
-					rightPage?: number | string | null;
-				}>
-			).detail;
-			if (
-				detail &&
-				(this.currentViewMode === "flipbook" ||
-					(this.currentViewMode as string) === "book")
-			) {
+			// SAFETY: flipbook:change event is dispatched as CustomEvent with FlipbookChangeEventDetail
+			const detail = (e as CustomEvent<FlipbookChangeEventDetail>).detail;
+
+			if (detail && isFlipbookMode(this.currentViewMode)) {
 				this.currentPageIndex = detail.currentPage;
 				this.updateBookPageIndicator(
 					detail.currentSpread,
@@ -92,23 +113,24 @@ export class ViewportComponent {
 		};
 
 		this.onPageChangeEvent = (e: Event) => {
+			// SAFETY: page:change and views:page-change events are dispatched as CustomEvent with ActivePageChangeDetail
 			const detail = (e as CustomEvent<ActivePageChangeDetail>).detail;
+
 			if (!detail) return;
-			if (
-				detail.viewMode === "flipbook" ||
-				(detail.viewMode as string) === "book" ||
-				this.currentViewMode === "flipbook" ||
-				(this.currentViewMode as string) === "book"
-			) {
+
+			if (isFlipbookMode(detail.viewMode) || isFlipbookMode(this.currentViewMode)) {
 				return;
 			}
+
 			this.currentPageIndex = detail.currentPage;
+
 			if (detail.viewMode === "single") {
 				const label = detail.leftPage ?? detail.currentPage;
 				this.pageIndicatorEl.textContent = `${label} of ${this.totalPages}`;
 			} else if (detail.viewMode === "spread") {
 				const left = detail.leftPage;
 				const right = detail.rightPage;
+
 				if (left != null && right != null && left !== right) {
 					this.pageIndicatorEl.textContent = `${left}–${right} of ${this.totalPages}`;
 				} else {
@@ -128,6 +150,7 @@ export class ViewportComponent {
 
 		this.element = document.createElement("main");
 		this.element.className = "pm-viewport-wrapper";
+
 		if (initialViewMode === "spread") {
 			this.element.classList.add("pm-spread-view");
 		} else if (initialViewMode === "flipbook") {
@@ -368,20 +391,24 @@ export class ViewportComponent {
 		this.bookSideNext =
 			this.element.querySelector<HTMLButtonElement>("#pm-book-side-next")!;
 
-		const isInitialBook =
-			initialViewMode === "flipbook" || (initialViewMode as string) === "book";
+		const isInitialBook = isFlipbookMode(initialViewMode);
+
 		this.bookSidePrev.style.display = isInitialBook ? "flex" : "none";
 		this.bookSideNext.style.display = isInitialBook ? "flex" : "none";
 
 		const zoomOutBtn = this.element.querySelector<HTMLButtonElement>("#pm-zoom-out-btn")!;
 		const zoomInBtn = this.element.querySelector<HTMLButtonElement>("#pm-zoom-in-btn")!;
 		const zoomFitBtn = this.element.querySelector<HTMLButtonElement>("#pm-zoom-fit-btn")!;
+
 		const prevPageBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-prev-page-btn")!;
+
 		const nextPageBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-next-page-btn")!;
+
 		const printBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-float-print-btn")!;
+
 		const traceCloseBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-trace-close-btn")!;
 
@@ -442,7 +469,8 @@ export class ViewportComponent {
 
 		this.floatingBarEl.addEventListener("click", (e) => {
 			if (!this.isToolbarMinimized) return;
-			const target = e.target as HTMLElement | null;
+			const target = e.target instanceof HTMLElement ? e.target : null;
+
 			if (
 				target?.closest(
 					"#pm-prev-page-btn, #pm-next-page-btn, #pm-page-indicator, button, select, input",
@@ -450,6 +478,7 @@ export class ViewportComponent {
 			) {
 				return;
 			}
+
 			this.setToolbarMinimized(false);
 		});
 
@@ -498,6 +527,7 @@ export class ViewportComponent {
 		this.canvasScrollEl.addEventListener("scroll", this.onCanvasScroll, {
 			passive: true,
 		});
+
 		if (typeof window !== "undefined") {
 			window.addEventListener("resize", this.onCanvasScroll, {
 				passive: true,
@@ -511,22 +541,28 @@ export class ViewportComponent {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
+
 		const pagesContainer = doc.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
+
 		if (!pagesContainer) return null;
-		return (
-			((pagesContainer as unknown as Record<string, unknown>).__printedjs_flipbook as
-				FlipBookController | undefined) ?? null
-		);
+
+		// SAFETY: pages container element in DOM hosts flipbook controller instance
+		const host = pagesContainer as FlipbookHostElement;
+
+		return host.__printedjs_flipbook ?? null;
 	}
 
 	private handlePrevPage(): void {
 		if (this.currentViewMode === "flipbook") {
 			const flipBook = this.getFlipBookController();
+
 			if (flipBook) {
 				void flipBook.prev();
+
 				return;
 			}
 		}
@@ -535,20 +571,27 @@ export class ViewportComponent {
 			const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 				"iframe[data-playground-frame]",
 			);
+
 			const doc = iframe?.contentDocument ?? this.renderViewport;
+
 			const pages = Array.from(
 				doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 			);
+
 			const rows = this.getPageRows(pages);
+
 			const currentRowIndex = rows.findIndex((row) =>
 				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
 			);
+
 			if (currentRowIndex > 0) {
 				const prevRow = rows[currentRowIndex - 1]!;
 				const targetPage = this.getPageNumber(prevRow[0]!);
 				this.scrollToPage(targetPage);
+
 				return;
 			}
+
 			return;
 		}
 
@@ -558,8 +601,10 @@ export class ViewportComponent {
 	private handleNextPage(): void {
 		if (this.currentViewMode === "flipbook") {
 			const flipBook = this.getFlipBookController();
+
 			if (flipBook) {
 				void flipBook.next();
+
 				return;
 			}
 		}
@@ -568,20 +613,27 @@ export class ViewportComponent {
 			const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 				"iframe[data-playground-frame]",
 			);
+
 			const doc = iframe?.contentDocument ?? this.renderViewport;
+
 			const pages = Array.from(
 				doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 			);
+
 			const rows = this.getPageRows(pages);
+
 			const currentRowIndex = rows.findIndex((row) =>
 				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
 			);
+
 			if (currentRowIndex >= 0 && currentRowIndex < rows.length - 1) {
 				const nextRow = rows[currentRowIndex + 1]!;
 				const targetPage = this.getPageNumber(nextRow[0]!);
 				this.scrollToPage(targetPage);
+
 				return;
 			}
+
 			return;
 		}
 
@@ -592,10 +644,13 @@ export class ViewportComponent {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
+
 		const pagesContainer = doc.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
+
 		const pages = Array.from(
 			doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 		);
@@ -606,69 +661,77 @@ export class ViewportComponent {
 				: 860;
 		}
 
-		if (
-			this.currentViewMode === "flipbook" ||
-			(this.currentViewMode as string) === "book"
-		) {
+		if (isFlipbookMode(this.currentViewMode)) {
 			const pinned = parseFloat(pagesContainer?.style.width || "");
+
 			if (pinned > 0) return Math.ceil(pinned + 48);
 		}
 
 		let maxPageWidth = 0;
+
 		for (const page of pages) {
 			const view = page.ownerDocument?.defaultView || window;
 			const computed = view.getComputedStyle ? view.getComputedStyle(page) : null;
+
 			const w =
 				parseFloat(computed?.width || "") ||
 				page.offsetWidth ||
 				parseFloat(page.style.width) ||
 				794;
+
 			if (w > maxPageWidth) maxPageWidth = w;
 		}
+
 		if (maxPageWidth <= 0) maxPageWidth = 794;
 
 		if (this.currentViewMode === "single") {
 			return Math.max(860, Math.ceil(maxPageWidth + 64));
 		}
 
-		if (
-			this.currentViewMode === "flipbook" ||
-			(this.currentViewMode as string) === "book"
-		) {
-			const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+		if (isFlipbookMode(this.currentViewMode)) {
+			const isMobile = "innerWidth" in globalThis && globalThis.innerWidth <= 768;
+
 			if (isMobile) return Math.ceil(maxPageWidth + 48);
+
 			return Math.ceil(maxPageWidth * 2 + 48);
 		}
 
 		if (this.currentViewMode === "spread") {
 			const cols = Math.max(1, this.gridCols);
+
 			return Math.ceil(maxPageWidth * cols + (cols - 1) * 24 + 32);
 		}
 
 		return 860;
 	}
 
-	private pageSize(): { width: number; height: number } {
+	private pageSize(): PageDimensions {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
 		const page = doc.querySelector<HTMLElement>(".printedjs_page, .pagedjs_page");
+
 		if (!page) {
 			return { width: 794, height: 1123 };
 		}
+
 		const view = page.ownerDocument?.defaultView || window;
 		const computed = view.getComputedStyle ? view.getComputedStyle(page) : null;
+
 		const width =
 			parseFloat(computed?.width || "") ||
 			page.offsetWidth ||
 			parseFloat(page.style.width || "") ||
 			794;
+
 		const height =
 			parseFloat(computed?.height || "") ||
 			page.offsetHeight ||
 			parseFloat(page.style.height || "") ||
 			1123;
+
 		return {
 			width: width > 0 ? width : 794,
 			height: height > 0 ? height : 1123,
@@ -679,18 +742,20 @@ export class ViewportComponent {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
+
 		const pagesContainer = doc.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
+
 		const pageHeight = this.pageSize().height;
 
-		if (
-			this.currentViewMode === "flipbook" ||
-			(this.currentViewMode as string) === "book"
-		) {
+		if (isFlipbookMode(this.currentViewMode)) {
 			const pinned = parseFloat(pagesContainer?.style.height || "");
+
 			if (pinned > 0) return Math.ceil(pinned + 48);
+
 			return Math.ceil(pageHeight + 48);
 		}
 
@@ -699,26 +764,32 @@ export class ViewportComponent {
 		}
 
 		if (pageHeight > 0) return pageHeight + 32;
+
 		return 1123;
 	}
 
 	fitToView(): void {
 		const canvasStyle = window.getComputedStyle?.(this.canvasScrollEl);
+
 		const padX = canvasStyle
 			? (parseFloat(canvasStyle.paddingLeft) || 0) +
 				(parseFloat(canvasStyle.paddingRight) || 0)
 			: 80;
+
 		const padY = canvasStyle
 			? (parseFloat(canvasStyle.paddingTop) || 0) +
 				(parseFloat(canvasStyle.paddingBottom) || 0)
 			: 180;
+
 		const availableWidth = this.canvasScrollEl.clientWidth - padX;
 		const availableHeight = this.canvasScrollEl.clientHeight - padY;
 		const contentWidth = this.getContentWidth();
 		const contentHeight = this.getContentHeight();
+
 		if (availableWidth <= 0 || contentWidth <= 0) return;
 
 		const scaleX = availableWidth / contentWidth;
+
 		const scaleY =
 			availableHeight > 0 && contentHeight > 0 ? availableHeight / contentHeight : scaleX;
 
@@ -732,15 +803,16 @@ export class ViewportComponent {
 	setZoom(zoom: number): void {
 		this.currentZoom = zoom;
 
-		const styleObj = this.zoomContainer.style;
-		const supportsZoom =
-			typeof (styleObj as unknown as Record<string, unknown>)["zoom"] !== "undefined";
+		// SAFETY: zoom property is supported in Chromium/WebKit CSSStyleDeclaration
+		const styleWithZoom = this.zoomContainer.style as CSSStyleDeclarationWithZoom;
+		const supportsZoom = "zoom" in styleWithZoom;
+
 		if (supportsZoom) {
-			(styleObj as unknown as Record<string, unknown>)["zoom"] = String(zoom);
-			styleObj.transform = "none";
+			styleWithZoom.zoom = String(zoom);
+			styleWithZoom.transform = "none";
 		} else {
-			styleObj.transform = `scale(${zoom})`;
-			styleObj.transformOrigin = "top center";
+			styleWithZoom.transform = `scale(${zoom})`;
+			styleWithZoom.transformOrigin = "top center";
 		}
 
 		const zoomStr = String(zoom);
@@ -761,6 +833,7 @@ export class ViewportComponent {
 			if (customOpt) {
 				customOpt.remove();
 			}
+
 			matchedPreset.selected = true;
 		} else {
 			if (!customOpt) {
@@ -768,6 +841,7 @@ export class ViewportComponent {
 				customOpt.setAttribute("data-custom", "true");
 				this.zoomSelect.appendChild(customOpt);
 			}
+
 			customOpt.value = zoomStr;
 			customOpt.textContent = percentText;
 			customOpt.selected = true;
@@ -792,16 +866,21 @@ export class ViewportComponent {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument;
+
 		if (doc) {
 			if (doc.documentElement) {
 				doc.documentElement.style.setProperty("--pm-grid-cols", String(cols));
 			}
+
 			if (doc.body) {
 				doc.body.style.setProperty("--pm-grid-cols", String(cols));
+
 				const pagesContainer = doc.querySelector<HTMLElement>(
 					".printedjs_pages, .pagedjs_pages",
 				);
+
 				if (pagesContainer) {
 					pagesContainer.style.setProperty("--pm-grid-cols", String(cols));
 					pagesContainer.setAttribute("data-grid-cols", String(cols));
@@ -819,7 +898,7 @@ export class ViewportComponent {
 		this.currentViewMode = mode;
 		const isSingle = mode === "single";
 		const isSpread = mode === "spread";
-		const isBook = mode === "flipbook" || (mode as string) === "book";
+		const isBook = isFlipbookMode(mode);
 
 		this.singleViewBtn.classList.toggle("active", isSingle);
 		this.spreadViewBtn.classList.toggle("active", isSpread);
@@ -839,6 +918,7 @@ export class ViewportComponent {
 
 		if (isBook) {
 			const flipBook = this.getFlipBookController();
+
 			if (flipBook) {
 				this.currentPageIndex = flipBook.currentPage;
 				this.updateBookPageIndicator(
@@ -857,6 +937,7 @@ export class ViewportComponent {
 
 		this.adjustIframe();
 		this.fitToView();
+
 		if (!isBook) {
 			this.updateActivePagesFromScroll();
 		}
@@ -868,11 +949,12 @@ export class ViewportComponent {
 			this.renderViewport.querySelector<HTMLIFrameElement>(
 				"iframe[data-playground-frame]",
 			);
+
 		if (!iframe?.contentDocument || !iframe.contentDocument.body) return;
 		const doc = iframe.contentDocument;
 		const isSpread = this.currentViewMode === "spread";
-		const isFlipbook =
-			this.currentViewMode === "flipbook" || (this.currentViewMode as string) === "book";
+
+		const isFlipbook = isFlipbookMode(this.currentViewMode);
 
 		doc.documentElement.classList.toggle("pm-spread-view", isSpread);
 		doc.body.classList.toggle("pm-spread-view", isSpread);
@@ -884,9 +966,11 @@ export class ViewportComponent {
 		if (isSpread) {
 			doc.documentElement.style.setProperty("--pm-grid-cols", String(this.gridCols));
 			doc.body.style.setProperty("--pm-grid-cols", String(this.gridCols));
+
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				pagesContainer.style.setProperty("--pm-grid-cols", String(this.gridCols));
 			}
@@ -899,6 +983,7 @@ export class ViewportComponent {
 		doc.removeEventListener("views:page-change", this.onPageChangeEvent);
 		doc.addEventListener("views:page-change", this.onPageChangeEvent);
 
+		// SAFETY: doc contains either .printedjs_pages, .pagedjs_pages, or fallback body element
 		const pagesContainer = (doc.querySelector(".printedjs_pages") ??
 			doc.querySelector(".pagedjs_pages") ??
 			doc.body) as HTMLElement;
@@ -913,6 +998,7 @@ export class ViewportComponent {
 					doc.body.scrollHeight,
 					pagesContainer.scrollHeight + 48,
 				);
+
 		iframe.style.height = `${Math.ceil(contentHeight) + 48}px`;
 		iframe.style.overflow = "hidden";
 		iframe.setAttribute("scrolling", "no");
@@ -926,16 +1012,17 @@ export class ViewportComponent {
 
 	updatePageStats(pageCount: number): void {
 		this.totalPages = pageCount;
+
 		if (pageCount === 0) {
 			this.pageIndicatorEl.textContent = "0 pages";
 			this.currentPageIndex = 0;
+
 			return;
 		}
-		if (
-			this.currentViewMode === "flipbook" ||
-			(this.currentViewMode as string) === "book"
-		) {
+
+		if (isFlipbookMode(this.currentViewMode)) {
 			const flipBook = this.getFlipBookController();
+
 			if (flipBook) {
 				this.currentPageIndex = flipBook.currentPage;
 				this.updateBookPageIndicator(
@@ -949,22 +1036,29 @@ export class ViewportComponent {
 				this.currentPageIndex = 1;
 				this.updateBookPageIndicator(0, Math.ceil((pageCount + 1) / 2), 1);
 			}
+
 			return;
 		}
+
 		if (this.currentViewMode === "single" || this.currentViewMode === "spread") {
 			this.updateActivePagesFromScroll();
+
 			return;
 		}
+
 		this.currentPageIndex = 1;
 		this.pageIndicatorEl.textContent = `1 of ${pageCount}`;
 	}
 
 	getPageNumber(pageEl: HTMLElement, fallbackIndex = 1): number {
 		const attr = pageEl.getAttribute("data-page-number")?.trim();
+
 		if (attr) {
 			const parsed = parseInt(attr, 10);
+
 			if (Number.isFinite(parsed) && parsed > 0) return parsed;
 		}
+
 		return fallbackIndex;
 	}
 
@@ -972,15 +1066,21 @@ export class ViewportComponent {
 		const frozen = pageEl
 			.querySelector<HTMLElement>('[data-folio-frozen="true"]')
 			?.textContent?.trim();
+
 		if (frozen) {
 			const num = Number(frozen);
+
 			return Number.isFinite(num) && String(num) === frozen ? num : frozen;
 		}
+
 		const formatted = pageEl.getAttribute("data-page-formatted")?.trim();
+
 		if (formatted) {
 			const num = Number(formatted);
+
 			return Number.isFinite(num) && String(num) === formatted ? num : formatted;
 		}
+
 		const style = (
 			pageEl.getAttribute("data-page-style") ||
 			pageEl.getAttribute("data-counter-style") ||
@@ -988,15 +1088,20 @@ export class ViewportComponent {
 		)
 			?.toLowerCase()
 			.trim();
+
 		const logical = this.getPageNumber(pageEl, fallbackNumber);
+
 		if (style && style !== "decimal" && Number.isFinite(logical)) {
+			// SAFETY: style attribute from page element cast to supported PageCounterStyle
 			return formatPageNumber(logical, style as PageCounterStyle);
 		}
+
 		return logical;
 	}
 
 	getPageRows(pages: HTMLElement[]): HTMLElement[][] {
 		if (pages.length === 0) return [];
+
 		if (this.currentViewMode === "single") {
 			return pages.map((p) => [p]);
 		}
@@ -1012,8 +1117,10 @@ export class ViewportComponent {
 
 			for (const page of pages) {
 				const top = page.offsetTop;
+
 				if (currentRowTop === null || Math.abs(top - currentRowTop) <= 8) {
 					currentRow.push(page);
+
 					if (currentRowTop === null) currentRowTop = top;
 				} else {
 					rows.push(currentRow);
@@ -1021,51 +1128,61 @@ export class ViewportComponent {
 					currentRowTop = top;
 				}
 			}
+
 			if (currentRow.length > 0) {
 				rows.push(currentRow);
 			}
+
 			return rows;
 		}
 
 		const cols = Math.max(1, this.gridCols);
 		const rows: HTMLElement[][] = [];
+
 		const hasCoverOffset =
 			pages[0]?.classList.contains("printedjs_right_page") ||
 			pages[0]?.style.gridColumn === "2";
+
 		let startIndex = 0;
+
 		if (hasCoverOffset && cols === 2) {
 			rows.push([pages[0]!]);
 			startIndex = 1;
 		}
+
 		for (let i = startIndex; i < pages.length; i += cols) {
 			rows.push(pages.slice(i, i + cols));
 		}
+
 		return rows;
 	}
 
 	updateActivePagesFromScroll(): void {
-		if (
-			this.currentViewMode === "flipbook" ||
-			(this.currentViewMode as string) === "book"
-		) {
+		if (isFlipbookMode(this.currentViewMode)) {
 			return;
 		}
+
 		if (this.totalPages <= 0) return;
 
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
+
 		const pages = Array.from(
 			doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 		);
+
 		if (pages.length === 0) {
 			this.currentPageIndex = 1;
 			this.pageIndicatorEl.textContent = `1 of ${this.totalPages}`;
+
 			return;
 		}
 
 		const rows = this.getPageRows(pages);
+
 		if (rows.length === 0) return;
 
 		const containerRect = this.canvasScrollEl.getBoundingClientRect();
@@ -1111,12 +1228,14 @@ export class ViewportComponent {
 				1,
 				this.canvasScrollEl.scrollHeight - this.canvasScrollEl.clientHeight,
 			);
+
 			const ratio = Math.max(0, Math.min(1, this.canvasScrollEl.scrollTop / maxScroll));
 			bestRowIndex = Math.min(rows.length - 1, Math.floor(ratio * rows.length));
 		} else if (this.currentPageIndex > 1) {
 			const foundIdx = rows.findIndex((row) =>
 				row.some((p) => this.getPageNumber(p) === this.currentPageIndex),
 			);
+
 			bestRowIndex = foundIdx >= 0 ? foundIdx : 0;
 		}
 
@@ -1162,7 +1281,9 @@ export class ViewportComponent {
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument;
+
 		const pagesContainer = doc?.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
@@ -1173,10 +1294,12 @@ export class ViewportComponent {
 			pagesContainer.dispatchEvent(new CustomEvent("page:change", eventInit));
 			pagesContainer.dispatchEvent(new CustomEvent("views:page-change", eventInit));
 		}
+
 		if (doc) {
 			doc.dispatchEvent(new CustomEvent("page:change", eventInit));
 			doc.dispatchEvent(new CustomEvent("views:page-change", eventInit));
 		}
+
 		this.renderViewport.dispatchEvent(new CustomEvent("page:change", eventInit));
 		this.renderViewport.dispatchEvent(new CustomEvent("views:page-change", eventInit));
 	}
@@ -1189,24 +1312,29 @@ export class ViewportComponent {
 		rightPage?: number | string | null,
 	): void {
 		const total = this.totalPages;
+
 		if (total <= 0) {
 			this.pageIndicatorEl.textContent = "0 pages";
+
 			return;
 		}
 
 		const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+
 		if (isMobile) {
 			const pageNum = rightPage ?? currentPage ?? spread + 1;
 			this.pageIndicatorEl.textContent = `${pageNum} of ${total}`;
+
 			return;
 		}
 
 		const right = rightPage ?? (spread === 0 ? 1 : Math.min(total, spread * 2 + 1));
+
 		const left =
 			leftPage === undefined
 				? spread === 0
 					? null
-					: typeof right === "number"
+					: isNumber(right)
 						? right - 1
 						: null
 				: leftPage;
@@ -1214,7 +1342,7 @@ export class ViewportComponent {
 		const isLeftValid =
 			left != null &&
 			left !== "" &&
-			(typeof left === "number" ? left >= 1 : true) &&
+			(isNumber(left) ? left >= 1 : true) &&
 			left !== right;
 
 		if (!isLeftValid) {
@@ -1226,13 +1354,17 @@ export class ViewportComponent {
 
 	scrollToPage(targetPageNumber: number): void {
 		if (targetPageNumber < 1 || targetPageNumber > this.totalPages) return;
+
 		const iframe = this.renderViewport.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.renderViewport;
-		const pageEl = doc.querySelector(
+
+		const pageEl = doc.querySelector<HTMLElement>(
 			`[data-page-number="${targetPageNumber}"]`,
-		) as HTMLElement | null;
+		);
+
 		if (pageEl) {
 			const containerRect = this.canvasScrollEl.getBoundingClientRect();
 			const iframeRect = iframe ? iframe.getBoundingClientRect() : null;
@@ -1287,10 +1419,12 @@ export class ViewportComponent {
 
 	private renderTraceTable(): void {
 		const report = this.currentStats?.traceReport;
+
 		if (!report || report.events.length === 0) {
 			this.traceSummaryEl.textContent = "No events recorded";
 			this.traceContentEl.innerHTML =
 				'<div style="color: var(--pm-text-faint); padding: 8px 0;">No trace events captured.</div>';
+
 			return;
 		}
 

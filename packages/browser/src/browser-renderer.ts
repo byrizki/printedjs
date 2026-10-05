@@ -7,8 +7,10 @@ import {
 	type PageResult,
 	type PagedjsCompatibilityOptions,
 	type PrintedjsPlugin,
-	type PluginContext,
+	type PluginMetadata,
 	type ProgressListener,
+	type RenderLimits,
+	type RenderProgressEvent,
 	type RenderRequest,
 	type RenderResult,
 	type StylesheetSource,
@@ -21,6 +23,34 @@ import { loadStylesheets, type LoadedStylesheet } from "./styles/stylesheet-load
 import { IframeSurface } from "./surface/iframe-surface.js";
 import { RootSurface } from "./surface/root-surface.js";
 import type { IsolationMode, RenderSurface, SurfaceTarget } from "./surface/types.js";
+
+interface MutablePluginContext {
+	metadata: PluginMetadata;
+	pagedjsCompatible: boolean;
+	diagnostics?: DiagnosticsLevel;
+}
+
+interface MutableLoadedStylesheet {
+	type: "inline" | "url";
+	css: string;
+	url?: string;
+}
+
+interface MutableDomLayoutAdapterOptions {
+	surface: RenderSurface;
+	sourceRoot: Node;
+	pagedjsCompatible: boolean;
+	fixedSelectors: readonly string[];
+	fromPage?: number;
+}
+
+interface MutablePaginatorOptions {
+	signal?: AbortSignal;
+	limits?: RenderLimits;
+	startPage?: number;
+	initialPages?: readonly PageResult[];
+	onProgress: (e: RenderProgressEvent) => void;
+}
 
 export interface CreateRendererOptions extends PagedjsCompatibilityOptions {
 	readonly target: SurfaceTarget;
@@ -64,8 +94,11 @@ export class BrowserRenderer {
 					"Iframe isolation requires an HTMLIFrameElement target",
 				);
 			}
+
+			// SAFETY: options.target verified as iframe via isIframe check above
 			this.surface = new IframeSurface(options.target as HTMLIFrameElement);
 		} else {
+			// SAFETY: options.target is validated as non-null HTMLElement in root isolation
 			this.surface = new RootSurface(options.target as HTMLElement);
 		}
 
@@ -76,8 +109,10 @@ export class BrowserRenderer {
 
 	onProgress(listener: ProgressListener): () => void {
 		this.progressListeners.push(listener);
+
 		return () => {
 			const idx = this.progressListeners.indexOf(listener);
+
 			if (idx !== -1) {
 				this.progressListeners.splice(idx, 1);
 			}
@@ -100,16 +135,18 @@ export class BrowserRenderer {
 		if (this.isDestroyed) {
 			throw new PrintedjsInputError("Renderer has been destroyed");
 		}
+
 		if (this.isRendering) {
 			throw new PrintedjsInputError("Render call already active on this renderer");
 		}
 
 		this.isRendering = true;
 		const startTime = performance.now();
-		const session = new RenderSession({
-			...(request.signal ? { signal: request.signal } : {}),
-		});
+
+		const session = new RenderSession(request.signal ? { signal: request.signal } : {});
+
 		this.currentSession = session;
+
 		for (const listener of this.progressListeners) {
 			session.onProgress(listener);
 		}
@@ -119,6 +156,7 @@ export class BrowserRenderer {
 			session.assertNotAborted();
 
 			const isIncremental = Boolean(fromPage && fromPage > 1);
+
 			if (!isIncremental) {
 				this.surface.clear();
 				this.styleRegistry.clear();
@@ -130,26 +168,26 @@ export class BrowserRenderer {
 				externalStylesheets,
 				documentBaseUrl,
 			} = normalizeSource(request.content, this.surface.document);
+
 			session.assertNotAborted();
 
 			const effectiveBaseUrl =
-				request.baseUrl ??
-				(typeof request.content === "object" && "baseUrl" in request.content
-					? request.content.baseUrl
-					: undefined) ??
-				documentBaseUrl;
+				request.baseUrl ?? request.content.baseUrl ?? documentBaseUrl;
 
 			if (effectiveBaseUrl) {
 				const doc = this.surface.document;
 				let baseEl = doc.querySelector("base");
+
 				if (!baseEl) {
 					baseEl = doc.createElement("base");
+
 					if (doc.head) {
 						doc.head.prepend(baseEl);
 					} else {
 						doc.documentElement.prepend(baseEl);
 					}
 				}
+
 				baseEl.setAttribute("href", effectiveBaseUrl);
 			}
 
@@ -165,39 +203,54 @@ export class BrowserRenderer {
 
 			const effectivePagedjsCompatible =
 				request.pagedjsCompatible ?? this.pagedjsCompatible;
-			const metadata: Record<string, unknown> = {
+
+			const metadata: PluginMetadata = {
 				document: this.surface.document,
 				contentRoot: normalizedContent,
 			};
-			const pluginContext: PluginContext = {
+
+			const pluginContext: MutablePluginContext = {
 				metadata,
 				pagedjsCompatible: effectivePagedjsCompatible,
-				...(this.diagnostics !== "none" ? { diagnostics: this.diagnostics } : {}),
 			};
+
+			if (this.diagnostics !== "none") {
+				pluginContext.diagnostics = this.diagnostics;
+			}
 
 			for (const plugin of this.plugins) {
 				if (plugin.setup) {
 					await plugin.setup(pluginContext);
 				}
+
 				session.assertNotAborted();
 			}
 
 			const transformedSheets: LoadedStylesheet[] = [];
+
 			for (const sheet of loadedSheets) {
 				let currentCss = sheet.css;
+
 				for (const plugin of this.plugins) {
 					if (plugin.transformStyles) {
 						currentCss = await plugin.transformStyles(currentCss, pluginContext);
 					}
 				}
-				transformedSheets.push({
+
+				const transformedSheet: MutableLoadedStylesheet = {
 					type: sheet.type,
 					css: currentCss,
-					...(sheet.url ? { url: sheet.url } : {}),
-				});
+				};
+
+				if (sheet.url) {
+					transformedSheet.url = sheet.url;
+				}
+
+				transformedSheets.push(transformedSheet);
 			}
 
 			const fixedSelectors: string[] = [];
+
 			const cleanedSheets = transformedSheets.map((sheet) => {
 				if (!sheet.css.includes("fixed")) {
 					return sheet;
@@ -205,10 +258,12 @@ export class BrowserRenderer {
 
 				const fixedRegex = /position\s*:\s*fixed\s*;?/gi;
 				let match: RegExpExecArray | null;
+
 				while ((match = fixedRegex.exec(sheet.css)) !== null) {
 					const fixedPos = match.index;
 					const openBrace = sheet.css.lastIndexOf("{", fixedPos);
 					const closeBrace = sheet.css.indexOf("}", fixedPos);
+
 					if (
 						openBrace !== -1 &&
 						closeBrace !== -1 &&
@@ -220,18 +275,22 @@ export class BrowserRenderer {
 							sheet.css.lastIndexOf(";", openBrace),
 							0,
 						);
+
 						const selectorText = sheet.css
 							.slice(prevDelimiter === 0 ? 0 : prevDelimiter + 1, openBrace)
 							.trim();
+
 						const selectors = selectorText
 							.split(",")
 							.map((s) => s.trim())
 							.filter((s) => s.length > 0 && !s.startsWith("@"));
+
 						fixedSelectors.push(...selectors);
 					}
 				}
 
 				const css = sheet.css.replace(fixedRegex, "");
+
 				return { ...sheet, css };
 			});
 
@@ -241,6 +300,7 @@ export class BrowserRenderer {
 			]);
 
 			const doc = this.surface.document;
+
 			if (doc.fonts) {
 				try {
 					await Promise.race([
@@ -252,9 +312,11 @@ export class BrowserRenderer {
 									fontPromises.push(fontFace.load().catch(() => fontFace.family));
 								}
 							});
+
 							if (fontPromises.length > 0) {
 								await Promise.all(fontPromises);
 							}
+
 							await doc.fonts.ready;
 						})(),
 						new Promise((resolve) => setTimeout(resolve, 5000)),
@@ -268,30 +330,51 @@ export class BrowserRenderer {
 				if (plugin.beforeLayout) {
 					await plugin.beforeLayout(pluginContext);
 				}
+
 				session.assertNotAborted();
 			}
 
-			const adapter = new DomLayoutAdapter({
+			const adapterOptions: MutableDomLayoutAdapterOptions = {
 				surface: this.surface,
 				sourceRoot: normalizedContent,
 				pagedjsCompatible: effectivePagedjsCompatible,
 				fixedSelectors,
-				...(isIncremental ? { fromPage } : {}),
-			});
+			};
+
+			if (isIncremental && fromPage !== undefined) {
+				adapterOptions.fromPage = fromPage;
+			}
+
+			const adapter = new DomLayoutAdapter(adapterOptions);
+
+			// SAFETY: isIncremental guarantees fromPage is defined and is a valid page index
+			const incrementalPreservedSliceIndex = (fromPage as number) - 1;
 
 			const preservedPages: readonly PageResult[] = isIncremental
 				? (cachedPages ??
 					(this.lastResult
-						? this.lastResult.pages.slice(0, (fromPage as number) - 1)
+						? this.lastResult.pages.slice(0, incrementalPreservedSliceIndex)
 						: []))
 				: [];
 
-			const paginator = new Paginator(adapter, {
-				...(request.signal ? { signal: request.signal } : {}),
-				...(request.limits ? { limits: request.limits } : {}),
-				...(isIncremental ? { startPage: fromPage, initialPages: preservedPages } : {}),
+			const paginatorOptions: MutablePaginatorOptions = {
 				onProgress: (e) => session.emitProgress(e),
-			});
+			};
+
+			if (request.signal) {
+				paginatorOptions.signal = request.signal;
+			}
+
+			if (request.limits) {
+				paginatorOptions.limits = request.limits;
+			}
+
+			if (isIncremental && fromPage !== undefined) {
+				paginatorOptions.startPage = fromPage;
+				paginatorOptions.initialPages = preservedPages;
+			}
+
+			const paginator = new Paginator(adapter, paginatorOptions);
 
 			const result = await paginator.paginate();
 			session.assertNotAborted();
@@ -306,6 +389,7 @@ export class BrowserRenderer {
 				if (plugin.afterRender) {
 					await plugin.afterRender(pluginContext);
 				}
+
 				session.assertNotAborted();
 			}
 
@@ -325,6 +409,7 @@ export class BrowserRenderer {
 					...result.metadata,
 				},
 			};
+
 			this.lastResult = finalResult;
 
 			const eventDetail = {
@@ -341,20 +426,19 @@ export class BrowserRenderer {
 				},
 			};
 
-			const dispatchTargets: (EventTarget | undefined)[] = [
+			const dispatchTargets: readonly (EventTarget | undefined)[] = [
 				this.surface.window,
 				this.surface.document,
 				typeof window !== "undefined" ? window : undefined,
 				typeof document !== "undefined" ? document : undefined,
 			];
+
 			const seenTargets = new Set<EventTarget>();
+
 			for (const target of dispatchTargets) {
-				if (
-					target &&
-					!seenTargets.has(target) &&
-					typeof (target as { dispatchEvent?: unknown }).dispatchEvent === "function"
-				) {
+				if (target && !seenTargets.has(target) && "dispatchEvent" in target) {
 					seenTargets.add(target);
+
 					try {
 						target.dispatchEvent(
 							new CustomEvent("printedjs:rendered", { detail: eventDetail }),
@@ -365,6 +449,7 @@ export class BrowserRenderer {
 						target.dispatchEvent(
 							new CustomEvent("afterRendered", { detail: eventDetail }),
 						);
+
 						if (effectivePagedjsCompatible) {
 							target.dispatchEvent(
 								new CustomEvent("pagedjs:rendered", { detail: eventDetail }),
@@ -387,10 +472,13 @@ export class BrowserRenderer {
 		if (this.isDestroyed) {
 			return;
 		}
+
 		this.isDestroyed = true;
+
 		if (this.currentSession) {
 			void this.currentSession.destroy();
 		}
+
 		this.styleRegistry.destroy();
 		this.surface.destroy();
 	}

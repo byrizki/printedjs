@@ -28,18 +28,22 @@ describe("@printedjs/cli", () => {
 	test("printedjsPuppeteerBridge interacts with page-like object and generates PDF", async () => {
 		let evaluatedCount = 0;
 		let pdfCalled = false;
+
 		const mockPage: PuppeteerPageLike = {
 			goto: async () => {},
 			evaluate: (async () => {
 				evaluatedCount++;
+
 				if (evaluatedCount === 1) {
 					// document.fonts.ready
 					return true;
 				}
+
 				if (evaluatedCount === 2) {
 					// hasPages check
 					return true;
 				}
+
 				// page count check
 				return 3;
 			}) as PuppeteerPageLike["evaluate"],
@@ -49,6 +53,7 @@ describe("@printedjs/cli", () => {
 			addScriptTag: async () => {},
 			pdf: async () => {
 				pdfCalled = true;
+
 				return Buffer.from("%PDF-1.4 mock");
 			},
 		};

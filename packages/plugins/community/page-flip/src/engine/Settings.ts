@@ -84,12 +84,10 @@ export class Settings {
 		disableFlipByClick: false,
 	};
 
-	public getSettings(
-		userSetting: Partial<FlipSetting> | Record<string, unknown>,
-	): FlipSetting {
+	public getSettings(userSetting: Partial<FlipSetting>): FlipSetting {
 		const result: FlipSetting = {
 			...this._default,
-			...(userSetting as Partial<FlipSetting>),
+			...userSetting,
 		};
 
 		if (result.size !== SizeType.STRETCH && result.size !== SizeType.FIXED) {
@@ -106,8 +104,11 @@ export class Settings {
 
 		if (result.size === SizeType.STRETCH) {
 			if (result.minWidth <= 0) result.minWidth = 100;
+
 			if (result.maxWidth < result.minWidth) result.maxWidth = 2000;
+
 			if (result.minHeight <= 0) result.minHeight = 100;
+
 			if (result.maxHeight < result.minHeight) result.maxHeight = 2000;
 		} else {
 			result.minWidth = result.width;

@@ -100,6 +100,7 @@ test.describe("Phase 4 layout parity", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -107,6 +108,7 @@ test.describe("Phase 4 layout parity", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -124,6 +126,7 @@ test.describe("Phase 4 layout parity", () => {
 			const cropMark = target.querySelector<HTMLElement>(
 				".printedjs_marks-crop, .pagedjs_marks-crop",
 			);
+
 			const crossMark = target.querySelector<HTMLElement>(
 				".printedjs_marks-cross, .pagedjs_marks-cross",
 			);
@@ -162,6 +165,7 @@ test.describe("Phase 4 layout parity", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -169,19 +173,23 @@ test.describe("Phase 4 layout parity", () => {
 			).PrintedjsPlugins;
 
 			const rootTarget = document.querySelector<HTMLElement>("#root-target")!;
+
 			const rootRenderer = createRenderer({
 				target: rootTarget,
 				isolation: "root",
 				plugins: standardPreset(),
 			});
+
 			const rootResult = await rootRenderer.render({ content: { html } });
 
 			const iframeTarget = document.querySelector<HTMLIFrameElement>("#iframe-target")!;
+
 			const iframeRenderer = createRenderer({
 				target: iframeTarget,
 				isolation: "iframe",
 				plugins: standardPreset(),
 			});
+
 			const iframeResult = await iframeRenderer.render({ content: { html } });
 
 			return {
@@ -208,6 +216,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -215,6 +224,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -223,6 +233,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 
 			const renderResult = await renderer.render({ content: { html } });
 			const renderedPages = target.querySelectorAll(".printedjs_page, .pagedjs_page");
+
 			const blankPages = target.querySelectorAll(
 				".printedjs_blank_page, .pagedjs_blank_page",
 			);
@@ -239,6 +250,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 
 		expect(result.resultPageCount).toBe(6);
 		expect(result.domPageCount).toBe(6);
+
 		if (result.blankPageCount > 0) {
 			expect(result.hasBlankPageAt4).toBe(true);
 		}
@@ -260,6 +272,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -267,6 +280,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -275,6 +289,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 
 			const renderResult = await renderer.render({ content: { html } });
 			const renderedPages = target.querySelectorAll(".printedjs_page, .pagedjs_page");
+
 			const fixedInEveryPage = Array.from(renderedPages).every(
 				(p) => p.querySelector(".fixed") !== null,
 			);
@@ -304,6 +319,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -311,6 +327,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -322,9 +339,11 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 					content: { html },
 					limits: { maxPages: 2 },
 				});
+
 				return { errorName: null, errorMessage: null };
 			} catch (err: unknown) {
 				const e = err as { name: string; message: string };
+
 				return { errorName: e.name, errorMessage: e.message };
 			}
 		}, positionFixedHtml);
@@ -338,6 +357,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -345,6 +365,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -353,6 +374,7 @@ test.describe("Phase 5 flow correctness: breaks, overflow, tables", () => {
 
 			const renderResult = await renderer.render({ content: { html } });
 			const renderedPages = target.querySelectorAll(".printedjs_page, .pagedjs_page");
+
 			const pagesWithThead = Array.from(renderedPages).filter(
 				(p) => p.querySelector("thead") !== null,
 			).length;
@@ -382,6 +404,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -389,6 +412,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -396,12 +420,15 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			});
 
 			const renderResult = await renderer.render({ content: { html } });
+
 			const firstPage = target.querySelector<HTMLElement>(
 				".printedjs_page, .pagedjs_page",
 			);
+
 			const centerMargin = firstPage?.querySelector<HTMLElement>(
 				".printedjs_margin-bottom-center, .pagedjs_margin-bottom-center",
 			);
+
 			const marginContent = centerMargin?.querySelector<HTMLElement>(
 				".printedjs_margin-content, .pagedjs_margin-content",
 			);
@@ -410,7 +437,9 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 				? firstPage.style.getPropertyValue("--printedjs-string-first-alphabet") ||
 					firstPage.style.getPropertyValue("--pagedjs-string-first-alphabet")
 				: null;
+
 			const hasContentClass = centerMargin?.classList.contains("hasContent");
+
 			const pseudoContent = marginContent
 				? window.getComputedStyle(marginContent, "::after").content
 				: null;
@@ -435,6 +464,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -442,6 +472,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -452,13 +483,16 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 
 			const followingSrc = target.querySelector<HTMLElement>("#followingsrc");
 			let nextPara: HTMLElement | null = null;
+
 			if (followingSrc) {
 				let sibling = followingSrc.nextElementSibling;
+
 				while (sibling) {
 					if (sibling.tagName.toLowerCase() === "p") {
 						nextPara = sibling as HTMLElement;
 						break;
 					}
+
 					sibling = sibling.nextElementSibling;
 				}
 			}
@@ -469,6 +503,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			}
 
 			const color = nextPara ? window.getComputedStyle(nextPara).color : null;
+
 			return { color };
 		}, followingSelectorHtml);
 
@@ -482,6 +517,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -489,6 +525,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -538,6 +575,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -545,6 +583,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -555,6 +594,7 @@ test.describe("Phase 6 CSS transforms: strings, counters, generated content", ()
 
 			const link = target.querySelector<HTMLElement>("#toc-link");
 			const targetPageAttr = link?.getAttribute("data-target-page");
+
 			const pageCountVar =
 				document.documentElement.style.getPropertyValue("--printedjs-page-count") ||
 				document.documentElement.style.getPropertyValue("--pagedjs-page-count");
@@ -606,6 +646,7 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -613,6 +654,7 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -624,9 +666,11 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			const callEl = target.querySelector<HTMLElement>(
 				".printedjs_footnote_call, .pagedjs_footnote_call",
 			);
+
 			const footnoteArea = target.querySelector<HTMLElement>(
 				".printedjs_footnote_area, .pagedjs_footnote_area",
 			);
+
 			const noteInArea = footnoteArea?.querySelector<HTMLElement>(
 				"[data-note='footnote']",
 			);
@@ -673,6 +717,7 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -680,6 +725,7 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -689,6 +735,7 @@ test.describe("Phase 7 advanced layout features: footnotes, widows-orphans", () 
 			await renderer.render({ content: { html: contentHtml } });
 
 			const p = target.querySelector<HTMLElement>("#target-p");
+
 			return {
 				widows: p?.getAttribute("data-widows"),
 				orphans: p?.getAttribute("data-orphans"),
@@ -730,6 +777,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -737,6 +785,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -744,6 +793,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			});
 
 			const renderResult = await renderer.render({ content: { html: contentHtml } });
+
 			const bookmarks = renderResult.metadata["bookmarks"] as
 				| Array<{ title: string; level: number; pageNumber: number; children: unknown[] }>
 				| undefined;
@@ -781,6 +831,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -788,6 +839,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -796,6 +848,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 
 			await renderer.render({ content: { html: contentHtml } });
 			const el = target.querySelector<HTMLElement>(".katex-display");
+
 			return {
 				breakInsideAttr: el?.getAttribute("data-break-inside"),
 			};
@@ -827,6 +880,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -834,6 +888,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -842,6 +897,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 
 			await renderer.render({ content: { html: contentHtml } });
 			const el = target.querySelector<HTMLElement>(".article");
+
 			return {
 				count: el?.getAttribute("data-column-count"),
 				gap: el?.getAttribute("data-column-gap"),
@@ -881,6 +937,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -888,6 +945,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -896,6 +954,7 @@ test.describe("Phase 10: Advanced Paged Media & Complex Cases", () => {
 
 			const renderResult = await renderer.render({ content: { html: contentHtml } });
 			const renderedPages = target.querySelectorAll(".printedjs_page, .pagedjs_page");
+
 			const pagesWithTfoot = Array.from(renderedPages).filter(
 				(p) => p.querySelector("tfoot") !== null,
 			).length;
@@ -921,6 +980,7 @@ test.describe("Phase 11: Performance & Virtualization", () => {
 			const { createRenderer, virtualizePages } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -928,6 +988,7 @@ test.describe("Phase 11: Performance & Virtualization", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -969,7 +1030,9 @@ test.describe("Standalone @printedjs/minimal bundle", () => {
 				PrintedjsMinimal?: typeof import("@printedjs/minimal");
 				Printedjs?: typeof import("@printedjs/minimal");
 			};
+
 			const poly = win.PrintedjsMinimal ?? win.Printedjs;
+
 			if (!poly) {
 				return {
 					hasPolyfill: false,
@@ -990,6 +1053,7 @@ test.describe("Standalone @printedjs/minimal bundle", () => {
 
 			const previewer = new poly.Previewer();
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderResult = await previewer.preview(
 				"<p>Polyfill test content</p>",
 				[],
@@ -999,6 +1063,7 @@ test.describe("Standalone @printedjs/minimal bundle", () => {
 			const domPageCount = target.querySelectorAll(
 				".printedjs_page, .pagedjs_page",
 			).length;
+
 			previewer.destroy();
 
 			return {
@@ -1028,6 +1093,7 @@ test.describe("Phase 11.2 Incremental Re-Pagination & Progress", () => {
 					Printedjs: typeof import("@printedjs/browser");
 				}
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -1035,6 +1101,7 @@ test.describe("Phase 11.2 Incremental Re-Pagination & Progress", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -1060,6 +1127,7 @@ test.describe("Phase 11.2 Incremental Re-Pagination & Progress", () => {
 			const page1Shell = target.querySelector<HTMLElement>(
 				'.printedjs_page[data-page-number="1"], .pagedjs_page[data-page-number="1"]',
 			);
+
 			if (page1Shell) {
 				page1Shell.setAttribute("data-preserved", "true");
 			}
@@ -1082,6 +1150,7 @@ test.describe("Phase 11.2 Incremental Re-Pagination & Progress", () => {
 			const page1After = target.querySelector<HTMLElement>(
 				'.printedjs_page[data-page-number="1"], .pagedjs_page[data-page-number="1"]',
 			);
+
 			const isPage1Preserved = page1After?.getAttribute("data-preserved") === "true";
 
 			renderer.destroy();
@@ -1129,6 +1198,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -1136,6 +1206,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -1143,6 +1214,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			});
 
 			const renderRes = await renderer.render({ content: { html: contentHtml } });
+
 			const pages = Array.from(
 				target.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 			).map((p) => ({
@@ -1190,6 +1262,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -1197,6 +1270,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -1204,6 +1278,7 @@ test.describe("Phase 14 core layout engine conformance: break-after parity, trai
 			});
 
 			const renderRes = await renderer.render({ content: { html: contentHtml } });
+
 			return { pageCount: renderRes.pages.length };
 		}, html);
 

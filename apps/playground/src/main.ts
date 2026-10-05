@@ -79,9 +79,11 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 
 	const scheduleAutoRender = () => {
 		if (!state.autoRender) return;
+
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
 		}
+
 		debounceTimer = setTimeout(() => {
 			void executePipeline();
 		}, 400);
@@ -94,6 +96,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 						"iframe[data-playground-frame]",
 					) ?? window)
 				: window;
+
 		void printDocument({
 			target,
 			pageTitle: state.currentFixture.title,
@@ -124,6 +127,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			},
 		},
 	});
+
 	viewportSlot.appendChild(viewportComponent.element);
 
 	const renderService = new RenderService({
@@ -137,6 +141,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		headerComponent.setSidebarOpen(state.isSidebarOpen);
 		setTimeout(() => {
 			viewportComponent.adjustIframe();
+
 			if (state.viewMode !== "single") {
 				viewportComponent.fitToView();
 			}
@@ -181,16 +186,19 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			},
 		},
 	});
+
 	sidebarSlot.appendChild(editorPanelComponent.element);
 	editorPanelComponent.setCollapsed(!state.isSidebarOpen);
 	editorPanelComponent.layout();
 
 	const resizeHandler = () => {
 		editorPanelComponent.layout();
+
 		if (state.viewMode !== "single") {
 			viewportComponent.fitToView();
 		}
 	};
+
 	window.addEventListener("resize", resizeHandler);
 
 	const headerComponent = new HeaderComponent({
@@ -226,6 +234,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			},
 		},
 	});
+
 	headerSlot.appendChild(headerComponent.element);
 
 	// Core rendering pipeline
@@ -240,12 +249,14 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		try {
 			// 1. Parse dynamic data
 			const dataResult = parseJsonData(state.dataJsonContent);
+
 			if (dataResult.error) {
 				throw new Error(`Data Error: ${dataResult.error}`);
 			}
 
 			// 2. Compile Eta/EJS template
 			const compileResult = compileTemplate(state.templateContent, dataResult.data);
+
 			if (compileResult.error) {
 				throw new Error(compileResult.error);
 			}
@@ -268,6 +279,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			viewportComponent.updatePageStats(renderStats.pageCount);
 			viewportComponent.setSuccess(renderStats);
 			viewportComponent.adjustIframe();
+
 			if (state.viewMode !== "single") {
 				viewportComponent.fitToView();
 			}
@@ -283,6 +295,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 
 	async function switchFixture(fixtureId: string): Promise<void> {
 		const match = FIXTURE_CATALOG.find((f) => f.id === fixtureId);
+
 		if (!match) return;
 
 		state.currentFixture = match;
@@ -293,6 +306,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		editorPanelComponent.setFixture(match, state.templateContent, state.dataJsonContent);
 
 		await executePipeline();
+
 		if (state.viewMode !== "single") {
 			viewportComponent.fitToView();
 		}
@@ -311,6 +325,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			toggleSidebar();
 		}
 	};
+
 	window.addEventListener("keydown", keydownHandler);
 
 	// Perform initial render
@@ -324,6 +339,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		destroy() {
 			window.removeEventListener("keydown", keydownHandler);
 			window.removeEventListener("resize", resizeHandler);
+
 			if (debounceTimer) clearTimeout(debounceTimer);
 			editorPanelComponent.destroy();
 			renderService.destroy();

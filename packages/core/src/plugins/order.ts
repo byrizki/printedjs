@@ -6,11 +6,13 @@ export function orderPlugins(plugins: readonly PrintedjsPlugin[]): PrintedjsPlug
 
 	for (let i = 0; i < plugins.length; i++) {
 		const plugin = plugins[i]!;
+
 		if (nameMap.has(plugin.name)) {
 			throw new PrintedjsPluginOrderError(
 				`Duplicate plugin name detected: "${plugin.name}"`,
 			);
 		}
+
 		nameMap.set(plugin.name, { plugin, index: i });
 	}
 
@@ -31,8 +33,10 @@ export function orderPlugins(plugins: readonly PrintedjsPlugin[]): PrintedjsPlug
 						`Plugin "${plugin.name}" specifies unknown dependency in "after": "${dep}"`,
 					);
 				}
+
 				// dep must come before plugin: dep -> plugin
 				const set = adj.get(dep)!;
+
 				if (!set.has(plugin.name)) {
 					set.add(plugin.name);
 					inDegree.set(plugin.name, (inDegree.get(plugin.name) ?? 0) + 1);
@@ -47,8 +51,10 @@ export function orderPlugins(plugins: readonly PrintedjsPlugin[]): PrintedjsPlug
 						`Plugin "${plugin.name}" specifies unknown dependency in "before": "${target}"`,
 					);
 				}
+
 				// plugin must come before target: plugin -> target
 				const set = adj.get(plugin.name)!;
+
 				if (!set.has(target)) {
 					set.add(target);
 					inDegree.set(target, (inDegree.get(target) ?? 0) + 1);
@@ -60,6 +66,7 @@ export function orderPlugins(plugins: readonly PrintedjsPlugin[]): PrintedjsPlug
 	// Stable Kahn's algorithm:
 	// Prioritize nodes by their original appearance index when in-degree becomes 0
 	const ready: string[] = [];
+
 	for (const plugin of plugins) {
 		if (inDegree.get(plugin.name) === 0) {
 			ready.push(plugin.name);
@@ -77,6 +84,7 @@ export function orderPlugins(plugins: readonly PrintedjsPlugin[]): PrintedjsPlug
 		for (const neighbor of adj.get(curr)!) {
 			const deg = (inDegree.get(neighbor) ?? 1) - 1;
 			inDegree.set(neighbor, deg);
+
 			if (deg === 0) {
 				ready.push(neighbor);
 			}

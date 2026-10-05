@@ -35,6 +35,7 @@ for (const pkgRelPath of workspacePackages) {
 	}
 
 	const distPath = resolve(pkgPath, "dist");
+
 	if (!existsSync(distPath)) {
 		console.error(`[FAIL] ${pkg.name} dist directory does not exist!`);
 		failed = true;

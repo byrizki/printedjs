@@ -41,22 +41,32 @@ function normalizeMarginBoxName(name: string): string {
 
 function getPageScope(sel: string | undefined, pagedjsCompatible = false): string {
 	const trimmed = sel?.trim();
+
 	if (pagedjsCompatible) {
 		if (trimmed === ":first")
 			return ":is(.printedjs_page, .pagedjs_page):is(.printedjs_first_page, .pagedjs_first_page)";
+
 		if (trimmed === ":left")
 			return ":is(.printedjs_page, .pagedjs_page):is(.printedjs_left_page, .pagedjs_left_page)";
+
 		if (trimmed === ":right")
 			return ":is(.printedjs_page, .pagedjs_page):is(.printedjs_right_page, .pagedjs_right_page)";
+
 		if (trimmed && !trimmed.startsWith(":"))
 			return `:is(.printedjs_page, .pagedjs_page)[data-page="${trimmed}"]`;
+
 		return ":is(.printedjs_page, .pagedjs_page)";
 	}
+
 	if (trimmed === ":first") return ".printedjs_page.printedjs_first_page";
+
 	if (trimmed === ":left") return ".printedjs_page.printedjs_left_page";
+
 	if (trimmed === ":right") return ".printedjs_page.printedjs_right_page";
+
 	if (trimmed && !trimmed.startsWith(":"))
 		return `.printedjs_page[data-page="${trimmed}"]`;
+
 	return ".printedjs_page";
 }
 
@@ -66,9 +76,11 @@ function getMarginBoxSel(boxName: string, pagedjsCompatible = false): string {
 			? ":is(.printedjs_footnote_area, .pagedjs_footnote_area)"
 			: ".printedjs_footnote_area";
 	}
+
 	if (pagedjsCompatible) {
 		return `:is(.printedjs_margin-${boxName}, .pagedjs_margin-${boxName})`;
 	}
+
 	return `.printedjs_margin-${boxName}`;
 }
 
@@ -76,6 +88,7 @@ function getMarginContentSel(pagedjsCompatible = false): string {
 	if (pagedjsCompatible) {
 		return `:is(.printedjs_margin-content, .pagedjs_margin-content)`;
 	}
+
 	return ".printedjs_margin-content";
 }
 
@@ -89,14 +102,16 @@ export interface RunningAssignment {
 	readonly policy?: RunningPolicy | undefined;
 }
 
-export function transformMarginBoxCss(
-	css: string,
-	pagedjsCompatible = false,
-): {
+export interface TransformedMarginBoxResult {
 	readonly css: string;
 	readonly runningSelectors: Record<string, string>;
 	readonly runningAssignments: readonly RunningAssignment[];
-} {
+}
+
+export function transformMarginBoxCss(
+	css: string,
+	pagedjsCompatible = false,
+): TransformedMarginBoxResult {
 	const ast = parseCss(css);
 	const generatedRules: string[] = [];
 	const runningSelectors: Record<string, string> = {};
@@ -107,6 +122,7 @@ export function transformMarginBoxCss(
 		for (const decl of rule.declarations) {
 			if (decl.property.toLowerCase() === "position") {
 				const match = decl.value.match(/running\(\s*([^)]+)\s*\)/i);
+
 				if (match && match[1]) {
 					const name = match[1].trim();
 					runningSelectors[name] = rule.selector;
@@ -123,9 +139,11 @@ export function transformMarginBoxCss(
 			const boxName = normalizeMarginBoxName(box.marginBox);
 			const marginBoxSel = getMarginBoxSel(boxName, pagedjsCompatible);
 			const marginContentSel = getMarginContentSel(pagedjsCompatible);
+
 			const contentDecl = box.declarations.find(
 				(d) => d.property.toLowerCase() === "content",
 			);
+
 			const otherDecls = box.declarations.filter(
 				(d) => d.property.toLowerCase() !== "content",
 			);
@@ -133,6 +151,7 @@ export function transformMarginBoxCss(
 			if (otherDecls.length > 0) {
 				const body = otherDecls.map((d) => `  ${d.property}: ${d.value};`).join("\n");
 				generatedRules.push(`${pageScope} ${marginBoxSel} {\n${body}\n}`);
+
 				if (boxName !== "footnote") {
 					generatedRules.push(
 						`${pageScope} ${marginBoxSel} > ${marginContentSel} > * {\n  display: block !important;\n}`,
@@ -142,16 +161,20 @@ export function transformMarginBoxCss(
 
 			if (contentDecl) {
 				const val = contentDecl.value.trim().toLowerCase();
+
 				const elementMatch = contentDecl.value.match(
 					/element\s*\(\s*([^,\s)]+)(?:\s*,\s*([a-zA-Z0-9_-]+))?\s*\)/i,
 				);
+
 				if (elementMatch && elementMatch[1]) {
 					const runningName = elementMatch[1].trim();
 					const rawPolicy = elementMatch[2]?.trim().toLowerCase();
+
 					const policy: RunningPolicy =
 						rawPolicy === "start" || rawPolicy === "last" || rawPolicy === "first-except"
 							? rawPolicy
 							: "first";
+
 					runningAssignments.push({
 						pageScope,
 						pageSelector: pageRule.selector,
@@ -185,7 +208,9 @@ export function transformMarginBoxCss(
 				const re = new RegExp(`@${name}\\s*\\{[^}]*\\}`, "gi");
 				pageBlock = pageBlock.replace(re, "");
 			}
+
 			pageBlock = pageBlock.replace(/@footnote\s*\{[^}]*\}/gi, "");
+
 			return pageBlock;
 		})
 		.replace(/@page\b[^{]*\{\s*\}/gi, "");
@@ -205,15 +230,19 @@ export interface ActiveMarginBox {
 export function extractActiveMarginBoxes(css: string): ActiveMarginBox[] {
 	const ast = parseCss(css);
 	const results: ActiveMarginBox[] = [];
+
 	for (const pageRule of ast.pageRules) {
 		for (const box of pageRule.marginBoxes) {
 			const contentDecl = box.declarations.find(
 				(d) => d.property.toLowerCase() === "content",
 			);
+
 			const val = contentDecl?.value.trim().toLowerCase();
+
 			if (val === "none" || val === "normal") {
 				continue;
 			}
+
 			if (box.declarations.length > 0) {
 				results.push({
 					pageSelector: pageRule.selector,
@@ -222,17 +251,24 @@ export function extractActiveMarginBoxes(css: string): ActiveMarginBox[] {
 			}
 		}
 	}
+
 	return results;
 }
 
 function getPageSelectorWeight(sel?: string): number {
 	if (!sel || sel === "*") return 1;
 	const trimmed = sel.trim();
+
 	if (trimmed.includes(":") && !trimmed.startsWith(":")) return 7;
+
 	if (trimmed.startsWith(":first")) return 4;
+
 	if (trimmed.startsWith(":blank")) return 3;
+
 	if (trimmed.startsWith(":left") || trimmed.startsWith(":right")) return 2;
+
 	if (!trimmed.startsWith(":")) return 5;
+
 	return 1;
 }
 
@@ -240,14 +276,18 @@ function isElementAtStart(el: HTMLElement, page: HTMLElement): boolean {
 	const contentArea = page.querySelector<HTMLElement>(
 		":is(.printedjs_page_content, .pagedjs_page_content) > div",
 	);
+
 	if (!contentArea) return false;
 	let curr: Element | null = el;
+
 	while (curr && curr !== contentArea) {
 		if (curr.previousElementSibling) {
 			return false;
 		}
+
 		curr = curr.parentElement;
 	}
+
 	return true;
 }
 
@@ -269,9 +309,11 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			activeMarginBoxes.length = 0;
 			runningAssignments.length = 0;
 			savedRunningElements.clear();
+
 			for (const key of Object.keys(runningSelectors)) {
 				delete runningSelectors[key];
 			}
+
 			counterId = 0;
 		},
 		transformStyles(css: string, context?: PluginContext): string {
@@ -288,9 +330,11 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 				/([^{}@]+)\{([^{}]+)\}/g,
 				(match, rawSel, rawBody) => {
 					const sel = rawSel.trim();
+
 					if (sel.startsWith("@")) {
 						return match;
 					}
+
 					const parts = sel.split(",").map((s: string) => s.trim());
 					let modified = false;
 
@@ -300,8 +344,10 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 							const id = `following-${counterId}`;
 							followingRules.push({ id, selector: part, decls: rawBody });
 							modified = true;
+
 							return `*[data-following*="${id}"]`;
 						}
+
 						if (
 							part.includes(":nth-of-type") ||
 							part.includes(":first-of-type") ||
@@ -311,14 +357,17 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 							const id = `nth-${counterId}`;
 							nthOfTypeRules.push({ id, selector: part, decls: rawBody });
 							modified = true;
+
 							return `*[data-nth-of-type*="${id}"]`;
 						}
+
 						return part;
 					});
 
 					if (modified) {
 						return `${transformedParts.join(", ")} {${rawBody}}`;
 					}
+
 					return match;
 				},
 			);
@@ -326,8 +375,10 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			return resultCss;
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM ParentNode during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
@@ -335,12 +386,17 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			for (const [name, selector] of Object.entries(runningSelectors)) {
 				try {
 					const matched = contentRoot.querySelectorAll(selector);
+
 					for (let i = 0; i < matched.length; i++) {
+						// SAFETY: querySelectorAll returned elements are HTMLElement instances
 						const el = matched[i] as HTMLElement | undefined;
+
 						if (el && el.nodeType === 1) {
 							el.setAttribute("data-printedjs-running", name);
 							el.style.display = "none";
+
 							if (!savedRunningElements.has(name)) {
+								// SAFETY: cloneNode(true) on HTMLElement produces an HTMLElement
 								savedRunningElements.set(name, el.cloneNode(true) as HTMLElement);
 							}
 						}
@@ -354,8 +410,10 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			for (const item of followingRules) {
 				try {
 					const matched = contentRoot.querySelectorAll(item.selector);
+
 					for (let i = 0; i < matched.length; i++) {
 						const el = matched[i];
+
 						if (el && el.nodeType === 1) {
 							const existing = el.getAttribute("data-following") || "";
 							el.setAttribute(
@@ -373,8 +431,10 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			for (const item of nthOfTypeRules) {
 				try {
 					const matched = contentRoot.querySelectorAll(item.selector);
+
 					for (let i = 0; i < matched.length; i++) {
 						const el = matched[i];
+
 						if (el && el.nodeType === 1) {
 							const existing = el.getAttribute("data-nth-of-type") || "";
 							el.setAttribute(
@@ -389,10 +449,12 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			}
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) {
 				return;
 			}
+
 			const pages = doc.querySelectorAll(".printedjs_page, .pagedjs_page");
 			const totalPages = pages.length;
 
@@ -400,29 +462,37 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			const activeRunningElements = new Map<string, HTMLElement>();
 
 			pages.forEach((pageEl) => {
+				// SAFETY: elements returned by querySelectorAll are HTMLElement nodes
 				const page = pageEl as HTMLElement;
+
 				const isFirst =
 					page.classList.contains("printedjs_first_page") ||
 					page.classList.contains("pagedjs_first_page");
+
 				const isLeft =
 					page.classList.contains("printedjs_left_page") ||
 					page.classList.contains("pagedjs_left_page");
+
 				const isRight =
 					page.classList.contains("printedjs_right_page") ||
 					page.classList.contains("pagedjs_right_page");
+
 				const isBlank =
 					page.classList.contains("printedjs_blank_page") ||
 					page.classList.contains("pagedjs_blank_page");
+
 				const namedPage = page.getAttribute("data-page");
 
 				// Check which running elements exist on this page
 				const pageRunningMap = new Map<string, HTMLElement[]>();
+
 				for (const [name, selector] of Object.entries(runningSelectors)) {
 					const els = Array.from(
 						page.querySelectorAll<HTMLElement>(
 							`[data-printedjs-running="${name}"], ${selector}`,
 						),
 					);
+
 					if (els.length > 0) {
 						pageRunningMap.set(name, els);
 					}
@@ -430,24 +500,37 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 
 				for (const boxName of MARGIN_BOX_NAMES) {
 					const normBox = normalizeMarginBoxName(boxName);
+
 					const applicable = runningAssignments.filter((a) => {
 						if (a.boxName !== normBox) return false;
 						const sel = a.pageSelector?.trim();
+
 						if (sel === ":first") return isFirst;
+
 						if (sel === ":left") return isLeft;
+
 						if (sel === ":right") return isRight;
+
 						if (sel === ":blank") return isBlank;
+
 						if (sel && !sel.startsWith(":")) {
 							if (sel.includes(":")) {
 								const [np, pseudo] = sel.split(":");
+
 								if (np !== namedPage) return false;
+
 								if (pseudo === "first") return isFirst;
+
 								if (pseudo === "left") return isLeft;
+
 								if (pseudo === "right") return isRight;
+
 								return true;
 							}
+
 							return sel === namedPage;
 						}
+
 						return !sel || sel === "*";
 					});
 
@@ -471,10 +554,12 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 
 						const name = cand.runningName;
 						const pageEls = pageRunningMap.get(name) ?? [];
+
 						const hasAny =
 							pageEls.length > 0 ||
 							activeRunningElements.has(name) ||
 							savedRunningElements.has(name);
+
 						if (!hasAny) {
 							continue;
 						}
@@ -500,6 +585,7 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 										null);
 						} else if (policy === "start") {
 							const first = pageEls[0];
+
 							if (first && isElementAtStart(first, page)) {
 								elToDisplay = first;
 							} else {
@@ -517,6 +603,7 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 								savedRunningElements.get(name) ??
 								null;
 						}
+
 						break;
 					}
 
@@ -525,16 +612,21 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 					const marginEl = page.querySelector<HTMLElement>(
 						`:is(.printedjs_margin-${normBox}, .pagedjs_margin-${normBox})`,
 					);
+
 					const contentEl = marginEl?.querySelector<HTMLElement>(
 						".printedjs_margin-content, .pagedjs_margin-content",
 					);
+
 					if (marginEl && contentEl) {
 						if (elToDisplay) {
+							// SAFETY: cloneNode(true) on HTMLElement produces an HTMLElement
 							const clone = elToDisplay.cloneNode(true) as HTMLElement;
 							clone.style.removeProperty("display");
+
 							if (clone.style.display === "none") {
 								clone.style.display = "";
 							}
+
 							clone.style.setProperty("display", "block", "important");
 							contentEl.replaceChildren(clone);
 							marginEl.classList.add("hasContent");
@@ -555,21 +647,27 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 
 			// Mark active margin boxes with 'hasContent'
 			pages.forEach((pageEl) => {
+				// SAFETY: elements returned by querySelectorAll are HTMLElement nodes
 				const page = pageEl as HTMLElement;
+
 				const isFirst =
 					page.classList.contains("printedjs_first_page") ||
 					page.classList.contains("pagedjs_first_page");
+
 				const isLeft =
 					page.classList.contains("printedjs_left_page") ||
 					page.classList.contains("pagedjs_left_page");
+
 				const isRight =
 					page.classList.contains("printedjs_right_page") ||
 					page.classList.contains("pagedjs_right_page");
+
 				const namedPage = page.getAttribute("data-page");
 
 				for (const active of activeMarginBoxes) {
 					let matches = false;
 					const sel = active.pageSelector?.trim();
+
 					if (!sel || sel === "*") {
 						matches = true;
 					} else if (sel === ":first") {
@@ -584,22 +682,33 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 
 					if (matches) {
 						const normBox = active.boxName;
+
 						const applicable = runningAssignments.filter((a) => {
 							if (a.boxName !== normBox) return false;
 							const s = a.pageSelector?.trim();
+
 							if (s === ":first") return isFirst;
+
 							if (s === ":left") return isLeft;
+
 							if (s === ":right") return isRight;
+
 							if (s && !s.startsWith(":")) return s === namedPage;
+
 							return !s || s === "*";
 						});
+
 						applicable.sort((a, b) => {
 							const aSpecific = a.pageSelector && a.pageSelector !== "*";
 							const bSpecific = b.pageSelector && b.pageSelector !== "*";
+
 							if (aSpecific && !bSpecific) return -1;
+
 							if (!aSpecific && bSpecific) return 1;
+
 							return 0;
 						});
+
 						if (applicable[0]?.runningName === "none") {
 							continue;
 						}
@@ -607,6 +716,7 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 						const marginBoxEl = page.querySelector<HTMLElement>(
 							`:is(.printedjs_margin-${active.boxName}, .pagedjs_margin-${active.boxName})`,
 						);
+
 						if (marginBoxEl) {
 							marginBoxEl.classList.add("hasContent");
 						}
@@ -615,8 +725,10 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			});
 
 			const win = doc.defaultView || (typeof window !== "undefined" ? window : undefined);
+
 			if (win) {
 				pages.forEach((pageEl) => {
+					// SAFETY: elements returned by querySelectorAll are HTMLElement nodes
 					distributeMarginTracks(pageEl as HTMLElement, win);
 				});
 			}
@@ -625,17 +737,22 @@ export function generatedContentPlugin(): PrintedjsPlugin {
 			const totalStr = String(totalPages);
 			const root = doc.documentElement;
 			const pagedjsCompatible = context.pagedjsCompatible ?? false;
+
 			if (root) {
 				root.style.setProperty("--printedjs-page-count", totalStr);
+
 				if (pagedjsCompatible) {
 					root.style.setProperty("--pagedjs-page-count", totalStr);
 				}
 			}
+
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				pagesContainer.style.setProperty("--printedjs-page-count", totalStr);
+
 				if (pagedjsCompatible) {
 					pagesContainer.style.setProperty("--pagedjs-page-count", totalStr);
 				}

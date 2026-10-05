@@ -5,7 +5,8 @@ export interface BookmarksDrawerOptions {
 	readonly document?: Document | undefined;
 	readonly bookmarks?: readonly BookmarkItem[] | undefined;
 	readonly onNavigate?:
-		((pageNumber: number, targetId?: string | undefined) => void) | undefined;
+		| ((pageNumber: number, targetId?: string | undefined) => void)
+		| undefined;
 	readonly title?: string | undefined;
 	readonly position?: "left" | "right" | undefined;
 }
@@ -259,6 +260,7 @@ export function createBookmarksDrawer(
 		options.document ??
 		options.container?.ownerDocument ??
 		(typeof document !== "undefined" ? document : null);
+
 	if (!doc) {
 		throw new Error("createBookmarksDrawer requires a DOM document environment");
 	}
@@ -325,6 +327,7 @@ export function createBookmarksDrawer(
 			empty.className = "printedjs-drawer-empty";
 			empty.textContent = "No document bookmarks found";
 			treeContainer.appendChild(empty);
+
 			return;
 		}
 
@@ -332,11 +335,13 @@ export function createBookmarksDrawer(
 			currentBookmarks,
 			searchQuery.toLowerCase().trim(),
 		);
+
 		if (filteredBookmarks.length === 0) {
 			const empty = doc!.createElement("div");
 			empty.className = "printedjs-drawer-empty";
 			empty.textContent = `No matching headings for "${searchQuery}"`;
 			treeContainer.appendChild(empty);
+
 			return;
 		}
 
@@ -352,6 +357,7 @@ export function createBookmarksDrawer(
 		if (!query) return [...items];
 
 		const result: BookmarkItem[] = [];
+
 		for (const item of items) {
 			const matches = item.title.toLowerCase().includes(query);
 			const filteredChildren = filterBookmarks(item.children, query);
@@ -363,6 +369,7 @@ export function createBookmarksDrawer(
 				});
 			}
 		}
+
 		return result;
 	}
 
@@ -379,6 +386,7 @@ export function createBookmarksDrawer(
 			row.tabIndex = 0;
 			row.setAttribute("role", "treeitem");
 			row.setAttribute("data-page", String(item.pageNumber));
+
 			if (item.targetId) {
 				row.setAttribute("data-target-id", item.targetId);
 			}
@@ -397,6 +405,7 @@ export function createBookmarksDrawer(
 				expandBtn.addEventListener("click", (e) => {
 					e.stopPropagation();
 					const isCollapsed = expandBtn.classList.toggle("collapsed");
+
 					if (childUl) {
 						childUl.style.display = isCollapsed ? "none" : "";
 					}
@@ -448,6 +457,7 @@ export function createBookmarksDrawer(
 
 	function updateActiveHighlight(): void {
 		if (activePageNumber === null) return;
+
 		for (const row of itemRows) {
 			if (row.pageNumber === activePageNumber) {
 				row.element.classList.add("active");
@@ -509,6 +519,7 @@ export function createBookmarksDrawer(
 
 	// Attach to container or body
 	const targetContainer = options.container ?? doc.body;
+
 	if (targetContainer) {
 		targetContainer.appendChild(backdrop);
 		targetContainer.appendChild(drawerEl);

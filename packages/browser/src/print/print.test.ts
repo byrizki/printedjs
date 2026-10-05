@@ -28,6 +28,7 @@ function createMockWindow() {
 			// Trigger afterprint on next tick
 			setTimeout(() => {
 				const list = listeners.get("afterprint");
+
 				if (list) {
 					list.forEach((fn) => fn({ type: "afterprint" } as Event));
 				}
@@ -39,8 +40,10 @@ function createMockWindow() {
 		},
 		removeEventListener(event: string, handler: (e: Event) => void) {
 			const list = listeners.get(event);
+
 			if (list) {
 				const idx = list.indexOf(handler);
+
 				if (idx >= 0) list.splice(idx, 1);
 			}
 		},
@@ -90,6 +93,7 @@ describe("Client-Side Direct Print and PDF Export", () => {
 		const { win, doc } = createMockWindow();
 
 		let titleDuringPrint: string | undefined;
+
 		const beforePrint = vi.fn(() => {
 			titleDuringPrint = doc.title;
 		});
@@ -107,6 +111,7 @@ describe("Client-Side Direct Print and PDF Export", () => {
 
 	it("supports iframe as target", async () => {
 		const { win, doc } = createMockWindow();
+
 		const iframe = {
 			contentWindow: win,
 			contentDocument: doc,

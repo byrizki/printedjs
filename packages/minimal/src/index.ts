@@ -17,50 +17,91 @@ export interface PolyfillOptions extends PagedjsCompatibilityOptions {
 	readonly auto?: boolean | undefined;
 }
 
+export interface PagedPageLayoutInfo {
+	readonly number: number;
+	readonly element: HTMLElement;
+	readonly total: number;
+	readonly pageCount: number;
+	readonly totalPages: number;
+}
+
+export interface PagedBreakTokenInfo {
+	readonly page?: number | undefined;
+	readonly finished?: boolean | undefined;
+}
+
+export interface PagedChunkerInfo {
+	readonly pages?: readonly HTMLElement[] | undefined;
+}
+
 export interface PagedHandlerInstance {
-	beforeParsed?(content: unknown): void | Promise<void>;
-	afterParsed?(parsed: unknown): void | Promise<void>;
+	beforeParsed?(content?: HTMLElement | Document | null): void | Promise<void>;
+	afterParsed?(parsed?: HTMLElement | Document | null): void | Promise<void>;
 	beforePageLayout?(
-		page: unknown,
+		page?: HTMLElement | null,
 		index?: number,
-		breakToken?: unknown,
+		breakToken?: PagedBreakTokenInfo | null,
 	): void | Promise<void>;
 	afterPageLayout?(
-		pageElement: unknown,
-		page?: unknown,
-		breakToken?: unknown,
-		chunker?: unknown,
+		pageElement?: HTMLElement | null,
+		page?: PagedPageLayoutInfo | null,
+		breakToken?: PagedBreakTokenInfo | null,
+		chunker?: PagedChunkerInfo | null,
 	): void | Promise<void>;
-	afterRendered?(pages: unknown): void | Promise<void>;
+	afterRendered?(pages?: readonly unknown[]): void | Promise<void>;
 }
 
 export type PagedHandler = PagedHandlerInstance | (new () => PagedHandlerInstance);
 
 export class Handler implements PagedHandlerInstance {
-	beforeParsed?(_content: unknown): void | Promise<void>;
-	afterParsed?(_parsed: unknown): void | Promise<void>;
+	beforeParsed?(_content?: HTMLElement | Document | null): void | Promise<void>;
+	afterParsed?(_parsed?: HTMLElement | Document | null): void | Promise<void>;
 	beforePageLayout?(
-		_page: unknown,
+		_page?: HTMLElement | null,
 		_index?: number,
-		_breakToken?: unknown,
+		_breakToken?: PagedBreakTokenInfo | null,
 	): void | Promise<void>;
 	afterPageLayout?(
-		_pageElement: unknown,
-		_page?: unknown,
-		_breakToken?: unknown,
-		_chunker?: unknown,
+		_pageElement?: HTMLElement | null,
+		_page?: PagedPageLayoutInfo | null,
+		_breakToken?: PagedBreakTokenInfo | null,
+		_chunker?: PagedChunkerInfo | null,
 	): void | Promise<void>;
-	afterRendered?(_pages: unknown): void | Promise<void>;
+	afterRendered?(_pages?: readonly unknown[]): void | Promise<void>;
+}
+
+export interface PagedFlowInfo {
+	readonly pages: readonly unknown[];
+	readonly total: number;
+	readonly pageCount: number;
+	readonly totalPages: number;
 }
 
 export interface PagedConfig {
 	auto?: boolean | undefined;
 	before?: (() => void | Promise<void>) | undefined;
-	after?: ((flow: unknown) => void) | undefined;
+	after?: ((flow: PagedFlowInfo) => void) | undefined;
 	content?: string | HTMLElement | undefined;
 	renderTo?: string | HTMLElement | undefined;
 	stylesheets?: readonly string[] | undefined;
 	pagedjsCompatible?: boolean | undefined;
+}
+
+export interface WindowWithPrintedjsMinimal extends Window {
+	__pagedRenderFinished?: boolean | undefined;
+	__printedjsRenderFinished?: boolean | undefined;
+	__pagedPageCount?: number | undefined;
+	__printedjsOriginalContent?: string | undefined;
+	PRINTEDJS_AUTO?: boolean | undefined;
+	PagedConfig?: PagedConfig | undefined;
+	PrintedjsConfig?: { readonly pagedjsCompatible?: boolean | undefined } | undefined;
+	Paged?: unknown;
+	PagedPolyfill?: unknown;
+	Printed?: unknown;
+	PrintedJS?: unknown;
+	Printedjs?: unknown;
+	PrintedjsMinimal?: unknown;
+	PrintedjsPolyfill?: unknown;
 }
 
 const registeredHandlers: PagedHandler[] = [];
@@ -69,57 +110,75 @@ export function registerHandlers(...handlers: PagedHandler[]): void {
 	registeredHandlers.push(...handlers);
 }
 
+function isString(value: unknown): value is string {
+	return Object.prototype.toString.call(value) === "[object String]";
+}
+
 function createHandlersPlugin(handlers: readonly PagedHandler[]): PrintedjsPlugin {
 	let instances: PagedHandlerInstance[] = [];
 
 	return {
 		name: "pagedjs-handlers-lifecycle",
 		setup() {
-			instances = handlers.map((h) => (typeof h === "function" ? new h() : h));
+			instances = handlers.map((h) => (h instanceof Function ? new h() : h));
 		},
 		async beforeLayout(context) {
+			// SAFETY: contentRoot in plugin context metadata represents target root element
 			const contentRoot = context.metadata["contentRoot"] as HTMLElement | undefined;
+
 			for (const inst of instances) {
-				if (typeof inst.beforeParsed === "function") {
+				if (inst.beforeParsed) {
 					await inst.beforeParsed(contentRoot);
 				}
-				if (typeof inst.afterParsed === "function") {
+
+				if (inst.afterParsed) {
 					await inst.afterParsed(contentRoot);
 				}
 			}
 		},
 		async afterRender(context) {
+			// SAFETY: document in plugin context metadata represents target Document
 			const doc = context.metadata["document"] as Document | undefined;
-			let pages: unknown[] = (context.metadata["pages"] as unknown[] | undefined) ?? [];
+
+			// SAFETY: pages in plugin context metadata represents rendered page results
+			let pages: readonly unknown[] =
+				(context.metadata["pages"] as readonly unknown[] | undefined) ?? [];
+
 			if (pages.length === 0 && doc) {
 				pages = Array.from(
 					doc.querySelectorAll<HTMLElement>(".printedjs_page, .pagedjs_page"),
 				);
 			}
-			const totalCount =
-				pages.length || (context.metadata["pageCount"] as number | undefined) || 0;
+
+			const totalCount = pages.length || context.metadata.pageCount || 0;
 
 			for (let i = 0; i < pages.length; i++) {
 				const pageEl = pages[i]!;
-				const pageObj = {
+
+				// SAFETY: pageEl is the rendered page HTMLElement
+				const pageElement = pageEl as HTMLElement;
+
+				const pageObj: PagedPageLayoutInfo = {
 					number: i + 1,
-					element: pageEl,
+					element: pageElement,
 					total: totalCount,
 					pageCount: totalCount,
 					totalPages: totalCount,
 				};
+
 				for (const inst of instances) {
-					if (typeof inst.beforePageLayout === "function") {
-						await inst.beforePageLayout(pageEl as HTMLElement, i);
+					if (inst.beforePageLayout) {
+						await inst.beforePageLayout(pageElement, i);
 					}
-					if (typeof inst.afterPageLayout === "function") {
-						await inst.afterPageLayout(pageEl as HTMLElement, pageObj);
+
+					if (inst.afterPageLayout) {
+						await inst.afterPageLayout(pageElement, pageObj);
 					}
 				}
 			}
 
 			for (const inst of instances) {
-				if (typeof inst.afterRendered === "function") {
+				if (inst.afterRendered) {
 					await inst.afterRendered(pages);
 				}
 			}
@@ -128,6 +187,7 @@ function createHandlersPlugin(handlers: readonly PagedHandler[]): PrintedjsPlugi
 }
 
 let activeRenderer: BrowserRenderer | null = null;
+
 let activeRenderPromise: Promise<RenderResult> | null = null;
 
 export async function polyfill(options?: PolyfillOptions): Promise<RenderResult> {
@@ -139,31 +199,25 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 		return activeRenderPromise;
 	}
 
-	const win = window as unknown as {
-		__printedjsOriginalContent?: string;
-	};
+	// SAFETY: Window augmented with Printedjs minimal globals
+	const win = window as WindowWithPrintedjsMinimal;
 
 	if (!win.__printedjsOriginalContent) {
 		win.__printedjsOriginalContent = document.body.innerHTML;
 	}
 
-	const winConfig = window as unknown as {
-		PrintedjsConfig?: { pagedjsCompatible?: boolean };
-		PagedConfig?: PagedConfig;
-	};
-	const pagedConfig = winConfig.PagedConfig;
+	const pagedConfig = win.PagedConfig;
 
-	if (typeof pagedConfig?.before === "function") {
+	if (pagedConfig?.before) {
 		await pagedConfig.before();
 	}
 
 	let contentHtml = win.__printedjsOriginalContent;
-	if (pagedConfig?.content) {
-		if (typeof pagedConfig.content === "string") {
-			contentHtml = pagedConfig.content;
-		} else if (pagedConfig.content instanceof HTMLElement) {
-			contentHtml = pagedConfig.content.innerHTML;
-		}
+
+	if (pagedConfig?.content instanceof HTMLElement) {
+		contentHtml = pagedConfig.content.innerHTML;
+	} else if (pagedConfig?.content) {
+		contentHtml = String(pagedConfig.content);
 	}
 
 	if (activeRenderer) {
@@ -172,19 +226,22 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 	}
 
 	let target = options?.target;
+
 	if (!target && pagedConfig?.renderTo) {
-		if (typeof pagedConfig.renderTo === "string") {
-			target = document.querySelector<HTMLElement>(pagedConfig.renderTo) ?? undefined;
-		} else if (pagedConfig.renderTo instanceof HTMLElement) {
+		if (pagedConfig.renderTo instanceof HTMLElement) {
 			target = pagedConfig.renderTo;
+		} else {
+			target = document.querySelector<HTMLElement>(pagedConfig.renderTo) ?? undefined;
 		}
 	}
+
 	if (!target) {
 		target = document.body;
 	}
 
 	const isolation = options?.isolation ?? "root";
 	const basePlugins = options?.plugins ?? standardPreset();
+
 	const plugins =
 		registeredHandlers.length > 0
 			? [...basePlugins, createHandlersPlugin(registeredHandlers)]
@@ -195,6 +252,7 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 			? (document.currentScript?.getAttribute("data-pagedjs-compatible") ??
 				document.currentScript?.getAttribute("data-printedjs-pagedjs-compatible"))
 			: null;
+
 	const resolvedCompatAttr =
 		compatAttr === "false" || compatAttr === "0"
 			? false
@@ -204,8 +262,8 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 
 	const pagedjsCompatible: boolean =
 		options?.pagedjsCompatible ??
-		winConfig.PrintedjsConfig?.pagedjsCompatible ??
-		winConfig.PagedConfig?.pagedjsCompatible ??
+		win.PrintedjsConfig?.pagedjsCompatible ??
+		win.PagedConfig?.pagedjsCompatible ??
 		resolvedCompatAttr ??
 		false;
 
@@ -213,6 +271,7 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 	const styleElements = document.querySelectorAll(
 		"style:not([data-printedjs-styles]):not([data-printedjs-ignore]):not([data-pagedjs-ignore]), link[rel='stylesheet']:not([data-printedjs-ignore]):not([data-pagedjs-ignore])",
 	);
+
 	const styles: string[] = [];
 
 	styleElements.forEach((el) => {
@@ -221,9 +280,11 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 			el.remove();
 		} else if (el.tagName.toLowerCase() === "link") {
 			const href = el.getAttribute("href");
+
 			if (href) {
 				styles.push(`@import url("${href}");`);
 			}
+
 			el.remove();
 		}
 	});
@@ -255,17 +316,12 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 				pagedjsCompatible,
 			});
 
-			// Set global flags for headless runners
-			const winObj = window as unknown as {
-				__pagedRenderFinished?: boolean;
-				__printedjsRenderFinished?: boolean;
-				__pagedPageCount?: number;
-			};
-			winObj.__pagedRenderFinished = true;
-			winObj.__printedjsRenderFinished = true;
-			winObj.__pagedPageCount = result.pages.length;
+			win.__pagedRenderFinished = true;
+			win.__printedjsRenderFinished = true;
+			win.__pagedPageCount = result.pages.length;
 
 			const pageCount = result.pages.length;
+
 			const eventDetail = {
 				result,
 				pages: result.pages,
@@ -279,13 +335,14 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 					total: pageCount,
 				},
 			};
+
 			window.dispatchEvent(
 				new CustomEvent("printedjs:rendered", { detail: eventDetail }),
 			);
 			window.dispatchEvent(new CustomEvent("pagedjs:rendered", { detail: eventDetail }));
 
 			// Notify PagedConfig.after if defined
-			if (typeof pagedConfig?.after === "function") {
+			if (pagedConfig?.after) {
 				try {
 					pagedConfig.after({
 						pages: result.pages,
@@ -330,6 +387,7 @@ export class Previewer {
 
 		const container = target ?? document.body;
 		const basePlugins = this.options.plugins ?? standardPreset();
+
 		const plugins =
 			registeredHandlers.length > 0
 				? [...basePlugins, createHandlersPlugin(registeredHandlers)]
@@ -345,21 +403,23 @@ export class Previewer {
 		let html = "";
 		let element: HTMLElement | undefined;
 
-		if (typeof content === "string") {
-			html = content;
-		} else if (content instanceof HTMLElement) {
+		if (content instanceof HTMLElement) {
 			element = content;
+		} else if (content) {
+			html = content;
 		} else {
 			html = document.body.innerHTML;
 		}
 
 		const normalizedStyles: StylesheetSource[] = (stylesheets ?? []).map((s) => {
-			if (typeof s === "string") {
+			if (isString(s)) {
 				return { type: "inline" as const, content: s };
 			}
+
 			if (s.type === "url" && s.url) {
 				return { type: "url" as const, url: s.url };
 			}
+
 			return { type: "inline" as const, content: s.content ?? "" };
 		});
 
@@ -372,16 +432,15 @@ export class Previewer {
 
 			this.activeRenderer = renderer;
 
-			const winObj = window as unknown as {
-				__pagedRenderFinished?: boolean;
-				__printedjsRenderFinished?: boolean;
-				__pagedPageCount?: number;
-			};
-			winObj.__pagedRenderFinished = true;
-			winObj.__printedjsRenderFinished = true;
-			winObj.__pagedPageCount = result.pages.length;
+			// SAFETY: Window augmented with Printedjs minimal globals
+			const win = window as WindowWithPrintedjsMinimal;
+
+			win.__pagedRenderFinished = true;
+			win.__printedjsRenderFinished = true;
+			win.__pagedPageCount = result.pages.length;
 
 			const pageCount = result.pages.length;
+
 			const eventDetail = {
 				result,
 				pages: result.pages,
@@ -395,6 +454,7 @@ export class Previewer {
 					total: pageCount,
 				},
 			};
+
 			window.dispatchEvent(
 				new CustomEvent("printedjs:rendered", { detail: eventDetail }),
 			);
@@ -424,16 +484,13 @@ function autoInit(): void {
 
 	const scriptTag = document.currentScript;
 	const autoAttr = scriptTag?.getAttribute("data-printedjs-auto");
+
 	if (autoAttr === "false") {
 		return;
 	}
 
-	const win = window as unknown as {
-		PRINTEDJS_AUTO?: boolean;
-		PagedConfig?: PagedConfig;
-		Printedjs?: unknown;
-		Paged?: unknown;
-	};
+	// SAFETY: Window augmented with Printedjs minimal globals
+	const win = window as WindowWithPrintedjsMinimal;
 
 	if (win.PRINTEDJS_AUTO === false || win.PagedConfig?.auto === false) {
 		return;
@@ -441,6 +498,7 @@ function autoInit(): void {
 
 	const run = () => {
 		const targetSelector = scriptTag?.getAttribute("data-printedjs-target");
+
 		const target = targetSelector
 			? (document.querySelector<HTMLElement>(targetSelector) ?? undefined)
 			: undefined;
@@ -453,6 +511,7 @@ function autoInit(): void {
 		const compatAttr =
 			scriptTag?.getAttribute("data-pagedjs-compatible") ??
 			scriptTag?.getAttribute("data-printedjs-pagedjs-compatible");
+
 		const pagedjsCompatible =
 			compatAttr === "false" || compatAttr === "0"
 				? false
@@ -466,11 +525,22 @@ function autoInit(): void {
 		);
 
 		if (hasPageCss || scriptTag?.hasAttribute("data-printedjs-auto")) {
-			void polyfill({
+			interface MutablePolyfillOptions {
+				target?: HTMLElement | undefined;
+				isolation?: "root" | "iframe" | undefined;
+				pagedjsCompatible?: boolean | undefined;
+			}
+
+			const polyfillOpts: MutablePolyfillOptions = {
 				target,
 				isolation,
-				...(pagedjsCompatible !== undefined ? { pagedjsCompatible } : {}),
-			});
+			};
+
+			if (pagedjsCompatible !== undefined) {
+				polyfillOpts.pagedjsCompatible = pagedjsCompatible;
+			}
+
+			void polyfill(polyfillOpts);
 		}
 	};
 
@@ -482,15 +552,9 @@ function autoInit(): void {
 }
 
 if (typeof window !== "undefined") {
-	const win = window as unknown as {
-		Paged?: unknown;
-		PagedPolyfill?: unknown;
-		Printed?: unknown;
-		PrintedJS?: unknown;
-		Printedjs?: unknown;
-		PrintedjsMinimal?: unknown;
-		PrintedjsPolyfill?: unknown;
-	};
+	// SAFETY: Window augmented with Printedjs minimal globals
+	const win = window as WindowWithPrintedjsMinimal;
+
 	const pagedCompat = {
 		polyfill,
 		Previewer,
@@ -512,5 +576,7 @@ if (typeof window !== "undefined") {
 }
 
 export { createRenderer } from "@printedjs/browser";
+
 export { standardPreset } from "@printedjs/plugin-preset";
+
 export type { PageResult, RenderResult } from "@printedjs/core";

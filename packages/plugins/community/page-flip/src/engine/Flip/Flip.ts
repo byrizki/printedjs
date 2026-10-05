@@ -108,6 +108,7 @@ export class Flip {
 
 		try {
 			const collection = this.app.getPageCollection();
+
 			if (!collection) return false;
 
 			this.flippingPage = collection.getFlippingPage(direction);
@@ -188,6 +189,7 @@ export class Flip {
 
 	public flipToPage(page: number, corner: FlipCorner): void {
 		const collection = this.app.getPageCollection();
+
 		if (!collection) return;
 
 		const current = collection.getCurrentSpreadIndex();
@@ -198,6 +200,7 @@ export class Flip {
 				collection.setCurrentSpreadIndex(next - 1);
 				this.flipNext(corner);
 			}
+
 			if (next !== null && next < current) {
 				collection.setCurrentSpreadIndex(next + 1);
 				this.flipPrev(corner);
@@ -241,9 +244,11 @@ export class Flip {
 
 		if (this.isPointOnCorners(globalPos)) {
 			let calc = this.calc;
+
 			if (calc === null) {
 				if (!this.start(globalPos)) return;
 				calc = this.calc;
+
 				if (!calc) return;
 
 				this.setState(FlippingState.FOLD_CORNER);
@@ -284,6 +289,7 @@ export class Flip {
 		const points = Helper.GetCordsFromTwoPoint(start, dest);
 
 		const frames: (() => void)[] = [];
+
 		for (const p of points) frames.push(() => this.do(p));
 
 		const duration = this.getAnimationDuration(points.length);

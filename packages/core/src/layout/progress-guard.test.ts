@@ -8,6 +8,7 @@ describe("layout/progress-guard", () => {
 			maxPages: 10,
 			maxLayoutPasses: 10,
 		});
+
 		guard.record({ page: 1, cursor: "chapter:0" });
 		expect(() => guard.record({ page: 1, cursor: "chapter:0" })).toThrow(
 			PrintedjsLayoutLimitError,
@@ -19,6 +20,7 @@ describe("layout/progress-guard", () => {
 			maxPages: 10,
 			maxLayoutPasses: 10,
 		});
+
 		guard.record({ page: 1, cursor: "table-row:0" });
 		guard.record({ page: 2, cursor: "table-row:5" });
 		guard.record({ page: 3, cursor: "table-row:10" });

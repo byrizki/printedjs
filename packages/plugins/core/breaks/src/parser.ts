@@ -7,6 +7,15 @@ export interface BreakStyleRule {
 	readonly page?: string;
 }
 
+interface MutableBreakStyleRule {
+	selector: string;
+	breakBefore?: string;
+	breakAfter?: string;
+	breakInside?: string;
+	isFixed?: boolean;
+	page?: string;
+}
+
 export function parseBreakStyles(css: string): BreakStyleRule[] {
 	const cleanCss = css.replace(/\/\*[\s\S]*?\*\//g, "");
 	const rules: BreakStyleRule[] = [];
@@ -36,6 +45,7 @@ export function parseBreakStyles(css: string): BreakStyleRule[] {
 
 		const declRegex =
 			/(break-before|page-break-before|break-after|page-break-after|break-inside|page-break-inside|position|page)\s*:\s*([^;!]+)/gi;
+
 		let declMatch: RegExpExecArray | null;
 
 		while ((declMatch = declRegex.exec(body)) !== null) {
@@ -56,6 +66,7 @@ export function parseBreakStyles(css: string): BreakStyleRule[] {
 				isFixed = true;
 			} else if (prop === "page") {
 				const cleaned = val.replace(/['"]/g, "").trim();
+
 				if (cleaned) {
 					page = cleaned;
 				}
@@ -63,14 +74,29 @@ export function parseBreakStyles(css: string): BreakStyleRule[] {
 		}
 
 		if (breakBefore || breakAfter || breakInside || isFixed || page) {
-			rules.push({
-				selector: rawSelector,
-				...(breakBefore ? { breakBefore } : {}),
-				...(breakAfter ? { breakAfter } : {}),
-				...(breakInside ? { breakInside } : {}),
-				...(isFixed ? { isFixed: true } : {}),
-				...(page ? { page } : {}),
-			});
+			const ruleItem: MutableBreakStyleRule = { selector: rawSelector };
+
+			if (breakBefore) {
+				ruleItem.breakBefore = breakBefore;
+			}
+
+			if (breakAfter) {
+				ruleItem.breakAfter = breakAfter;
+			}
+
+			if (breakInside) {
+				ruleItem.breakInside = breakInside;
+			}
+
+			if (isFixed) {
+				ruleItem.isFixed = true;
+			}
+
+			if (page) {
+				ruleItem.page = page;
+			}
+
+			rules.push(ruleItem);
 		}
 	}
 

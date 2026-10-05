@@ -1,7 +1,11 @@
 import { watch } from "node:fs";
 import process from "node:process";
 import { parseArgs } from "node:util";
-import { renderPdf } from "./render.js";
+import { renderPdf, type CliRenderOptions } from "./render.js";
+
+interface MutableCliRenderOptions extends Omit<CliRenderOptions, "bleed"> {
+	bleed?: string;
+}
 
 const HELP_TEXT = `
 Printedjs CLI — Headless PDF generation for paginated documents
@@ -83,11 +87,13 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 
 	if (values.help) {
 		console.log(HELP_TEXT);
+
 		return;
 	}
 
 	if (values.version) {
 		console.log("printedjs 0.0.0");
+
 		return;
 	}
 
@@ -105,6 +111,7 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 	const bleed = values.bleed;
 	const engine = values.engine === "puppeteer" ? "puppeteer" : "playwright";
 	const isWatch = values.watch ?? false;
+
 	const pagedjsCompatible = values["no-pagedjs-compatible"]
 		? false
 		: (values["pagedjs-compatible"] ?? false);
@@ -114,14 +121,21 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 			console.log(
 				`[printedjs] Rendering "${input}" -> "${output}" (${engine}, pagedjsCompatible: ${pagedjsCompatible})...`,
 			);
-			const result = await renderPdf({
+
+			const renderOptions: MutableCliRenderOptions = {
 				input,
 				output,
 				format,
 				engine,
 				pagedjsCompatible,
-				...(bleed ? { bleed } : {}),
-			});
+			};
+
+			if (bleed) {
+				renderOptions.bleed = bleed;
+			}
+
+			const result = await renderPdf(renderOptions);
+
 			console.log(
 				`[printedjs] Successfully generated ${result.pageCount} pages in ${result.durationMs.toFixed(0)}ms: ${result.outputPath}`,
 			);
@@ -144,6 +158,7 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 			if (timeoutId) {
 				clearTimeout(timeoutId);
 			}
+
 			timeoutId = setTimeout(() => {
 				void doRender();
 			}, 300);

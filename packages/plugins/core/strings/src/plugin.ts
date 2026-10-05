@@ -9,13 +9,15 @@ export interface StringSetRule {
 
 const STRINGS_RULES_KEY = "printedjs:stringRules";
 
+export interface ParsedStringSets {
+	rules: StringSetRule[];
+	transformedCss: string;
+}
+
 export function parseStringSets(
 	css: string,
 	pagedjsCompatible = false,
-): {
-	rules: StringSetRule[];
-	transformedCss: string;
-} {
+): ParsedStringSets {
 	const rules: StringSetRule[] = [];
 
 	// Match rule blocks: selector { declarations }
@@ -36,6 +38,7 @@ export function parseStringSets(
 
 			if (identifier) {
 				const attrMatch = fnPart.match(/attr\(([^)]+)\)/i);
+
 				if (attrMatch) {
 					rules.push({
 						identifier,
@@ -55,6 +58,7 @@ export function parseStringSets(
 
 		// Remove string-set declarations from CSS
 		body = body.replace(/string-set\s*:\s*[^;!}]+;?/gi, "");
+
 		return `${selector} {${body}}`;
 	});
 
@@ -63,9 +67,11 @@ export function parseStringSets(
 		/string\(\s*([a-zA-Z0-9_-]+)(?:\s*,\s*([a-zA-Z0-9_-]+))?\s*\)/gi,
 		(_, id, type) => {
 			const stringType = (type || "first").toLowerCase();
+
 			if (pagedjsCompatible) {
 				return `var(--printedjs-string-${stringType}-${id}, var(--pagedjs-string-${stringType}-${id}))`;
 			}
+
 			return `var(--printedjs-string-${stringType}-${id})`;
 		},
 	);
@@ -83,17 +89,22 @@ export function stringsPlugin(): PrintedjsPlugin {
 		transformStyles(css: string, context: PluginContext): string {
 			const pagedjsCompatible = context.pagedjsCompatible ?? false;
 			const { rules, transformedCss } = parseStringSets(css, pagedjsCompatible);
+			// SAFETY: strings rules metadata stores StringSetRule array
 			const existing = (context.metadata[STRINGS_RULES_KEY] ?? []) as StringSetRule[];
 			context.metadata[STRINGS_RULES_KEY] = [...existing, ...rules];
+
 			return transformedCss;
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) {
 				return;
 			}
 
+			// SAFETY: strings rules metadata stores StringSetRule array
 			const rules = (context.metadata[STRINGS_RULES_KEY] ?? []) as StringSetRule[];
+
 			if (rules.length === 0) {
 				return;
 			}
@@ -103,6 +114,7 @@ export function stringsPlugin(): PrintedjsPlugin {
 			const lastSeenValues: Record<string, string> = {};
 
 			pages.forEach((pageEl) => {
+				// SAFETY: querySelectorAll returned elements are HTMLElement nodes
 				const page = pageEl as HTMLElement;
 
 				for (const rule of rules) {
@@ -119,6 +131,7 @@ export function stringsPlugin(): PrintedjsPlugin {
 							if (rule.func === "attr" && rule.attrName) {
 								return el.getAttribute(rule.attrName) ?? "";
 							}
+
 							return el.textContent?.trim() ?? "";
 						};
 
@@ -128,6 +141,7 @@ export function stringsPlugin(): PrintedjsPlugin {
 						if (firstMatch) {
 							firstVal = getVal(firstMatch);
 						}
+
 						if (lastMatch) {
 							lastVal = getVal(lastMatch);
 							lastSeenValues[rule.identifier] = lastVal;
@@ -145,6 +159,7 @@ export function stringsPlugin(): PrintedjsPlugin {
 							`--printedjs-string-${type}-${rule.identifier}`,
 							cssVal,
 						);
+
 						if (pagedjsCompatible) {
 							page.style.setProperty(
 								`--pagedjs-string-${type}-${rule.identifier}`,

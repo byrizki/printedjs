@@ -29,6 +29,7 @@ export class RenderSession {
 
 	constructor(options?: RenderSessionOptions) {
 		this.signal = options?.signal;
+
 		if (this.signal) {
 			if (this.signal.aborted) {
 				this._state = "aborted";
@@ -36,6 +37,7 @@ export class RenderSession {
 				this.abortListener = () => {
 					void this.abort();
 				};
+
 				this.signal.addEventListener("abort", this.abortListener, {
 					once: true,
 				});
@@ -55,6 +57,7 @@ export class RenderSession {
 		if (this._state !== "pending") {
 			throw new Error(`Cannot start session in state "${this._state}"`);
 		}
+
 		this._state = "running";
 		this.emitProgress({ phase: "running" });
 	}
@@ -63,6 +66,7 @@ export class RenderSession {
 		if (this._state !== "running") {
 			throw new Error(`Cannot complete session in state "${this._state}"`);
 		}
+
 		this._state = "completed";
 		const count = totalPages ?? this.lastTotalPages;
 		this.emitProgress({
@@ -76,8 +80,10 @@ export class RenderSession {
 
 	onProgress(listener: ProgressListener): () => void {
 		this.progressListeners.push(listener);
+
 		return () => {
 			const idx = this.progressListeners.indexOf(listener);
+
 			if (idx !== -1) {
 				this.progressListeners.splice(idx, 1);
 			}
@@ -88,12 +94,15 @@ export class RenderSession {
 		if (event.totalPages !== undefined && event.totalPages > this.lastTotalPages) {
 			this.lastTotalPages = event.totalPages;
 		}
+
 		if (event.pageCount !== undefined && event.pageCount > this.lastTotalPages) {
 			this.lastTotalPages = event.pageCount;
 		}
+
 		if (event.pageNumber !== undefined && event.pageNumber > this.lastTotalPages) {
 			this.lastTotalPages = event.pageNumber;
 		}
+
 		for (const listener of this.progressListeners) {
 			try {
 				listener(event);
@@ -107,6 +116,7 @@ export class RenderSession {
 		if (this._state === "destroyed") {
 			throw new Error("Cannot register cleanup on destroyed session");
 		}
+
 		this.cleanups.push(cleanup);
 	}
 
@@ -114,6 +124,7 @@ export class RenderSession {
 		if (this._state === "aborted" || this._state === "destroyed") {
 			return;
 		}
+
 		this._state = "aborted";
 		await this.runCleanups();
 	}
@@ -122,10 +133,12 @@ export class RenderSession {
 		if (this._state === "destroyed") {
 			return;
 		}
+
 		if (this.abortListener && this.signal) {
 			this.signal.removeEventListener("abort", this.abortListener);
 			this.abortListener = undefined;
 		}
+
 		this._state = "destroyed";
 		await this.runCleanups();
 	}
@@ -139,6 +152,7 @@ export class RenderSession {
 	private async runCleanups(): Promise<void> {
 		while (this.cleanups.length > 0) {
 			const cleanup = this.cleanups.pop()!;
+
 			try {
 				await cleanup();
 			} catch (err) {

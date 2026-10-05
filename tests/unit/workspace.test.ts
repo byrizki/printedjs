@@ -14,6 +14,7 @@ describe("workspace", () => {
 			packageEntries.map(async (entry) => {
 				try {
 					await import(entry);
+
 					return true;
 				} catch {
 					return false;

@@ -1980,11 +1980,9 @@ export const legacyFixtureManifest = [
 	}),
 ] as const satisfies readonly LegacyFixture[];
 
-export const legacySpecFixtureIds = legacyFixtureManifest
-	.filter(
-		(fixture) => !fixture.expectedPageCountReason?.includes("no directly referencing"),
-	)
-	.map((fixture) => fixture.id);
+export const legacySpecFixtureIds = legacyFixtureManifest.flatMap((fixture) =>
+	fixture.expectedPageCountReason?.includes("no directly referencing") ? [] : [fixture.id],
+);
 
 export const orphanFixtureCandidates = legacyFixtureManifest.filter((fixture) =>
 	fixture.expectedPageCountReason?.includes("no directly referencing"),

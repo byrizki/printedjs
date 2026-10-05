@@ -38,6 +38,7 @@ export class Paginator {
 	async paginate(): Promise<RenderResult> {
 		const startTime = performance.now();
 		const signal = this.options?.signal;
+
 		if (signal?.aborted) {
 			throw new PrintedjsAbortError("Pagination aborted before execution");
 		}
@@ -53,6 +54,7 @@ export class Paginator {
 		const pages: PageResult[] = this.options?.initialPages
 			? [...this.options.initialPages]
 			: [];
+
 		let pageNumber = this.options?.startPage ?? pages.length + 1;
 		let currentToken: BreakToken | null = this.options?.initialToken ?? null;
 
@@ -85,6 +87,7 @@ export class Paginator {
 
 			if (step.breakToken) {
 				currentToken = step.breakToken;
+
 				if (step.breakToken.finished) {
 					break;
 				}

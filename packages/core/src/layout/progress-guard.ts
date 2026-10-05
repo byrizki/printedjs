@@ -46,11 +46,13 @@ export class LayoutProgressGuard {
 		}
 
 		const key = `${state.page}:${state.cursor}`;
+
 		if (this.seenBreakStates.has(key)) {
 			throw new PrintedjsLayoutLimitError(
 				`Repeated break state detected at page ${state.page} cursor "${state.cursor}"`,
 			);
 		}
+
 		this.seenBreakStates.add(key);
 
 		if (
@@ -59,6 +61,7 @@ export class LayoutProgressGuard {
 			state.cursor !== "start"
 		) {
 			this.repeatedCursorCount++;
+
 			if (this.repeatedCursorCount >= 1) {
 				throw new PrintedjsLayoutLimitError(
 					`Non-progressing layout: repeated cursor "${state.cursor}" detected across consecutive pages (${state.page})`,

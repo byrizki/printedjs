@@ -43,13 +43,17 @@ export class HTMLRender extends Render {
 		super.clearShadow();
 
 		if (this.outerShadow) this.outerShadow.style.display = "none";
+
 		if (this.innerShadow) this.innerShadow.style.display = "none";
+
 		if (this.hardShadow) this.hardShadow.style.display = "none";
+
 		if (this.hardInnerShadow) this.hardInnerShadow.style.display = "none";
 	}
 
 	public reload(): void {
 		const testShadow = this.element.querySelector(".stf__outerShadow");
+
 		if (!testShadow) {
 			this.createShadows();
 		}
@@ -63,6 +67,7 @@ export class HTMLRender extends Render {
 			this.shadow.progress > 100 ? 200 - this.shadow.progress : this.shadow.progress;
 
 		let innerShadowSize = ((100 - progress) * (2.5 * rect.pageWidth)) / 100 + 20;
+
 		if (innerShadowSize > rect.pageWidth) innerShadowSize = rect.pageWidth;
 
 		let newStyle = `
@@ -96,6 +101,7 @@ export class HTMLRender extends Render {
 			this.shadow.progress > 100 ? 200 - this.shadow.progress : this.shadow.progress;
 
 		let shadowSize = ((100 - progress) * (2.5 * rect.pageWidth)) / 100 + 20;
+
 		if (shadowSize > rect.pageWidth) shadowSize = rect.pageWidth;
 
 		let newStyle = `
@@ -126,10 +132,13 @@ export class HTMLRender extends Render {
 		const rect = this.getRect();
 
 		const innerShadowSize = (this.shadow.width * 3) / 4;
+
 		const shadowTranslate =
 			this.getDirection() === FlipDirection.FORWARD ? innerShadowSize : 0;
+
 		const shadowDirection =
 			this.getDirection() === FlipDirection.FORWARD ? "to left" : "to right";
+
 		const shadowPos = this.convertToGlobal(this.shadow.pos);
 		const angle = this.shadow.angle + (3 * Math.PI) / 2;
 
@@ -141,6 +150,7 @@ export class HTMLRender extends Render {
 		];
 
 		let polygon = "polygon( ";
+
 		for (const p of clip) {
 			if (p) {
 				let g =
@@ -158,6 +168,7 @@ export class HTMLRender extends Render {
 				polygon += g.x + "px " + g.y + "px, ";
 			}
 		}
+
 		polygon = polygon.slice(0, -2);
 		polygon += ")";
 
@@ -185,13 +196,17 @@ export class HTMLRender extends Render {
 	private drawOuterShadow(): void {
 		if (!this.shadow || !this.outerShadow) return;
 		const rect = this.getRect();
+
 		const shadowPos = this.convertToGlobal({
 			x: this.shadow.pos.x,
 			y: this.shadow.pos.y,
 		});
+
 		const angle = this.shadow.angle + (3 * Math.PI) / 2;
+
 		const shadowTranslate =
 			this.getDirection() === FlipDirection.BACK ? this.shadow.width : 0;
+
 		const shadowDirection =
 			this.getDirection() === FlipDirection.FORWARD ? "to right" : "to left";
 
@@ -203,6 +218,7 @@ export class HTMLRender extends Render {
 		];
 
 		let polygon = "polygon( ";
+
 		for (const p of clip) {
 			if (p !== null) {
 				let g =
@@ -245,6 +261,7 @@ export class HTMLRender extends Render {
 
 	private drawLeftPage(): void {
 		if (this.orientation === Orientation.PORTRAIT || this.leftPage === null) return;
+
 		if (this.leftPage === this.flippingPage || this.leftPage === this.bottomPage) return;
 
 		if (
@@ -252,6 +269,7 @@ export class HTMLRender extends Render {
 			this.flippingPage !== null &&
 			this.flippingPage.getDrawingDensity() === PageDensity.HARD
 		) {
+			// SAFETY: HTMLRender operates exclusively on HTMLPage instances
 			(this.leftPage as HTMLPage).getElement().style.zIndex = (
 				this.getSettings().startZIndex + 5
 			).toString(10);
@@ -265,6 +283,7 @@ export class HTMLRender extends Render {
 
 	private drawRightPage(): void {
 		if (this.rightPage === null) return;
+
 		if (this.rightPage === this.flippingPage || this.rightPage === this.bottomPage)
 			return;
 
@@ -273,6 +292,7 @@ export class HTMLRender extends Render {
 			this.flippingPage !== null &&
 			this.flippingPage.getDrawingDensity() === PageDensity.HARD
 		) {
+			// SAFETY: HTMLRender operates exclusively on HTMLPage instances
 			(this.rightPage as HTMLPage).getElement().style.zIndex = (
 				this.getSettings().startZIndex + 5
 			).toString(10);
@@ -290,9 +310,12 @@ export class HTMLRender extends Render {
 		const tempDensity =
 			this.flippingPage != null ? this.flippingPage.getDrawingDensity() : undefined;
 
-		if (!(
-			this.orientation === Orientation.PORTRAIT && this.direction === FlipDirection.BACK
-		)) {
+		if (
+			!(
+				this.orientation === Orientation.PORTRAIT && this.direction === FlipDirection.BACK
+			)
+		) {
+			// SAFETY: HTMLRender operates exclusively on HTMLPage instances
 			(this.bottomPage as HTMLPage).getElement().style.zIndex = (
 				this.getSettings().startZIndex + 3
 			).toString(10);
@@ -309,6 +332,7 @@ export class HTMLRender extends Render {
 		this.drawBottomPage();
 
 		if (this.flippingPage != null) {
+			// SAFETY: HTMLRender operates exclusively on HTMLPage instances
 			(this.flippingPage as HTMLPage).getElement().style.zIndex = (
 				this.getSettings().startZIndex + 5
 			).toString(10);
@@ -329,6 +353,7 @@ export class HTMLRender extends Render {
 
 	private clear(): void {
 		const collection = this.app.getPageCollection();
+
 		if (!collection) return;
 
 		for (const page of collection.getPages()) {
@@ -340,6 +365,7 @@ export class HTMLRender extends Render {
 			const shouldKeep = isLeft || isRight || isFlipping || isBottom;
 
 			if (!shouldKeep) {
+				// SAFETY: HTMLRender operates exclusively on HTMLPage instances
 				const el = (page as HTMLPage).getElement();
 				el.style.display = "none";
 				el.style.visibility = "hidden";

@@ -14,9 +14,11 @@ export class StyleRegistry {
 		for (const sheet of sheets) {
 			const style = this.doc.createElement("style");
 			style.setAttribute("data-printedjs-style", "true");
+
 			if (sheet.url) {
 				style.setAttribute("data-source-url", sheet.url);
 			}
+
 			style.textContent = sheet.css;
 			target.appendChild(style);
 			this.styleElements.push(style);

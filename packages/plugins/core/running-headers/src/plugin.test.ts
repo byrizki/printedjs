@@ -89,6 +89,7 @@ function createMockElement(
 		},
 		querySelectorAll(sel: string) {
 			const results: MockElement[] = [];
+
 			const traverse = (node: MockElement) => {
 				for (const child of node.children) {
 					if (
@@ -98,14 +99,18 @@ function createMockElement(
 					) {
 						results.push(child);
 					}
+
 					traverse(child);
 				}
 			};
+
 			traverse(this);
+
 			return results;
 		},
 		querySelector(sel: string) {
 			const all = this.querySelectorAll(sel);
+
 			return all[0] ?? null;
 		},
 		replaceChildren(...nodes: MockElement[]) {
@@ -119,9 +124,11 @@ function createMockElement(
 				this.textContent,
 				this.attributes,
 			);
+
 			if (deep) {
 				cloned.children = this.children.map((c) => c.cloneNode(true));
 			}
+
 			return cloned;
 		},
 	};
@@ -152,6 +159,7 @@ describe("runningHeadersPlugin & transformMarginBoxCss", () => {
 		const topCenter = transformed.runningAssignments.find(
 			(a: RunningAssignment) => a.boxName === "top-center",
 		);
+
 		expect(topCenter).toBeDefined();
 		expect(topCenter?.runningName).toBe("chapterHeading");
 		expect(topCenter?.policy).toBe("first-except");
@@ -159,6 +167,7 @@ describe("runningHeadersPlugin & transformMarginBoxCss", () => {
 		const bottomRight = transformed.runningAssignments.find(
 			(a: RunningAssignment) => a.boxName === "bottom-right",
 		);
+
 		expect(bottomRight).toBeDefined();
 		expect(bottomRight?.runningName).toBe("chapterHeading");
 		expect(bottomRight?.policy).toBe("last");
@@ -166,6 +175,7 @@ describe("runningHeadersPlugin & transformMarginBoxCss", () => {
 
 	it("populates running elements into margin boxes across pages", () => {
 		const plugin = runningHeadersPlugin();
+
 		const css = `
 			.header-elem { position: running(hdr); }
 			@page {
@@ -198,6 +208,7 @@ describe("runningHeadersPlugin & transformMarginBoxCss", () => {
 		const h1Clone = createMockElement("h1", "header-elem", "Chapter 1", {
 			"data-printedjs-running": "hdr",
 		});
+
 		page1.children.push(h1Clone);
 
 		// Page 2 (no header-elem in flow)
@@ -212,6 +223,7 @@ describe("runningHeadersPlugin & transformMarginBoxCss", () => {
 				if (sel.includes("printedjs_page")) {
 					return [page1, page2];
 				}
+
 				return [];
 			},
 			querySelector: () => null,

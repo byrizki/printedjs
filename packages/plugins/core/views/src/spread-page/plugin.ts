@@ -4,10 +4,10 @@ import type { SpreadPageViewOptions } from "../types.js";
 export function spreadPageViewPlugin(
 	options: SpreadPageViewOptions = {},
 ): PrintedjsPlugin {
-	const gutterValue =
-		typeof options.gutter === "number"
-			? `${options.gutter}px`
-			: (options.gutter ?? "24px");
+	const gutterValue = Number.isFinite(options.gutter)
+		? `${options.gutter}px`
+		: (options.gutter ?? "24px");
+
 	const defaultCols = options.columns ?? 2;
 	const coverPage = options.coverPage ?? false;
 	const spineShadow = options.spineShadow ?? false;
@@ -106,12 +106,14 @@ export function spreadPageViewPlugin(
 			return `${css}\n\n${spreadPageCss}`;
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) return;
 
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				pagesContainer.setAttribute("data-view-mode", "spread");
 			}

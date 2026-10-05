@@ -1,4 +1,5 @@
 import type { ExportPdfOptions, PrintDocumentOptions } from "./types.js";
+
 export type { ExportPdfOptions, PrintDocumentOptions };
 
 interface ResolvedTarget {
@@ -21,19 +22,24 @@ function resolveTarget(
 	if ("contentWindow" in target && target.contentWindow) {
 		const iframeWin = target.contentWindow;
 		const iframeDoc = target.contentDocument ?? iframeWin.document;
+
 		return { win: iframeWin, doc: iframeDoc };
 	}
 
 	// Window
 	if ("document" in target && "print" in target) {
+		// SAFETY: verified presence of document and print properties characteristic of Window
 		const targetWin = target as Window;
+
 		return { win: targetWin, doc: targetWin.document };
 	}
 
 	// Document
 	if ("defaultView" in target && "documentElement" in target) {
+		// SAFETY: verified presence of defaultView and documentElement characteristic of Document
 		const targetDoc = target as Document;
 		const targetWin = targetDoc.defaultView ?? window;
+
 		return { win: targetWin, doc: targetDoc };
 	}
 
@@ -41,6 +47,7 @@ function resolveTarget(
 	if ("ownerDocument" in target && target.ownerDocument) {
 		const targetDoc = target.ownerDocument;
 		const targetWin = targetDoc.defaultView ?? window;
+
 		return { win: targetWin, doc: targetDoc };
 	}
 
@@ -69,6 +76,7 @@ export async function printDocument(options: PrintDocumentOptions = {}): Promise
 	const { win, doc } = resolveTarget(options.target);
 
 	let originalTitle: string | undefined;
+
 	if (options.pageTitle) {
 		originalTitle = doc.title;
 		doc.title = options.pageTitle;
@@ -111,7 +119,9 @@ export async function printDocument(options: PrintDocumentOptions = {}): Promise
 		if (originalTitle !== undefined) {
 			doc.title = originalTitle;
 		}
+
 		cleanupPrepare();
+
 		if (options.afterPrint) {
 			await options.afterPrint();
 		}
@@ -120,6 +130,7 @@ export async function printDocument(options: PrintDocumentOptions = {}): Promise
 
 export async function exportToPdf(options: ExportPdfOptions = {}): Promise<void> {
 	let pageTitle = options.pageTitle;
+
 	if (!pageTitle && options.filename) {
 		pageTitle = options.filename.replace(/\.pdf$/i, "");
 	}

@@ -17,10 +17,12 @@ export class HTMLUI extends UI {
 		super(inBlock, app, setting);
 
 		this.wrapper.insertAdjacentHTML("afterbegin", '<div class="stf__block"></div>');
+		// SAFETY: .stf__block was just inserted into the wrapper
 		this.distElement =
 			(inBlock.querySelector(".stf__block") as HTMLElement) ?? this.wrapper;
 
 		this.items = items;
+
 		for (const item of Array.from(items)) {
 			this.distElement.appendChild(item);
 		}
@@ -50,6 +52,7 @@ export class HTMLUI extends UI {
 				"--hard",
 				"--soft",
 			);
+
 			if (item.parentElement !== this.parentElement) {
 				this.parentElement.appendChild(item);
 			}
@@ -69,6 +72,7 @@ export class HTMLUI extends UI {
 		for (const item of Array.from(items)) {
 			this.distElement.appendChild(item);
 		}
+
 		this.items = items;
 
 		this.setHandlers();

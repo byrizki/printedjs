@@ -38,6 +38,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -45,6 +46,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -58,6 +60,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			});
 
 			const pages = Array.from(target.querySelectorAll<HTMLElement>(".printedjs_page"));
+
 			return {
 				pageCount: renderRes.pages.length,
 				pagesMeta: pages.map((p, idx) => ({
@@ -130,16 +133,19 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
 				}
 			).PrintedjsPlugins;
+
 			const { spreadPageViewPlugin } = (
 				window as unknown as { PrintedjsViews: typeof import("@printedjs/plugin-views") }
 			).PrintedjsViews;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -153,6 +159,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			});
 
 			const pages = Array.from(target.querySelectorAll<HTMLElement>(".printedjs_page"));
+
 			return {
 				pageCount: renderRes.pages.length,
 				pagesMeta: pages.map((p, idx) => ({
@@ -183,6 +190,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -190,6 +198,7 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>("#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: "root",
@@ -203,10 +212,12 @@ test.describe("Phase 17, 18, and 19 Features Specification", () => {
 			});
 
 			const pages = Array.from(target.querySelectorAll<HTMLElement>(".printedjs_page"));
+
 			return {
 				pageCount: renderRes.pages.length,
 				pagesMeta: pages.map((p, idx) => {
 					const style = window.getComputedStyle(p);
+
 					return {
 						index: idx + 1,
 						isRight: p.classList.contains("printedjs_right_page"),

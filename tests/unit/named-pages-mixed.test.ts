@@ -17,6 +17,7 @@ describe.runIf(Boolean(executablePath))(
 			expect(compiled.error).toBeNull();
 
 			const tempHtmlPath = resolve(__dirname, "../fixtures/temp-named-pages.html");
+
 			const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -67,6 +68,7 @@ describe.runIf(Boolean(executablePath))(
 					const pages = Array.from(
 						document.querySelectorAll<HTMLElement>(".printedjs_page"),
 					);
+
 					return pages.map((p, idx) => ({
 						pageIndex: idx + 1,
 						dataPage: p.getAttribute("data-page"),
@@ -101,6 +103,7 @@ describe.runIf(Boolean(executablePath))(
 				expect(pageMetrics[1]?.className).toContain("printedjs_landscape-sheet_page");
 			} finally {
 				await browser.close();
+
 				if (existsSync(tempHtmlPath)) {
 					unlinkSync(tempHtmlPath);
 				}

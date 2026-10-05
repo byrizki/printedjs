@@ -24,11 +24,14 @@ export function mathPlugin(): PrintedjsPlugin {
 					break-inside: avoid !important;
 				}
 			`;
+
 			return `${css}\n${mathRules}`;
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM node supporting querySelectorAll during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 

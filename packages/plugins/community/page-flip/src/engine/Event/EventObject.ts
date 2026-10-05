@@ -1,9 +1,13 @@
 import type { PageFlip } from "../PageFlip.js";
 
+export interface EventDataPayload {
+	readonly [key: string]: string | number | boolean | null | undefined;
+}
+
 /**
  * Data type passed to the event handler
  */
-export type DataType = number | string | boolean | object | null;
+export type DataType = number | string | boolean | EventDataPayload | null;
 
 /**
  * Type of object in event handlers
@@ -23,6 +27,7 @@ export abstract class EventObject {
 
 	public on(eventName: string, callback: EventCallback): EventObject {
 		const existing = this.events.get(eventName);
+
 		if (!existing) {
 			this.events.set(eventName, [callback]);
 		} else {
@@ -38,6 +43,7 @@ export abstract class EventObject {
 
 	protected trigger(eventName: string, app: PageFlip, data: DataType = null): void {
 		const list = this.events.get(eventName);
+
 		if (!list) return;
 
 		for (const callback of list) {

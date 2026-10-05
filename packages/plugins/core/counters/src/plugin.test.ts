@@ -4,6 +4,7 @@ import { countersPlugin } from "./plugin.js";
 describe("countersPlugin", () => {
 	it("transforms target-counter and target-text CSS functions", () => {
 		const plugin = countersPlugin();
+
 		const css = `
 			a.ref::after {
 				content: "See page " target-counter(attr(href), page);
@@ -43,14 +44,17 @@ describe("countersPlugin", () => {
 				attrs[k] = v;
 			},
 		};
+
 		const attrs: Record<string, string> = {};
 
 		const page2Props: Record<string, string> = {};
+
 		const page2Attrs: Record<string, string> = {
 			"data-page-number": "2",
 			"data-page-formatted": "ii",
 			"data-page": "preface",
 		};
+
 		const page2 = {
 			getAttribute: (k: string) => page2Attrs[k] ?? null,
 			setAttribute: (k: string, v: string) => {
@@ -71,7 +75,9 @@ describe("countersPlugin", () => {
 		const fakeDoc = {
 			querySelectorAll: (sel: string) => {
 				if (sel === "[href]") return [link];
+
 				if (sel.includes("printedjs_page")) return [page2];
+
 				return [];
 			},
 			querySelector: () => null,

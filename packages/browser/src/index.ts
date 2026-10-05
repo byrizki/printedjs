@@ -62,8 +62,13 @@ export {
 	type RenderResult,
 };
 
+interface WindowWithPrintedjs {
+	Printed?: unknown;
+	Printedjs?: unknown;
+	PrintedJS?: unknown;
+}
+
 if (typeof window !== "undefined") {
-	const win = window as unknown as Record<string, unknown>;
 	const api = {
 		BrowserRenderer,
 		createRenderer,
@@ -81,6 +86,9 @@ if (typeof window !== "undefined") {
 		preparePrint,
 		exportToPdf,
 	};
+
+	// SAFETY: Window object in browser environment augmented with library entry points
+	const win = window as Window & WindowWithPrintedjs;
 	win.Printed = api;
 	win.Printedjs = api;
 	win.PrintedJS = api;

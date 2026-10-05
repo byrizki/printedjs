@@ -7,6 +7,16 @@ export interface ColumnRule {
 	readonly columnFill?: "auto" | "balance" | undefined;
 }
 
+function parseColumnFill(raw: string | undefined): "auto" | "balance" | undefined {
+	const val = raw?.toLowerCase();
+
+	if (val === "auto" || val === "balance") {
+		return val;
+	}
+
+	return undefined;
+}
+
 export function columnsPlugin(): PrintedjsPlugin {
 	const columnRules: ColumnRule[] = [];
 
@@ -27,19 +37,20 @@ export function columnsPlugin(): PrintedjsPlugin {
 					columnRules.push({
 						selector: rawSel.trim(),
 						columnCount: countMatch ? parseInt(countMatch[1], 10) : undefined,
-						columnGap: gapMatch ? gapMatch[1]?.trim() : undefined,
-						columnFill: (fillMatch ? fillMatch[1]?.toLowerCase() : undefined) as
-							"auto" | "balance" | undefined,
+						columnFill: parseColumnFill(fillMatch?.[1]),
 					});
 				}
+
 				return match;
 			});
 
 			return css;
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM node supporting querySelectorAll during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
@@ -50,9 +61,11 @@ export function columnsPlugin(): PrintedjsPlugin {
 						if (rule.columnCount !== undefined) {
 							el.setAttribute("data-column-count", String(rule.columnCount));
 						}
+
 						if (rule.columnGap !== undefined) {
 							el.setAttribute("data-column-gap", rule.columnGap);
 						}
+
 						if (rule.columnFill !== undefined) {
 							el.setAttribute("data-column-fill", rule.columnFill);
 						}

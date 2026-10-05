@@ -12,12 +12,15 @@ export function hyphenationPlugin(): PrintedjsPlugin {
 			);
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM ParentNode during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
 			// Tag elements that contain soft hyphens for measurement preservation
+			// SAFETY: ParentNode is a Node in the DOM hierarchy
 			const walker = document.createTreeWalker(
 				contentRoot as Node,
 				NodeFilter.SHOW_TEXT,
@@ -25,9 +28,11 @@ export function hyphenationPlugin(): PrintedjsPlugin {
 			);
 
 			let node: Node | null;
+
 			while ((node = walker.nextNode())) {
 				if (node.textContent && node.textContent.includes("\u00AD")) {
 					const parent = node.parentElement;
+
 					if (parent) {
 						parent.setAttribute("data-has-shy", "true");
 					}

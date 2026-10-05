@@ -1,12 +1,23 @@
 import type { TraceReport } from "@printedjs/devtools";
 
+export type PlaygroundDataScalar = string | number | boolean | null | undefined;
+
+export type PlaygroundDataValue =
+	| PlaygroundDataScalar
+	| readonly PlaygroundDataValue[]
+	| { readonly [key: string]: PlaygroundDataValue | undefined };
+
+export interface PlaygroundDataMap {
+	readonly [key: string]: PlaygroundDataValue | undefined;
+}
+
 export interface PlaygroundFixture {
 	readonly id: string;
 	readonly title: string;
 	readonly category: "templates" | "paged-media" | "test-fixtures";
 	readonly description: string;
 	readonly html: string;
-	readonly data?: Record<string, unknown> | undefined;
+	readonly data?: PlaygroundDataMap | undefined;
 }
 
 export interface RenderStats {

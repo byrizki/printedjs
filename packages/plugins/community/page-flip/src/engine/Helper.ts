@@ -56,6 +56,7 @@ export class Helper {
 		) {
 			return pos;
 		}
+
 		return null;
 	}
 
@@ -101,11 +102,13 @@ export class Helper {
 				(Math.pow(radius, 2) * Math.pow(a - n, 2)) /
 					(Math.pow(a - n, 2) + Math.pow(b - m, 2)),
 			) + a;
+
 		if (limitedPoint.x < 0) {
 			x *= -1;
 		}
 
 		let y = ((x - a) * (b - m)) / (a - n) + b;
+
 		if (a - n + b === 0) {
 			y = radius;
 		}

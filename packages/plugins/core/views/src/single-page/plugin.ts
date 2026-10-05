@@ -4,8 +4,10 @@ import type { SinglePageViewOptions } from "../types.js";
 export function singlePageViewPlugin(
 	options: SinglePageViewOptions = {},
 ): PrintedjsPlugin {
-	const gapValue =
-		typeof options.gap === "number" ? `${options.gap}px` : (options.gap ?? "32px");
+	const gapValue = Number.isFinite(options.gap)
+		? `${options.gap}px`
+		: (options.gap ?? "32px");
+
 	const showShadow = options.shadow ?? true;
 
 	const singlePageCss = `
@@ -59,12 +61,14 @@ export function singlePageViewPlugin(
 			return `${css}\n\n${singlePageCss}`;
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) return;
 
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				pagesContainer.setAttribute("data-view-mode", "single");
 			}

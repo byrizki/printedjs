@@ -39,8 +39,10 @@ for (const pkgRelPath of workspacePackages) {
 	}
 
 	const mainExport = pkg.exports["."];
+
 	if (mainExport.types) {
 		const typesFile = resolve(pkgPath, mainExport.types);
+
 		if (!existsSync(typesFile)) {
 			console.error(`[FAIL] ${pkg.name} types file does not exist: ${typesFile}`);
 			failed = true;
@@ -51,6 +53,7 @@ for (const pkgRelPath of workspacePackages) {
 
 	if (mainExport.import) {
 		const importFile = resolve(pkgPath, mainExport.import);
+
 		if (!existsSync(importFile)) {
 			console.error(`[FAIL] ${pkg.name} import file does not exist: ${importFile}`);
 			failed = true;

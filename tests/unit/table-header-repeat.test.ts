@@ -79,22 +79,29 @@ describe.runIf(Boolean(executablePath))("Table header repeat control", () => {
 
 			const theadOnPage1 = await page.evaluate(() => {
 				const page1 = document.querySelectorAll(".printedjs_page")[0];
+
 				return page1 ? page1.querySelectorAll("thead").length : 0;
 			});
+
 			const theadOnPage2 = await page.evaluate(() => {
 				const page2 = document.querySelectorAll(".printedjs_page")[1];
+
 				return page2 ? page2.querySelectorAll("thead").length : 0;
 			});
+
 			expect(theadOnPage1).toBe(1);
 			expect(theadOnPage2).toBe(0);
 
 			const tfootOnPage1 = await page.evaluate(() => {
 				const page1 = document.querySelectorAll(".printedjs_page")[0];
+
 				return page1 ? page1.querySelectorAll("tfoot").length : 0;
 			});
+
 			expect(tfootOnPage1).toBe(0);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
@@ -167,16 +174,21 @@ describe.runIf(Boolean(executablePath))("Table header repeat control", () => {
 
 			const theadOnPage1 = await page.evaluate(() => {
 				const page1 = document.querySelectorAll(".printedjs_page")[0];
+
 				return page1 ? page1.querySelectorAll("thead").length : 0;
 			});
+
 			const theadOnPage2 = await page.evaluate(() => {
 				const page2 = document.querySelectorAll(".printedjs_page")[1];
+
 				return page2 ? page2.querySelectorAll("thead").length : 0;
 			});
+
 			expect(theadOnPage1).toBe(1);
 			expect(theadOnPage2).toBe(1);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}

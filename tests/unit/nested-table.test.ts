@@ -9,6 +9,7 @@ const executablePath = resolveChromeExecutable();
 describe.runIf(Boolean(executablePath))("Nested table thead isolation", () => {
 	test("does not leak nested table thead to outer table", async () => {
 		const tempHtmlPath = resolve(__dirname, "../fixtures/temp-nested-table.html");
+
 		const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -58,6 +59,7 @@ describe.runIf(Boolean(executablePath))("Nested table thead isolation", () => {
 		writeFileSync(tempHtmlPath, htmlContent, "utf-8");
 
 		const executablePath = resolveChromeExecutable();
+
 		const browser = await puppeteer.launch({
 			headless: true,
 			...(executablePath ? { executablePath } : {}),
@@ -75,13 +77,17 @@ describe.runIf(Boolean(executablePath))("Nested table thead isolation", () => {
 
 			const outerDirectTheadCount = await page.evaluate(() => {
 				const outer = document.querySelector("table.outer");
+
 				if (!outer) return -1;
+
 				return Array.from(outer.children).filter((c) => c.tagName === "THEAD").length;
 			});
 
 			const innerDirectTheadCount = await page.evaluate(() => {
 				const inner = document.querySelector("table.inner");
+
 				if (!inner) return -1;
+
 				return Array.from(inner.children).filter((c) => c.tagName === "THEAD").length;
 			});
 
@@ -89,6 +95,7 @@ describe.runIf(Boolean(executablePath))("Nested table thead isolation", () => {
 			expect(innerDirectTheadCount).toBe(1);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}

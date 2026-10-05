@@ -1,8 +1,27 @@
 import type { PagedjsCompatibilityOptions } from "./compatibility.js";
 import type { DiagnosticsLevel } from "./request.js";
+import type { PageResult } from "./result.js";
+
+export interface PluginMetadata {
+	blank?: boolean | undefined;
+	document?: Document | undefined;
+	contentRoot?: unknown;
+	pages?: readonly PageResult[] | readonly unknown[] | undefined;
+	pageCount?: number | undefined;
+	totalPages?: number | undefined;
+	total?: number | undefined;
+	bookmarks?: unknown;
+	flipBook?: unknown;
+	pageFlip?: unknown;
+	pageViews?: unknown;
+	eta?: unknown;
+	"printedjs:breakRules"?: unknown;
+	"printedjs:stringRules"?: unknown;
+	"printedjs:footnoteRules"?: unknown;
+}
 
 export interface PluginContext extends PagedjsCompatibilityOptions {
-	readonly metadata: Record<string, unknown>;
+	readonly metadata: PluginMetadata;
 	readonly diagnostics?: DiagnosticsLevel | undefined;
 }
 

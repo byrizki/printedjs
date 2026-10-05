@@ -51,6 +51,7 @@ export class PageFlip extends EventObject {
 	public loadFromImages(imagesHref: string[]): void {
 		this.ui = new CanvasUI(this.block, this, this.setting);
 
+		// SAFETY: UI initialized as CanvasUI above
 		const canvas = (this.ui as CanvasUI).getCanvas();
 		this.render = new CanvasRender(this, this.setting, canvas);
 
@@ -102,6 +103,7 @@ export class PageFlip extends EventObject {
 		const current = this.pages?.getCurrentPageIndex() ?? 0;
 
 		this.pages?.destroy();
+
 		if (!this.render) return;
 
 		this.pages = new ImagePageCollection(this, this.render, imagesHref);
@@ -118,6 +120,7 @@ export class PageFlip extends EventObject {
 		const current = this.pages?.getCurrentPageIndex() ?? 0;
 
 		this.pages?.destroy();
+
 		if (!this.render || !this.ui) return;
 
 		this.pages = new HTMLPageCollection(
@@ -127,6 +130,7 @@ export class PageFlip extends EventObject {
 			items,
 		);
 		this.pages.load();
+		// SAFETY: updateFromHtml is called on HTML-based flipbook instance where UI is HTMLUI
 		(this.ui as HTMLUI).updateItems(items);
 		this.render.reload();
 
@@ -139,7 +143,9 @@ export class PageFlip extends EventObject {
 
 	public clear(): void {
 		this.pages?.destroy();
+
 		if (this.ui && "clear" in this.ui) {
+			// SAFETY: verified clear method exists on HTMLUI instance
 			(this.ui as HTMLUI).clear();
 		}
 	}
@@ -192,11 +198,13 @@ export class PageFlip extends EventObject {
 
 	public getPage(pageIndex: number): Page {
 		if (!this.pages) throw new Error("Pages not loaded");
+
 		return this.pages.getPage(pageIndex);
 	}
 
 	public getRender(): Render {
 		if (!this.render) throw new Error("Render not initialized");
+
 		return this.render;
 	}
 
@@ -210,6 +218,7 @@ export class PageFlip extends EventObject {
 
 	public getBoundsRect(): PageRect {
 		if (!this.render) throw new Error("Render not initialized");
+
 		return this.render.getRect();
 	}
 
@@ -219,6 +228,7 @@ export class PageFlip extends EventObject {
 
 	public getUI(): UI {
 		if (!this.ui) throw new Error("UI not initialized");
+
 		return this.ui;
 	}
 

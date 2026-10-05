@@ -5,10 +5,12 @@ import { resolve } from "node:path";
 const req = createRequire(import.meta.url);
 
 let cachedBrowserBundle: string | null = null;
+
 let cachedPluginsBundle: string | null = null;
 
 function resolvePackageBundle(pkgName: string): string {
 	const subDir = pkgName.replace(/^@printedjs\//, "");
+
 	const candidates = [
 		() => req.resolve(`${pkgName}/dist/index.global.js`),
 		() => resolve(import.meta.dirname, `../../${subDir}/dist/index.global.js`),
@@ -19,6 +21,7 @@ function resolvePackageBundle(pkgName: string): string {
 	for (const getPath of candidates) {
 		try {
 			const candidatePath = getPath();
+
 			if (existsSync(candidatePath)) {
 				return readFileSync(candidatePath, "utf-8");
 			}
@@ -34,6 +37,7 @@ export function getBrowserBundle(): string {
 	if (!cachedBrowserBundle) {
 		cachedBrowserBundle = resolvePackageBundle("@printedjs/browser");
 	}
+
 	return cachedBrowserBundle;
 }
 
@@ -41,12 +45,13 @@ export function getPluginsBundle(): string {
 	if (!cachedPluginsBundle) {
 		cachedPluginsBundle = resolvePackageBundle("@printedjs/plugin-preset");
 	}
+
 	return cachedPluginsBundle;
 }
 
 export interface InjectablePage {
 	evaluate<T, A = void>(fn: (arg: A) => T | Promise<T>, arg?: A): Promise<T>;
-	addScriptTag?(options: { content: string }): Promise<unknown>;
+	addScriptTag?(options: { content: string }): Promise<object | void | null>;
 }
 
 export interface PaginationOptions {
@@ -73,32 +78,44 @@ export async function injectAndPaginate(
 	const isCompat = options?.pagedjsCompatible ?? false;
 
 	await page.evaluate(async (compat: boolean) => {
-		const win = window as unknown as {
-			Printedjs?: {
-				createRenderer?: (opts: unknown) => {
-					render: (req: unknown) => Promise<unknown>;
-				};
-				polyfill?: (opts?: { pagedjsCompatible?: boolean }) => Promise<unknown>;
-			};
-			Printed?: {
-				createRenderer?: (opts: unknown) => {
-					render: (req: unknown) => Promise<unknown>;
-				};
-				polyfill?: (opts?: { pagedjsCompatible?: boolean }) => Promise<unknown>;
-			};
-			PrintedjsPlugins?: {
-				standardPreset?: () => readonly unknown[];
-			};
-			PrintedPlugins?: {
-				standardPreset?: () => readonly unknown[];
-			};
+		interface BrowserRendererHandle {
+			render(req: {
+				content: { html: string };
+				styles?: readonly string[];
+				stylesheets?: readonly { readonly type: string; readonly content: string }[];
+			}): Promise<void>;
+		}
+
+		interface BrowserPrintedApi {
+			createRenderer?(opts: {
+				container?: HTMLElement;
+				target?: HTMLElement;
+				isolation?: string;
+				pagedjsCompatible?: boolean;
+				plugins?: readonly unknown[];
+			}): BrowserRendererHandle;
+			polyfill?(opts?: { pagedjsCompatible?: boolean }): Promise<void>;
+		}
+
+		interface BrowserPluginsApi {
+			standardPreset?(): readonly unknown[];
+		}
+
+		interface WindowWithPrintedInjections extends Window {
+			Printedjs?: BrowserPrintedApi;
+			Printed?: BrowserPrintedApi;
+			PrintedjsPlugins?: BrowserPluginsApi;
+			PrintedPlugins?: BrowserPluginsApi;
 			PrintedjsConfig?: { pagedjsCompatible?: boolean };
 			__printedjsOriginalContent?: string;
 			__printedjsRenderFinished?: boolean;
-		};
+		}
+
+		// SAFETY: window in browser evaluation context exposes injected Printedjs libraries
+		const win = window as WindowWithPrintedInjections;
 
 		win.PrintedjsConfig = {
-			...(win.PrintedjsConfig ?? {}),
+			...win.PrintedjsConfig,
 			pagedjsCompatible: compat,
 		};
 
@@ -106,9 +123,10 @@ export async function injectAndPaginate(
 		const pluginsApi = win.PrintedjsPlugins ?? win.PrintedPlugins;
 
 		// If the page already provides a polyfill runner (e.g. from an existing script tag)
-		if (typeof printedApi?.polyfill === "function") {
+		if (printedApi?.polyfill) {
 			await printedApi.polyfill({ pagedjsCompatible: compat });
 			win.__printedjsRenderFinished = true;
+
 			return;
 		}
 
@@ -117,11 +135,13 @@ export async function injectAndPaginate(
 			if (!win.__printedjsOriginalContent) {
 				win.__printedjsOriginalContent = document.body.innerHTML;
 			}
+
 			const contentHtml = win.__printedjsOriginalContent;
 
 			const styleElements = document.querySelectorAll(
 				"style:not([data-printedjs-styles]):not([data-printedjs-ignore]):not([data-pagedjs-ignore]), link[rel='stylesheet']:not([data-printedjs-ignore]):not([data-pagedjs-ignore])",
 			);
+
 			const styles: string[] = [];
 			styleElements.forEach((el) => {
 				if (el.tagName.toLowerCase() === "style") {
@@ -129,9 +149,11 @@ export async function injectAndPaginate(
 					el.remove();
 				} else if (el.tagName.toLowerCase() === "link") {
 					const href = el.getAttribute("href");
+
 					if (href) {
 						styles.push(`@import url("${href}");`);
 					}
+
 					el.remove();
 				}
 			});

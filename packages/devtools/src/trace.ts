@@ -1,10 +1,14 @@
 import type { PrintedjsPlugin, PluginContext } from "@printedjs/core";
 
+export interface TraceDetails {
+	readonly pageCount?: number | undefined;
+}
+
 export interface TraceEvent {
 	readonly type: "phase" | "plugin" | "warning";
 	readonly name: string;
 	readonly durationMs?: number | undefined;
-	readonly details?: Record<string, unknown> | undefined;
+	readonly details?: TraceDetails | undefined;
 }
 
 export interface TraceReport {
@@ -29,6 +33,7 @@ export class TraceCollector {
 
 	generateReport(pageCount: number): TraceReport {
 		const totalDurationMs = performance.now() - this.startTime;
+
 		return {
 			startTime: this.startTime,
 			totalDurationMs,
@@ -58,24 +63,28 @@ export function devtoolsPlugin(options?: DevtoolsPluginOptions): PrintedjsPlugin
 				name: "transformStyles",
 				durationMs: performance.now() - start,
 			});
+
 			return css;
 		},
 		beforeLayout() {
 			collector.recordEvent({ type: "phase", name: "beforeLayout" });
 		},
 		afterRender(context: PluginContext) {
-			const metaCount =
-				typeof context.metadata["pageCount"] === "number"
-					? context.metadata["pageCount"]
-					: undefined;
-			const pages = (context.metadata["pages"] as unknown[]) ?? [];
-			const doc = context.metadata["document"] as Document | undefined;
+			const rawCount = context.metadata.pageCount;
+			const metaCount = Number.isFinite(rawCount) ? rawCount : undefined;
+
+			// SAFETY: metadata.pages when present is a list of rendered pages
+			const pages = (context.metadata.pages as readonly unknown[]) ?? [];
+			// SAFETY: metadata.document when present is the rendered Document instance
+			const doc = context.metadata.document as Document | undefined;
+
 			const domCount = doc
 				? doc.querySelectorAll(".printedjs_page, .pagedjs_page, [data-page-number]")
 						.length
 				: 0;
+
 			const pageCount =
-				typeof metaCount === "number" && metaCount > 0
+				metaCount !== undefined && metaCount > 0
 					? metaCount
 					: pages.length > 0
 						? pages.length
@@ -88,6 +97,7 @@ export function devtoolsPlugin(options?: DevtoolsPluginOptions): PrintedjsPlugin
 			});
 
 			const report = collector.generateReport(pageCount);
+
 			if (options?.onReport) {
 				options.onReport(report);
 			}

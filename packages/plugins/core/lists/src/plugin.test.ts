@@ -7,6 +7,7 @@ describe("listsPlugin", () => {
 
 		const makeItem = (tag: string, text: string) => {
 			const attrs: Record<string, string> = {};
+
 			return {
 				tagName: tag.toUpperCase(),
 				textContent: text,
@@ -52,6 +53,7 @@ describe("listsPlugin", () => {
 		});
 
 		const splitOlAttrs: Record<string, string> = {};
+
 		const splitOl = {
 			tagName: "OL",
 			start: 1,

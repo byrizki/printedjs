@@ -52,6 +52,7 @@ function createMockDom() {
 			},
 			set className(val: string) {
 				classes.clear();
+
 				if (val) {
 					val.split(/\s+/).forEach((c) => {
 						if (c) classes.add(c);
@@ -64,9 +65,12 @@ function createMockDom() {
 				toggle: (cls: string) => {
 					if (classes.has(cls)) {
 						classes.delete(cls);
+
 						return false;
 					}
+
 					classes.add(cls);
+
 					return true;
 				},
 				contains: (cls: string) => classes.has(cls),
@@ -82,6 +86,7 @@ function createMockDom() {
 			},
 			set innerHTML(val: string) {
 				innerHtml = val;
+
 				if (val === "") {
 					children.length = 0;
 				}
@@ -89,12 +94,15 @@ function createMockDom() {
 			appendChild(child: MockElement) {
 				child.parentElement = el;
 				children.push(child);
+
 				return child;
 			},
 			removeChild(child: MockElement) {
 				const idx = children.indexOf(child);
+
 				if (idx >= 0) children.splice(idx, 1);
 				child.parentElement = null;
+
 				return child;
 			},
 			remove() {
@@ -104,6 +112,7 @@ function createMockDom() {
 			},
 			setAttribute(k: string, v: string) {
 				attrs[k] = v;
+
 				if (k === "id") elementsById.set(v, el);
 			},
 			getAttribute(k: string) {
@@ -115,13 +124,16 @@ function createMockDom() {
 			},
 			removeEventListener(event: string, handler: MockEventHandler) {
 				const list = listeners.get(event);
+
 				if (list) {
 					const idx = list.indexOf(handler);
+
 					if (idx >= 0) list.splice(idx, 1);
 				}
 			},
 			dispatchEvent(event: { type: string; key?: string }) {
 				const list = listeners.get(event.type);
+
 				if (list) {
 					list.forEach((h) => h(event));
 				}
@@ -142,6 +154,7 @@ function createMockDom() {
 		createElement(tag: string) {
 			const el = createEl(tag);
 			el.ownerDocument = mockDoc;
+
 			return el;
 		},
 		getElementById(id: string) {
@@ -153,18 +166,22 @@ function createMockDom() {
 		},
 		removeEventListener(event: string, handler: MockEventHandler) {
 			const list = docListeners.get(event);
+
 			if (list) {
 				const idx = list.indexOf(handler);
+
 				if (idx >= 0) list.splice(idx, 1);
 			}
 		},
 		dispatchEvent(event: { type: string; key?: string }) {
 			const list = docListeners.get(event.type);
+
 			if (list) {
 				list.forEach((h) => h(event));
 			}
 		},
 	};
+
 	head.ownerDocument = mockDoc;
 	body.ownerDocument = mockDoc;
 
@@ -206,6 +223,7 @@ describe("Interactive TOC Bookmarks Navigation Drawer", () => {
 
 	it("creates drawer and renders tree hierarchy with badges", () => {
 		const { body, head } = createMockDom();
+
 		const drawer = createBookmarksDrawer({
 			container: body as unknown as HTMLElement,
 			bookmarks: sampleBookmarks,
@@ -267,10 +285,12 @@ describe("Interactive TOC Bookmarks Navigation Drawer", () => {
 
 	it("filters bookmarks by search query", () => {
 		const { body } = createMockDom();
+
 		const drawer = createBookmarksDrawer({
 			container: body as unknown as HTMLElement,
 			bookmarks: sampleBookmarks,
 		});
+
 		expect(drawer.isOpen()).toBe(false);
 
 		const drawerEl = body.children[1]!;
@@ -291,6 +311,7 @@ describe("Interactive TOC Bookmarks Navigation Drawer", () => {
 
 	it("supports destroying drawer and cleaning up DOM", () => {
 		const { body } = createMockDom();
+
 		const drawer = createBookmarksDrawer({
 			container: body as unknown as HTMLElement,
 			bookmarks: sampleBookmarks,

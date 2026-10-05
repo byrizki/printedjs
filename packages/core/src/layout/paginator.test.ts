@@ -22,11 +22,13 @@ describe("Paginator", () => {
 
 	test("paginates content until finished", async () => {
 		let remainingItems = 3;
+
 		const adapter: PaginatorAdapter = {
 			hasNextContent: () => remainingItems > 0,
 			layoutPage: async (pageNumber: number): Promise<LayoutStepResult> => {
 				remainingItems--;
 				const finished = remainingItems === 0;
+
 				const breakToken: BreakToken = {
 					page: pageNumber,
 					cursor: `node:${3 - remainingItems}`,
@@ -96,10 +98,12 @@ describe("Paginator", () => {
 
 	test("throws PrintedjsLayoutLimitError when maxPages limit is reached", async () => {
 		let index = 0;
+
 		const adapter: PaginatorAdapter = {
 			hasNextContent: () => true,
 			layoutPage: async (pageNumber: number): Promise<LayoutStepResult> => {
 				index++;
+
 				return {
 					breakToken: {
 						page: pageNumber,
@@ -130,11 +134,13 @@ describe("Paginator", () => {
 
 		let callCount = 0;
 		const progressEvents: number[] = [];
+
 		const adapter: PaginatorAdapter = {
 			hasNextContent: () => callCount < 2,
 			layoutPage: async (pageNumber: number): Promise<LayoutStepResult> => {
 				callCount++;
 				const finished = callCount === 2;
+
 				return {
 					breakToken: {
 						page: pageNumber,

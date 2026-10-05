@@ -9,6 +9,7 @@ describe("parsePageRules", () => {
 				margin: 1.2in;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]?.size).toEqual({ width: "8.5in", height: "11in" });
@@ -28,6 +29,7 @@ describe("parsePageRules", () => {
 				bleed: 10mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]?.size).toEqual({ width: "210mm", height: "297mm" });
@@ -47,6 +49,7 @@ describe("parsePageRules", () => {
 				marks: crop cross;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]?.marks).toEqual(["crop", "cross"]);
@@ -64,6 +67,7 @@ describe("parsePageRules", () => {
 				size: A4 landscape;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]?.size).toEqual({

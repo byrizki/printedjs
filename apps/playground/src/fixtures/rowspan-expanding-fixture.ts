@@ -18,11 +18,14 @@ export const ROWSPAN_EXPANDING_FIXTURE: PlaygroundFixture = {
 			const isPhase1 = year <= 15;
 			const isPhase2 = year > 15;
 			const premium = year <= 10 ? 75000000 : 0;
+
 			const guaranteedCash = Math.round(
 				premium * year * 0.85 + (year > 10 ? (year - 10) * 45000000 : 0),
 			);
+
 			const projectedCash = Math.round(guaranteedCash * (1 + year * 0.035));
 			const deathBenefit = 2500000000 + projectedCash;
+
 			return {
 				year,
 				age,

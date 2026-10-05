@@ -97,6 +97,7 @@ export class CanvasRender extends Render {
 			x: this.shadow.pos.x,
 			y: this.shadow.pos.y,
 		});
+
 		this.ctx.translate(shadowPos.x, shadowPos.y);
 
 		this.ctx.rotate(Math.PI + this.shadow.angle + Math.PI / 2);

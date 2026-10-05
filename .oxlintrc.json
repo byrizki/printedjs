@@ -1,0 +1,77 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["unicorn", "typescript", "oxc"],
+	"jsPlugins": [
+		{
+			"name": "anti-slop",
+			"specifier": "./tools/oxlint/anti-slop/index.ts"
+		}
+	],
+	"categories": {
+		"correctness": "warn"
+	},
+	"rules": {
+		"oxc/no-accumulating-spread": "error",
+		"anti-slop/no-array-filter-map": "error",
+		"anti-slop/no-reduce-accumulator-copy": "error",
+		"anti-slop/no-chained-type-assertions": "error",
+		"anti-slop/no-conditional-empty-object-spread": "error",
+		"anti-slop/no-known-value-widening": "error",
+		"anti-slop/no-module-mocking": "error",
+		"anti-slop/no-object-parameters": "error",
+		"anti-slop/no-reflect-apply": "error",
+		"anti-slop/no-reflect-get": "error",
+		"anti-slop/no-runtime-typeof": "error",
+		"anti-slop/no-shape-in-symbol-names": "error",
+		"anti-slop/no-unknown-parameters": "error",
+		"anti-slop/no-unknown-returns": "error",
+		"anti-slop/no-unknown-type-aliases": "error",
+		"anti-slop/no-unsafe-dictionary-type": "error",
+		"anti-slop/no-widen-then-assert": "error",
+		"anti-slop/require-readable-spacing": "error",
+		"anti-slop/require-safety-comment-for-type-assertion": "error"
+	},
+	"overrides": [
+		{
+			"files": ["tests/**", "**/*.test.ts", "**/*.spec.ts", "scripts/**"],
+			"rules": {
+				"anti-slop/require-safety-comment-for-type-assertion": "off",
+				"anti-slop/no-chained-type-assertions": "off",
+				"anti-slop/no-runtime-typeof": "off",
+				"anti-slop/no-unsafe-dictionary-type": "off",
+				"anti-slop/no-unknown-parameters": "off",
+				"anti-slop/no-unknown-returns": "off",
+				"anti-slop/no-conditional-empty-object-spread": "off",
+				"anti-slop/no-known-value-widening": "off"
+			}
+		}
+	],
+	"ignorePatterns": [
+		".agent/**",
+		".agents/**",
+		".claude/**",
+		".codex/**",
+		".continue/**",
+		".cursor/**",
+		".gemini/**",
+		".opencode/**",
+		".pi/**",
+		".pi-subagents/**",
+		".roo/**",
+		".windsurf/**",
+		"tools/oxlint/anti-slop/**",
+		"**/dist/**",
+		"**/coverage/**",
+		"**/node_modules/**",
+		"StPageFlip/**",
+		"tests/fixtures/jest.config.js",
+		"tests/fixtures/jest_helpers/**/*.js",
+		"tests/fixtures/media/all/all.spec..js",
+		"tests/fixtures/tables/rebuild-all-tds/rebuild-all-tds.js",
+		"output-samples/**",
+		"products/**",
+		"pagedjs/**",
+		"test-results/**",
+		"tests/baseline/**"
+	]
+}

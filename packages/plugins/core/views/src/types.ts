@@ -41,13 +41,25 @@ export interface ActivePageChangeDetail {
 	readonly viewMode?: ViewMode | undefined;
 }
 
+export type PageViewsModeOptions =
+	| SinglePageViewOptions
+	| SpreadPageViewOptions
+	| { readonly [key: string]: string | number | boolean | null | undefined };
+
+export interface PageFlipInstance {
+	destroy?(): void;
+	flip?(page: number): void;
+	turnToNextPage?(): void;
+	turnToPrevPage?(): void;
+}
+
 export interface PageViewsController {
 	readonly currentMode: ViewMode;
 	readonly currentPage?: number | undefined;
 	readonly activePages?: readonly number[] | undefined;
-	setMode(mode: ViewMode, options?: unknown): void;
+	setMode(mode: ViewMode, options?: PageViewsModeOptions): void;
 	getAdapterController<T = unknown>(mode?: string): T | null;
-	getFlipBook?(): unknown;
+	getFlipBook?(): PageFlipInstance | null;
 	emitPageChange?(detail: ActivePageChangeDetail): void;
 	destroy(): void;
 }

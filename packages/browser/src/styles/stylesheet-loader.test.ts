@@ -8,6 +8,7 @@ describe("styles/stylesheet-loader", () => {
 			type: "inline",
 			content: "body { color: red; }",
 		});
+
 		expect(result).toEqual({
 			type: "inline",
 			css: "body { color: red; }",
@@ -22,6 +23,7 @@ describe("styles/stylesheet-loader", () => {
 			type: "url",
 			url: "https://example.com/style.css",
 		});
+
 		expect(result).toEqual({
 			type: "url",
 			url: "https://example.com/style.css",
@@ -34,6 +36,7 @@ describe("styles/stylesheet-loader", () => {
 			status: 404,
 			statusText: "Not Found",
 		});
+
 		vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(mockResponse);
 
 		await expect(
@@ -49,6 +52,7 @@ describe("styles/stylesheet-loader", () => {
 			{ type: "inline", content: "a { color: blue; }" },
 			{ type: "inline", content: "b { color: green; }" },
 		]);
+
 		expect(results).toHaveLength(2);
 		expect(results[0]?.css).toBe("a { color: blue; }");
 		expect(results[1]?.css).toBe("b { color: green; }");

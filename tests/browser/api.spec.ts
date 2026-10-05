@@ -22,7 +22,9 @@ test.describe("browser API and render surfaces", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const iframe = document.querySelector<HTMLIFrameElement>("#book")!;
+
 			const renderer = createRenderer({
 				target: iframe,
 				isolation: "iframe",
@@ -32,10 +34,13 @@ test.describe("browser API and render surfaces", () => {
 
 			const hasRootBefore =
 				iframe.contentDocument?.querySelector("[data-printedjs-root]") !== null;
+
 			renderer.destroy();
+
 			const hasRootAfter =
 				document.querySelector("[data-printedjs-root]") === null &&
 				iframe.contentDocument?.querySelector("[data-printedjs-root]") === null;
+
 			const hostPreserved =
 				document.querySelector("#host-content")?.textContent === "preserved";
 
@@ -59,7 +64,9 @@ test.describe("browser API and render surfaces", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const container = document.querySelector<HTMLElement>("#container")!;
+
 			const renderer = createRenderer({
 				target: container,
 				isolation: "root",
@@ -71,14 +78,17 @@ test.describe("browser API and render surfaces", () => {
 			});
 
 			const hasRootBefore = container.querySelector("[data-printedjs-root]") !== null;
+
 			const hasStylesBefore =
 				document.querySelectorAll("style[data-printedjs-style]").length > 0;
 
 			renderer.destroy();
 
 			const hasRootAfter = container.querySelector("[data-printedjs-root]") === null;
+
 			const hasStylesAfter =
 				document.querySelectorAll("style[data-printedjs-style]").length === 0;
+
 			const otherPreserved =
 				document.querySelector("#other")?.textContent === "preserved";
 
@@ -108,18 +118,22 @@ test.describe("browser API and render surfaces", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const container = document.querySelector<HTMLElement>("#container")!;
 			const renderer = createRenderer({ target: container });
 
 			const first = renderer.render({ content: { html: "<p>one</p>" } });
 			let secondError = "";
+
 			try {
 				await renderer.render({ content: { html: "<p>two</p>" } });
 			} catch (err) {
 				secondError = err instanceof Error ? err.message : String(err);
 			}
+
 			await first;
 			renderer.destroy();
+
 			return secondError;
 		});
 
@@ -136,12 +150,14 @@ test.describe("browser API and render surfaces", () => {
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const container = document.querySelector<HTMLElement>("#container")!;
 			const renderer = createRenderer({ target: container });
 			renderer.destroy();
 
 			try {
 				await renderer.render({ content: { html: "<p>after destroy</p>" } });
+
 				return "";
 			} catch (err) {
 				return err instanceof Error ? err.message : String(err);

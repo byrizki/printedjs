@@ -124,6 +124,7 @@ describe("Playground Template Service", () => {
 				<p>Via it: <%= it.name %></p>
 				<p>Via locals: <%= locals.name %></p>
 			`.trim();
+
 			const result = compileTemplate(template, { name: "Printedjs" });
 			expect(result.error).toBeNull();
 			expect(result.html).toContain("Direct: Printedjs");
@@ -146,16 +147,20 @@ describe("Playground Template Service", () => {
 	describe("devtoolsPlugin afterRender", () => {
 		test("emits actual pageCount from metadata without returning 0", async () => {
 			const { devtoolsPlugin } = await import("../../packages/devtools/src/index.js");
+
 			interface TestReport {
 				pageCount?: number;
 				events: Array<{ name: string; details?: { pageCount?: number } }>;
 			}
+
 			let capturedReport: TestReport | null = null;
+
 			const plugin = devtoolsPlugin({
 				onReport(report) {
 					capturedReport = report as unknown as TestReport;
 				},
 			});
+
 			plugin.setup?.({} as unknown as Parameters<NonNullable<typeof plugin.setup>>[0]);
 			plugin.afterRender?.({
 				metadata: {

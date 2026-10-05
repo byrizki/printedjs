@@ -22,6 +22,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 			}
 			removeChild(child: MockNode): void {
 				const idx = this.childNodes.indexOf(child);
+
 				if (idx !== -1) {
 					this.childNodes.splice(idx, 1);
 					child.parentNode = null;
@@ -32,6 +33,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 		class MockElement extends MockNode {
 			replaceChildren?(...nodes: (MockNode | string)[]): void;
 		}
+
 		const el = new MockElement();
 		expect(el.childNodes).toHaveLength(0);
 
@@ -42,6 +44,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 	test("polyfills Object.hasOwn when undefined", () => {
 		const originalHasOwn = Object.hasOwn;
+
 		try {
 			// @ts-expect-error force undefined for test
 			delete Object.hasOwn;
@@ -58,6 +61,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 	test("polyfills Array.prototype.at when undefined", () => {
 		const originalAt = Array.prototype.at;
+
 		try {
 			// @ts-expect-error force undefined for test
 			delete Array.prototype.at;
@@ -76,6 +80,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 	test("polyfills String.prototype.replaceAll when undefined", () => {
 		const originalReplaceAll = String.prototype.replaceAll;
+
 		try {
 			// @ts-expect-error force undefined for test
 			delete String.prototype.replaceAll;
@@ -91,6 +96,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 	test("polyfills Promise.allSettled when undefined", async () => {
 		const originalAllSettled = Promise.allSettled;
+
 		try {
 			// @ts-expect-error force undefined for test
 			delete Promise.allSettled;
@@ -104,9 +110,11 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 			expect(results).toHaveLength(2);
 			expect(results[0]?.status).toBe("fulfilled");
+
 			if (results[0]?.status === "fulfilled") {
 				expect(results[0].value).toBe(42);
 			}
+
 			expect(results[1]?.status).toBe("rejected");
 		} finally {
 			Promise.allSettled = originalAllSettled;
@@ -115,6 +123,7 @@ describe("@printedjs/polyfill (older browser compatibility)", () => {
 
 	test("polyfills structuredClone when undefined", () => {
 		const originalClone = globalThis.structuredClone;
+
 		try {
 			// @ts-expect-error force undefined for test
 			delete globalThis.structuredClone;

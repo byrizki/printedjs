@@ -27,6 +27,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 			__dirname,
 			"../../packages/minimal/dist/index.min.global.js",
 		);
+
 		expect(existsSync(minBundlePath)).toBe(true);
 
 		const stats = readFileSync(minBundlePath);
@@ -39,6 +40,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 		"executes minimal bundle in browser and auto-paginates document",
 		async () => {
 			const tempHtmlPath = resolve(__dirname, "../fixtures/temp-minimal-test.html");
+
 			const bundlePath = resolve(
 				__dirname,
 				"../../packages/minimal/dist/index.min.global.js",
@@ -67,6 +69,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 			writeFileSync(tempHtmlPath, htmlContent, "utf-8");
 
 			const executablePath = resolveChromeExecutable();
+
 			const browser = await puppeteer.launch({
 				headless: true,
 				...(executablePath ? { executablePath } : {}),
@@ -110,6 +113,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				expect(evalResult.pagesCount).toBe(2);
 			} finally {
 				await browser.close();
+
 				if (existsSync(tempHtmlPath)) {
 					unlinkSync(tempHtmlPath);
 				}
@@ -122,6 +126,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 		"executes all 5 Paged.Handler lifecycle hooks and PagedConfig callbacks",
 		async () => {
 			const tempHtmlPath = resolve(__dirname, "../fixtures/temp-lifecycle-test.html");
+
 			const bundlePath = resolve(
 				__dirname,
 				"../../packages/minimal/dist/index.min.global.js",
@@ -180,6 +185,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 			writeFileSync(tempHtmlPath, htmlContent, "utf-8");
 
 			const executablePath = resolveChromeExecutable();
+
 			const browser = await puppeteer.launch({
 				headless: true,
 				...(executablePath ? { executablePath } : {}),
@@ -213,6 +219,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				expect(logs).toContain("event.totalPages:1");
 			} finally {
 				await browser.close();
+
 				if (existsSync(tempHtmlPath)) {
 					unlinkSync(tempHtmlPath);
 				}
@@ -225,6 +232,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 		"honors PagedConfig.content and PagedConfig.renderTo custom options",
 		async () => {
 			const tempHtmlPath = resolve(__dirname, "../fixtures/temp-config-test.html");
+
 			const bundlePath = resolve(
 				__dirname,
 				"../../packages/minimal/dist/index.min.global.js",
@@ -254,6 +262,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 			writeFileSync(tempHtmlPath, htmlContent, "utf-8");
 
 			const executablePath = resolveChromeExecutable();
+
 			const browser = await puppeteer.launch({
 				headless: true,
 				...(executablePath ? { executablePath } : {}),
@@ -275,6 +284,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 					const container = document.getElementById("output-container");
 					const customP = container?.querySelector(".custom-injected");
 					const pages = container?.querySelectorAll(".printedjs_page");
+
 					return {
 						hasPagesInContainer: (pages?.length ?? 0) > 0,
 						hasInjectedContent: !!customP,
@@ -285,6 +295,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				expect(result.hasInjectedContent).toBe(true);
 			} finally {
 				await browser.close();
+
 				if (existsSync(tempHtmlPath)) {
 					unlinkSync(tempHtmlPath);
 				}

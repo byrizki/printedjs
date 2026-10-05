@@ -48,6 +48,7 @@ export abstract class PageCollection {
 		}
 
 		let start = 0;
+
 		if (this.isShowCover) {
 			this.pages[0]?.setDensity(PageDensity.HARD);
 			this.landscapeSpread.push([start]);
@@ -75,6 +76,7 @@ export abstract class PageCollection {
 
 		for (let i = 0; i < spread.length; i++) {
 			const s = spread[i];
+
 			if (s && (pageNum === s[0] || pageNum === s[1])) return i;
 		}
 
@@ -92,6 +94,7 @@ export abstract class PageCollection {
 	public getPage(pageIndex: number): Page {
 		if (pageIndex >= 0 && pageIndex < this.pages.length) {
 			const page = this.pages[pageIndex];
+
 			if (page) return page;
 		}
 
@@ -100,13 +103,17 @@ export abstract class PageCollection {
 
 	public nextBy(current: Page): Page | null {
 		const idx = this.pages.indexOf(current);
+
 		if (idx < this.pages.length - 1) return this.pages[idx + 1] ?? null;
+
 		return null;
 	}
 
 	public prevBy(current: Page): Page | null {
 		const idx = this.pages.indexOf(current);
+
 		if (idx > 0) return this.pages[idx - 1] ?? null;
+
 		return null;
 	}
 
@@ -116,12 +123,15 @@ export abstract class PageCollection {
 		if (this.render.getOrientation() === Orientation.PORTRAIT) {
 			if (direction === FlipDirection.FORWARD) {
 				const page = this.pages[current];
+
 				return page ? page.newTemporaryCopy() : null;
 			}
+
 			return this.pages[current - 1] ?? null;
 		}
 
 		const spreads = this.getSpread();
+
 		const spread =
 			direction === FlipDirection.FORWARD ? spreads[current + 1] : spreads[current - 1];
 
@@ -142,10 +152,12 @@ export abstract class PageCollection {
 		if (this.render.getOrientation() === Orientation.PORTRAIT) {
 			if (direction === FlipDirection.FORWARD) return this.pages[current + 1] ?? null;
 			const page = this.pages[current];
+
 			return page ? page.newTemporaryCopy() : null;
 		}
 
 		const spreads = this.getSpread();
+
 		const spread =
 			direction === FlipDirection.FORWARD ? spreads[current + 1] : spreads[current - 1];
 
@@ -180,6 +192,7 @@ export abstract class PageCollection {
 		if (pageNum < 0 || pageNum >= this.pages.length) return;
 
 		const spreadIndex = this.getSpreadIndexByPage(pageNum);
+
 		if (spreadIndex !== null) {
 			this.currentSpreadIndex = spreadIndex;
 			this.showSpread();
@@ -204,6 +217,7 @@ export abstract class PageCollection {
 
 	public showSpread(): void {
 		const spread = this.getSpread()[this.currentSpreadIndex];
+
 		if (!spread) return;
 
 		if (spread.length === 2) {

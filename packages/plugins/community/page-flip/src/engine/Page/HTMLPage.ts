@@ -27,8 +27,10 @@ export class HTMLPage extends Page {
 		}
 
 		if (this.temporaryCopy === null) {
+			// SAFETY: this.element is an HTMLElement whose clone is an HTMLElement
 			this.copiedElement = this.element.cloneNode(true) as HTMLElement;
 			this.copiedElement.setAttribute("data-flip-clone", "true");
+
 			if (this.element.parentElement) {
 				this.element.parentElement.appendChild(this.copiedElement);
 			}
@@ -88,6 +90,7 @@ export class HTMLPage extends Page {
 		const angle = Number.isFinite(this.state.hardDrawingAngle)
 			? this.state.hardDrawingAngle
 			: 0;
+
 		const rad = (angle * Math.PI) / 180;
 
 		if (Math.cos(rad) <= 1e-4) {
@@ -96,6 +99,7 @@ export class HTMLPage extends Page {
 			s.visibility = "hidden";
 			s.opacity = "0";
 			s.pointerEvents = "none";
+
 			return;
 		}
 
@@ -123,6 +127,7 @@ export class HTMLPage extends Page {
 
 	private drawSoft(position: Point, pageWidth: number, pageHeight: number): void {
 		let polygon = "polygon( ";
+
 		for (const p of this.state.area) {
 			if (p !== null) {
 				let g =
@@ -140,6 +145,7 @@ export class HTMLPage extends Page {
 				polygon += g.x + "px " + g.y + "px, ";
 			}
 		}
+
 		polygon = polygon.slice(0, -2);
 		polygon += ")";
 

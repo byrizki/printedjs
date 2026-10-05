@@ -18,14 +18,17 @@ function toRoman(num: number, upper = false): string {
 	if (num <= 0 || num >= 4000) {
 		return String(num);
 	}
+
 	let result = "";
 	let n = num;
+
 	for (const [val, sym] of ROMAN_MAP) {
 		while (n >= val) {
 			result += sym;
 			n -= val;
 		}
 	}
+
 	return upper ? result.toUpperCase() : result;
 }
 
@@ -33,13 +36,16 @@ function toAlpha(num: number, upper = false): string {
 	if (num <= 0) {
 		return String(num);
 	}
+
 	let result = "";
 	let n = num;
+
 	while (n > 0) {
 		n--;
 		result = String.fromCharCode((upper ? 65 : 97) + (n % 26)) + result;
 		n = Math.floor(n / 26);
 	}
+
 	return result;
 }
 
@@ -47,6 +53,7 @@ function toDecimalLeadingZero(num: number): string {
 	if (num >= 0 && num < 10) {
 		return `0${num}`;
 	}
+
 	return String(num);
 }
 
@@ -62,6 +69,7 @@ export type PageCounterStyle =
 
 export function formatPageNumber(value: number, style?: string | null): string {
 	const s = (style ?? "decimal").toLowerCase().trim();
+
 	switch (s) {
 		case "lower-roman":
 			return toRoman(value, false);

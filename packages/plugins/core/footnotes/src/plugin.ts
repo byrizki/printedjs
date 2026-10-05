@@ -8,6 +8,26 @@ export interface FootnoteRule {
 
 const FOOTNOTES_KEY = "printedjs:footnoteRules";
 
+function parsePolicy(raw: string | undefined): "auto" | "line" | "block" {
+	const val = raw?.toLowerCase();
+
+	if (val === "line" || val === "block") {
+		return val;
+	}
+
+	return "auto";
+}
+
+function parseDisplay(raw: string | undefined): "block" | "inline" {
+	const val = raw?.toLowerCase();
+
+	if (val === "inline") {
+		return val;
+	}
+
+	return "block";
+}
+
 export function footnotesPlugin(): PrintedjsPlugin {
 	const footnoteRules: FootnoteRule[] = [];
 
@@ -26,13 +46,17 @@ export function footnotesPlugin(): PrintedjsPlugin {
 			transformed = transformed.replace(/@page\b[^{]*\{([\s\S]*?)\}/gi, (pageBlock) => {
 				let newPageBlock = pageBlock;
 				const footnoteMatch = pageBlock.match(/@footnote\s*\{([^}]*)\}/i);
+
 				if (footnoteMatch) {
 					newPageBlock = newPageBlock.replace(/@footnote\s*\{[^}]*\}/gi, "");
+
 					const footnoteAreaSel = pagedjsCompatible
 						? ".printedjs_footnote_area, .pagedjs_footnote_area"
 						: ".printedjs_footnote_area";
+
 					transformed += `\n${footnoteAreaSel} {\n${footnoteMatch[1]}\n}\n`;
 				}
+
 				return newPageBlock;
 			});
 
@@ -41,6 +65,7 @@ export function footnotesPlugin(): PrintedjsPlugin {
 				/([^{}@]+)\{([^{}]+)\}/g,
 				(match, rawSel, rawBody) => {
 					const body = rawBody;
+
 					if (/float\s*:\s*footnote/i.test(body)) {
 						const sel = rawSel.trim();
 						const policyMatch = body.match(/footnote-policy\s*:\s*(auto|line|block)/i);
@@ -48,17 +73,17 @@ export function footnotesPlugin(): PrintedjsPlugin {
 
 						footnoteRules.push({
 							selector: sel,
-							policy: (policyMatch ? policyMatch[1]?.toLowerCase() : "auto") as
-								"auto" | "line" | "block",
-							display: (displayMatch ? displayMatch[1]?.toLowerCase() : "block") as
-								"block" | "inline",
+							policy: parsePolicy(policyMatch?.[1]),
+							display: parseDisplay(displayMatch?.[1]),
 						});
 
 						let cleanedBody = body.replace(/float\s*:\s*footnote;?/gi, "");
 						cleanedBody = cleanedBody.replace(/footnote-policy\s*:\s*[^;!}]+;?/gi, "");
 						cleanedBody = cleanedBody.replace(/footnote-display\s*:\s*[^;!}]+;?/gi, "");
+
 						return `${sel} {${cleanedBody}}`;
 					}
+
 					return match;
 				},
 			);
@@ -78,8 +103,10 @@ export function footnotesPlugin(): PrintedjsPlugin {
 			return transformed;
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM ParentNode during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
@@ -98,7 +125,8 @@ export function footnotesPlugin(): PrintedjsPlugin {
 			}
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc || footnoteRules.length === 0) {
 				return;
 			}
@@ -106,6 +134,7 @@ export function footnotesPlugin(): PrintedjsPlugin {
 			const pagedjsCompatible = context.pagedjsCompatible ?? false;
 			const pages = doc.querySelectorAll(".printedjs_page, .pagedjs_page");
 			let footnoteCounter = 0;
+
 			const pendingNotes: {
 				node: HTMLElement;
 				noteId: string;
@@ -113,16 +142,21 @@ export function footnotesPlugin(): PrintedjsPlugin {
 			}[] = [];
 
 			pages.forEach((pageEl, pageIdx) => {
+				// SAFETY: elements returned by querySelectorAll are HTMLElement nodes
 				const page = pageEl as HTMLElement;
+
 				const footnoteInner = page.querySelector<HTMLElement>(
 					".printedjs_footnote_inner_content, .pagedjs_footnote_inner_content",
 				);
+
 				const footnoteArea = page.querySelector<HTMLElement>(
 					".printedjs_footnote_area, .pagedjs_footnote_area",
 				);
+
 				const footnoteContent = page.querySelector<HTMLElement>(
 					".printedjs_footnote_content, .pagedjs_footnote_content",
 				);
+
 				if (!footnoteInner || !footnoteArea) {
 					return;
 				}
@@ -137,13 +171,16 @@ export function footnotesPlugin(): PrintedjsPlugin {
 					);
 					pending.node.setAttribute("data-footnote-continuation", "true");
 					pending.node.classList.add("printedjs_footnote_continuation");
+
 					if (pagedjsCompatible) {
 						pending.node.classList.add("pagedjs_footnote_continuation");
 					}
+
 					footnoteInner.appendChild(pending.node);
 				}
 
 				const matchedNotes: HTMLElement[] = [];
+
 				for (const rule of footnoteRules) {
 					const elements = page.querySelectorAll<HTMLElement>(rule.selector);
 					elements.forEach((el) => {
@@ -186,19 +223,23 @@ export function footnotesPlugin(): PrintedjsPlugin {
 					// Check available height in footnote area
 					const areaView =
 						doc.defaultView ?? (typeof window !== "undefined" ? window : null);
+
 					const maxHeight =
 						parseFloat(areaView?.getComputedStyle(footnoteArea).maxHeight ?? "") || 250;
+
 					const currentHeight = footnoteInner.offsetHeight;
 
 					// If note exceeds space on current page and has multiple paragraphs or long text
 					if (currentHeight > maxHeight && pageIdx < pages.length - 1) {
 						note.setAttribute("data-footnote-continued", "true");
 						note.classList.add("printedjs_footnote_continued");
+
 						if (pagedjsCompatible) {
 							note.classList.add("pagedjs_footnote_continued");
 						}
 
 						// Clone continuation fragment for next page
+						// SAFETY: cloneNode(true) on HTMLElement note produces an HTMLElement
 						const continuation = note.cloneNode(true) as HTMLElement;
 						continuation.removeAttribute("data-footnote-continued");
 						continuation.classList.remove(
@@ -213,6 +254,7 @@ export function footnotesPlugin(): PrintedjsPlugin {
 
 				const areaView =
 					doc.defaultView ?? (typeof window !== "undefined" ? window : null);
+
 				const areaStyle = areaView?.getComputedStyle(footnoteArea);
 				const borderTop = areaStyle ? parseFloat(areaStyle.borderTopWidth) || 0 : 0;
 				const borderBottom = areaStyle ? parseFloat(areaStyle.borderBottomWidth) || 0 : 0;
@@ -228,9 +270,12 @@ export function footnotesPlugin(): PrintedjsPlugin {
 						footnoteInner.scrollHeight,
 					),
 				);
+
 				let totalHeight = contentHeight > 0 ? contentHeight + frameHeight : 0;
+
 				if (totalHeight > 0) {
 					page.style.setProperty("--printedjs-footnotes-height", `${totalHeight}px`);
+
 					if (pagedjsCompatible) {
 						page.style.setProperty("--pagedjs-footnotes-height", `${totalHeight}px`);
 					}
@@ -240,6 +285,7 @@ export function footnotesPlugin(): PrintedjsPlugin {
 							footnoteArea.scrollHeight - footnoteArea.clientHeight,
 						);
 						page.style.setProperty("--printedjs-footnotes-height", `${totalHeight}px`);
+
 						if (pagedjsCompatible) {
 							page.style.setProperty("--pagedjs-footnotes-height", `${totalHeight}px`);
 						}

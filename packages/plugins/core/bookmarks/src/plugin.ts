@@ -13,7 +13,8 @@ export function bookmarksPlugin(): PrintedjsPlugin {
 		name: "bookmarks",
 		after: ["page-rules", "breaks", "generated-content"],
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) {
 				return;
 			}
@@ -23,6 +24,7 @@ export function bookmarksPlugin(): PrintedjsPlugin {
 			const stack: BookmarkItem[] = [];
 
 			pages.forEach((pageEl) => {
+				// SAFETY: elements returned by querySelectorAll are HTMLElement nodes
 				const page = pageEl as HTMLElement;
 				const pageNum = parseInt(page.getAttribute("data-page-number") ?? "1", 10);
 
@@ -34,10 +36,12 @@ export function bookmarksPlugin(): PrintedjsPlugin {
 				headings.forEach((heading) => {
 					let level = 1;
 					const tag = heading.tagName.toLowerCase();
+
 					if (tag.startsWith("h") && tag.length === 2) {
 						level = parseInt(tag[1] ?? "1", 10);
 					} else {
 						const customLevel = heading.getAttribute("data-bookmark-level");
+
 						if (customLevel) {
 							level = parseInt(customLevel, 10);
 						}
@@ -69,7 +73,7 @@ export function bookmarksPlugin(): PrintedjsPlugin {
 				});
 			});
 
-			context.metadata["bookmarks"] = rootBookmarks;
+			context.metadata.bookmarks = rootBookmarks;
 		},
 	};
 }

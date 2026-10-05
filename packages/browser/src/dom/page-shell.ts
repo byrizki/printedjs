@@ -546,6 +546,7 @@ function cls(name: string, pagedjsCompatible = false): string {
 	if (pagedjsCompatible) {
 		return `printedjs_${name} pagedjs_${name}`;
 	}
+
 	return `printedjs_${name}`;
 }
 
@@ -581,9 +582,11 @@ export function createPageShell(
 
 	if (options?.counterReset !== undefined) {
 		const resetVal = Math.max(0, options.counterReset - 1);
+
 		if (page.style) {
 			page.style.counterReset = `page ${resetVal}`;
 		}
+
 		page.setAttribute("data-counter-reset", String(options.counterReset));
 	}
 
@@ -592,32 +595,41 @@ export function createPageShell(
 	}
 
 	const classes: string[] = ["printedjs_page"];
+
 	if (pagedjsCompatible) {
 		classes.push("pagedjs_page");
 	}
+
 	if (pageName) {
 		classes.push(`printedjs_${pageName}_page`);
+
 		if (pagedjsCompatible) {
 			classes.push(`pagedjs_${pageName}_page`);
 		}
 	}
+
 	if (pageNumber === 1) {
 		classes.push("printedjs_first_page");
+
 		if (pagedjsCompatible) {
 			classes.push("pagedjs_first_page");
 		}
 	}
+
 	if (pageNumber % 2 === 1) {
 		classes.push("printedjs_right_page");
+
 		if (pagedjsCompatible) {
 			classes.push("pagedjs_right_page");
 		}
 	} else {
 		classes.push("printedjs_left_page");
+
 		if (pagedjsCompatible) {
 			classes.push("pagedjs_left_page");
 		}
 	}
+
 	page.className = classes.join(" ");
 
 	page.innerHTML = `

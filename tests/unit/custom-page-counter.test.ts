@@ -7,6 +7,7 @@ import {
 
 function createMockDoc() {
 	const elements: unknown[] = [];
+
 	return {
 		createElement: () => {
 			const el = {
@@ -30,7 +31,9 @@ function createMockDoc() {
 					this.attributes[k] = v;
 				},
 			};
+
 			elements.push(el);
+
 			return el as unknown as HTMLElement;
 		},
 	} as unknown as Document;
@@ -46,6 +49,7 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 
 	it("creates page shell with logical page number and counter-reset styles", () => {
 		const doc = createMockDoc();
+
 		const shell = createPageShell(4, doc, false, "chapter", {
 			physicalPageNumber: 4,
 			logicalPageNumber: 1,
@@ -65,6 +69,7 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 
 	it("creates page shell with roman numeral styling for frontmatter", () => {
 		const doc = createMockDoc();
+
 		const shell = createPageShell(2, doc, false, "preface", {
 			physicalPageNumber: 2,
 			logicalPageNumber: 2,
@@ -80,10 +85,12 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 
 	it("preserves requested style in target-counter and formats cross references", () => {
 		const plugin = countersPlugin();
+
 		const css = `
 			a[href="#preface"]::after { content: target-counter(attr(href), page, lower-roman); }
 			a[href="#ch1"]::after { content: target-counter(attr(href), page); }
 		`;
+
 		const transformed = plugin.transformStyles?.(css, {
 			metadata: {},
 			pagedjsCompatible: false,
@@ -93,6 +100,7 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 		expect(transformed).toContain("attr(data-target-page)");
 
 		const linkPrefaceAttrs: Record<string, string> = { href: "#preface" };
+
 		const linkPreface = {
 			getAttribute: (k: string) => linkPrefaceAttrs[k] ?? null,
 			setAttribute: (k: string, v: string) => {
@@ -101,6 +109,7 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 		};
 
 		const linkCh1Attrs: Record<string, string> = { href: "#ch1" };
+
 		const linkCh1 = {
 			getAttribute: (k: string) => linkCh1Attrs[k] ?? null,
 			setAttribute: (k: string, v: string) => {
@@ -113,7 +122,9 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 			"data-page-formatted": "ii",
 			"data-page": "preface",
 		};
+
 		const pagePrefaceProps: Record<string, string> = {};
+
 		const pagePreface = {
 			getAttribute: (k: string) => pagePrefaceAttrs[k] ?? null,
 			setAttribute: (k: string, v: string) => {
@@ -131,7 +142,9 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 			"data-page-formatted": "1",
 			"data-page": "chapter",
 		};
+
 		const pageCh1Props: Record<string, string> = {};
+
 		const pageCh1 = {
 			getAttribute: (k: string) => pageCh1Attrs[k] ?? null,
 			setAttribute: (k: string, v: string) => {
@@ -157,13 +170,17 @@ describe("Phase 17: Enhanced Page Counters & Custom Numbering", () => {
 		const fakeDoc = {
 			querySelectorAll: (sel: string) => {
 				if (sel === "[href]") return [linkPreface, linkCh1];
+
 				if (sel.includes("printedjs_page")) return [pagePreface, pageCh1];
+
 				return [];
 			},
 			querySelector: () => null,
 			getElementById: (id: string) => {
 				if (id === "preface") return prefaceHeading;
+
 				if (id === "ch1") return ch1Heading;
+
 				return null;
 			},
 			documentElement: {

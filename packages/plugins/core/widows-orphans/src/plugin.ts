@@ -28,14 +28,17 @@ export function widowsOrphansPlugin(): PrintedjsPlugin {
 						orphans: orphansMatch ? parseInt(orphansMatch[1], 10) : undefined,
 					});
 				}
+
 				return match;
 			});
 
 			return css;
 		},
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM node supporting querySelectorAll during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
@@ -46,6 +49,7 @@ export function widowsOrphansPlugin(): PrintedjsPlugin {
 						if (rule.widows !== undefined) {
 							el.setAttribute("data-widows", String(rule.widows));
 						}
+
 						if (rule.orphans !== undefined) {
 							el.setAttribute("data-orphans", String(rule.orphans));
 						}

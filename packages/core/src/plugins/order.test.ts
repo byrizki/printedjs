@@ -9,6 +9,7 @@ describe("plugins/order", () => {
 			{ name: "counters", after: ["page-rules"] },
 			{ name: "page-rules" },
 		];
+
 		expect(orderPlugins(plugins).map(({ name }) => name)).toEqual([
 			"page-rules",
 			"counters",
@@ -20,6 +21,7 @@ describe("plugins/order", () => {
 			{ name: "footnotes" },
 			{ name: "breaks", before: ["footnotes"] },
 		];
+
 		expect(orderPlugins(plugins).map(({ name }) => name)).toEqual([
 			"breaks",
 			"footnotes",
@@ -32,6 +34,7 @@ describe("plugins/order", () => {
 			{ name: "plugin-b" },
 			{ name: "plugin-c" },
 		];
+
 		expect(orderPlugins(plugins).map(({ name }) => name)).toEqual([
 			"plugin-a",
 			"plugin-b",
@@ -59,6 +62,7 @@ describe("plugins/order", () => {
 			{ name: "a", after: ["b"] },
 			{ name: "b", after: ["a"] },
 		];
+
 		expect(() => orderPlugins(plugins)).toThrow(PrintedjsPluginOrderError);
 	});
 });

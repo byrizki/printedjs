@@ -17,6 +17,7 @@ export function resolveChromeExecutable(): string | undefined {
 		process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
 		process.env.CHROME_PATH,
 	];
+
 	for (const candidate of envCandidates) {
 		if (candidate && existsSync(candidate)) {
 			return candidate;
@@ -27,8 +28,11 @@ export function resolveChromeExecutable(): string | undefined {
 	try {
 		const req = createRequire(import.meta.url);
 		const playwright = req("@playwright/test") || req("playwright");
-		if (typeof playwright?.chromium?.executablePath === "function") {
-			const pwPath = playwright.chromium.executablePath();
+		const chromium = playwright?.chromium;
+
+		if (chromium && "executablePath" in chromium) {
+			const pwPath = chromium.executablePath();
+
 			if (pwPath && existsSync(pwPath)) {
 				return pwPath;
 			}
@@ -62,11 +66,13 @@ export function resolveChromeExecutable(): string | undefined {
 			join(process.env.LOCALAPPDATA, "Microsoft", "Edge", "Application", "msedge.exe"),
 		);
 	}
+
 	if (process.env.PROGRAMFILES) {
 		systemCandidates.push(
 			join(process.env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
 		);
 	}
+
 	if (process.env["PROGRAMFILES(X86)"]) {
 		systemCandidates.push(
 			join(
@@ -87,6 +93,7 @@ export function resolveChromeExecutable(): string | undefined {
 
 	// 4. Puppeteer and Playwright cache roots across Linux, macOS, and Windows
 	const home = homedir();
+
 	const cacheRoots = [
 		join(home, ".cache", "puppeteer", "chrome"),
 		join(home, ".cache", "ms-playwright"),
@@ -138,12 +145,16 @@ export function resolveChromeExecutable(): string | undefined {
 
 	for (const cacheDir of cacheRoots) {
 		if (!existsSync(cacheDir)) continue;
+
 		try {
 			const versions = readdirSync(cacheDir).sort().reverse();
+
 			for (const version of versions) {
 				const versionDir = join(cacheDir, version);
+
 				for (const sub of subExecutables) {
 					const candidate = join(versionDir, ...sub);
+
 					if (existsSync(candidate)) {
 						return candidate;
 					}

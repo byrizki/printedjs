@@ -10,12 +10,12 @@ export interface PuppeteerPageLike {
 	goto(
 		url: string,
 		options?: { waitUntil?: string | string[]; timeout?: number },
-	): Promise<unknown>;
+	): Promise<void>;
 	evaluate<T, A = void>(fn: (arg: A) => T | Promise<T>, arg?: A | undefined): Promise<T>;
-	waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
-	waitForFunction(fn: () => unknown, options?: { timeout?: number }): Promise<unknown>;
-	addStyleTag?(options: { content: string }): Promise<unknown>;
-	addScriptTag?(options: { content: string }): Promise<unknown>;
+	waitForSelector(selector: string, options?: { timeout?: number }): Promise<void>;
+	waitForFunction(fn: () => boolean, options?: { timeout?: number }): Promise<void>;
+	addStyleTag?(options: { content: string }): Promise<void>;
+	addScriptTag?(options: { content: string }): Promise<void>;
 	pdf(options: {
 		path?: string;
 		format?: string;
@@ -36,6 +36,18 @@ export interface PuppeteerBridgeResult {
 	readonly pageCount: number;
 	readonly outputPath?: string | undefined;
 	readonly durationMs: number;
+}
+
+interface MutablePuppeteerBridgeResult {
+	pageCount: number;
+	durationMs: number;
+	outputPath?: string;
+}
+
+interface PuppeteerLaunchConfig {
+	headless: boolean;
+	args: readonly string[];
+	executablePath?: string;
 }
 
 export async function printedjsPuppeteerBridge(
@@ -65,10 +77,14 @@ export async function printedjsPuppeteerBridge(
 	try {
 		await page.waitForFunction(
 			() => {
-				const win = window as unknown as {
+				interface WindowWithRenderFinished extends Window {
 					__printedjsRenderFinished?: boolean;
 					__pagedRenderFinished?: boolean;
-				};
+				}
+
+				// SAFETY: window in browser evaluation context holds render completion flags
+				const win = window as WindowWithRenderFinished;
+
 				return (
 					win.__printedjsRenderFinished === true || win.__pagedRenderFinished === true
 				);
@@ -86,9 +102,11 @@ export async function printedjsPuppeteerBridge(
 	);
 
 	let outputPath: string | undefined;
+
 	if (options?.output) {
 		outputPath = resolve(process.cwd(), options.output);
 		const outDir = dirname(outputPath);
+
 		if (!existsSync(outDir)) {
 			mkdirSync(outDir, { recursive: true });
 		}
@@ -102,11 +120,29 @@ export async function printedjsPuppeteerBridge(
 	}
 
 	const durationMs = performance.now() - startTime;
-	return {
+
+	const result: MutablePuppeteerBridgeResult = {
 		pageCount,
-		...(outputPath ? { outputPath } : {}),
 		durationMs,
 	};
+
+	if (outputPath) {
+		result.outputPath = outputPath;
+	}
+
+	return result;
+}
+
+interface PuppeteerLauncher {
+	launch(options?: PuppeteerLaunchConfig): Promise<{
+		newPage(): Promise<PuppeteerPageLike>;
+		close(): Promise<void>;
+	}>;
+}
+
+interface PuppeteerModuleNamespace {
+	readonly default?: PuppeteerLauncher | undefined;
+	readonly launch?: PuppeteerLauncher["launch"] | undefined;
 }
 
 export async function renderPdfWithPuppeteer(
@@ -114,22 +150,14 @@ export async function renderPdfWithPuppeteer(
 ): Promise<CliRenderResult> {
 	// Dynamically import puppeteer
 	const moduleName = "puppeteer";
+
+	// SAFETY: dynamic import of optional puppeteer package
 	const puppeteerModule = (await import(/* @vite-ignore */ moduleName).catch(
 		() => null,
-	)) as unknown as {
-		default?: {
-			launch: (options?: unknown) => Promise<{
-				newPage: () => Promise<PuppeteerPageLike>;
-				close: () => Promise<void>;
-			}>;
-		};
-		launch?: (options?: unknown) => Promise<{
-			newPage: () => Promise<PuppeteerPageLike>;
-			close: () => Promise<void>;
-		}>;
-	} | null;
+	)) as PuppeteerModuleNamespace | null;
 
 	const launchFn = puppeteerModule?.default?.launch ?? puppeteerModule?.launch;
+
 	if (!launchFn) {
 		throw new Error(
 			"Puppeteer is not installed. Please install puppeteer via 'pnpm add -D puppeteer'.",
@@ -137,23 +165,31 @@ export async function renderPdfWithPuppeteer(
 	}
 
 	let targetUrl: string;
+
 	if (options.input.startsWith("http://") || options.input.startsWith("https://")) {
 		targetUrl = options.input;
 	} else {
 		const fullInputPath = resolve(process.cwd(), options.input);
+
 		if (!existsSync(fullInputPath)) {
 			throw new Error(`Input file does not exist: ${fullInputPath}`);
 		}
+
 		targetUrl = pathToFileURL(fullInputPath).href;
 	}
 
 	const resolvedExecutablePath = resolveChromeExecutable();
 
-	const browser = await launchFn({
+	const launchConfig: PuppeteerLaunchConfig = {
 		headless: true,
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
-		...(resolvedExecutablePath ? { executablePath: resolvedExecutablePath } : {}),
-	});
+	};
+
+	if (resolvedExecutablePath) {
+		launchConfig.executablePath = resolvedExecutablePath;
+	}
+
+	const browser = await launchFn(launchConfig);
 
 	try {
 		const page = await browser.newPage();

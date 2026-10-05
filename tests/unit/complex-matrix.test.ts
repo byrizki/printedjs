@@ -11,10 +11,12 @@ const executablePath = resolveChromeExecutable();
 describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => {
 	test("renders multi-page complex matrix table", async () => {
 		const tempHtmlPath = resolve(__dirname, "../fixtures/temp-complex-matrix.html");
+
 		const compiled = compileTemplate(
 			COMPLEX_MATRIX_FIXTURE.html,
 			COMPLEX_MATRIX_FIXTURE.data ?? {},
 		);
+
 		expect(compiled.error).toBeNull();
 
 		const htmlContent = `<!DOCTYPE html>
@@ -61,25 +63,32 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			const pageCount = await page.evaluate(
 				() => document.querySelectorAll(".printedjs_page").length,
 			);
+
 			expect(pageCount).toBeGreaterThanOrEqual(2);
 
 			// 1. Verify non-repeating table header: exactly 1 thead across all pages, located on page 1
 			const theadCountOnPage1 = await page.evaluate(() => {
 				const p1 = document.querySelectorAll(".printedjs_page")[0];
+
 				return p1 ? p1.querySelectorAll("thead").length : 0;
 			});
+
 			const theadCountOnPage2 = await page.evaluate(() => {
 				const p2 = document.querySelectorAll(".printedjs_page")[1];
+
 				return p2 ? p2.querySelectorAll("thead").length : 0;
 			});
+
 			expect(theadCountOnPage1).toBe(1);
 			expect(theadCountOnPage2).toBe(0);
 
 			// 2. Verify non-repeating table footer: tfoot displays once on final page only, never repeated on intermediate split pages
 			const tfootCounts = await page.evaluate(() => {
 				const pages = Array.from(document.querySelectorAll(".printedjs_page"));
+
 				return pages.map((p) => p.querySelectorAll("tfoot").length);
 			});
+
 			expect(tfootCounts[0]).toBe(0);
 			expect(tfootCounts[1]).toBe(0);
 			expect(tfootCounts[2]).toBe(1);
@@ -88,10 +97,12 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			const hasContinuationCell = await page.evaluate(() => {
 				return Boolean(document.querySelector(".printedjs-rowspan-continuation"));
 			});
+
 			expect(hasContinuationCell).toBe(false);
 
 			const cellWidthsPerPage = await page.evaluate(() => {
 				const pages = Array.from(document.querySelectorAll(".printedjs_page"));
+
 				return pages.map((p, idx) => {
 					const dataRows = Array.from(p.querySelectorAll("tbody tr")).filter(
 						(r) =>
@@ -100,7 +111,9 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 							!r.classList.contains("audit-row") &&
 							!r.classList.contains("executive-row"),
 					);
+
 					const sample = dataRows[dataRows.length - 1];
+
 					return {
 						pageIndex: idx + 1,
 						cellCount: sample?.children.length,
@@ -120,11 +133,14 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			const p1Sample = cellWidthsPerPage.find(
 				(p) => p.pageIndex === 1 && p.widths.length === 8,
 			);
+
 			const p2Sample = cellWidthsPerPage.find(
 				(p) => p.pageIndex === 2 && p.widths.length === 8,
 			);
+
 			expect(p1Sample).toBeDefined();
 			expect(p2Sample).toBeDefined();
+
 			if (p1Sample && p2Sample) {
 				for (let i = 0; i < p1Sample.widths.length; i++) {
 					expect(Math.abs(p1Sample.widths[i]! - p2Sample.widths[i]!)).toBeLessThanOrEqual(
@@ -136,6 +152,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			// 3. Verify Colspan split page case: multi-row colspan section splits across pages
 			const colspanCase = await page.evaluate(() => {
 				const pages = Array.from(document.querySelectorAll(".printedjs_page"));
+
 				return pages.map((p, idx) => ({
 					pageIndex: idx + 1,
 					colspans: Array.from(p.querySelectorAll("td[colspan]")).map((c) =>
@@ -182,6 +199,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 						totalPages?: number;
 						total?: number;
 					} | null = null;
+
 					window.addEventListener(
 						"printedjs:rendered",
 						(e: Event) => {
@@ -196,6 +214,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 					);
 
 					const container = document.createElement("div");
+
 					const win = window as unknown as {
 						Printedjs: {
 							createRenderer: (opts: unknown) => {
@@ -205,15 +224,18 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 						};
 						PrintedjsPlugins: { standardPreset: () => unknown };
 					};
+
 					const renderer = win.Printedjs.createRenderer({
 						target: container,
 						isolation: "root",
 						plugins: win.PrintedjsPlugins.standardPreset(),
 					});
+
 					await renderer.render({
 						content: { html: "<p>Render event verification</p>" },
 					});
 					renderer.destroy();
+
 					return captured;
 				},
 			);
@@ -224,6 +246,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			expect(eventDetail?.total).toBe(1);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
@@ -232,6 +255,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 
 	test("synchronizes table column widths across pages automatically without explicit css table-layout or colgroup", async () => {
 		const tempHtmlPath = resolve(__dirname, "../fixtures/temp-auto-table.html");
+
 		const tableHtml = `
 		<style>
 			@page { size: A4 portrait; margin: 20mm; }
@@ -303,8 +327,10 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 
 			const widthsPerPage = await page.evaluate(() => {
 				const pages = Array.from(document.querySelectorAll(".printedjs_page"));
+
 				return pages.map((p, idx) => {
 					const row = p.querySelector("tbody tr");
+
 					return {
 						pageIndex: idx + 1,
 						widths: row
@@ -321,15 +347,18 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			const p2 = widthsPerPage[1];
 			expect(p1).toBeDefined();
 			expect(p2).toBeDefined();
+
 			if (p1 && p2) {
 				expect(p1.widths.length).toBe(3);
 				expect(p2.widths.length).toBe(3);
+
 				for (let i = 0; i < p1.widths.length; i++) {
 					expect(Math.abs(p1.widths[i]! - p2.widths[i]!)).toBeLessThanOrEqual(2);
 				}
 			}
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
@@ -338,6 +367,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 
 	test("honors standard CSS break-after: avoid on table rows when subsequent row overflows", async () => {
 		const tempHtmlPath = resolve(__dirname, "../fixtures/temp-plain-colspan.html");
+
 		const tableHtml = `
 		<style>
 			@page { size: A4 portrait; margin: 20mm; }
@@ -423,13 +453,17 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 
 			const bannerPage = await page.evaluate(() => {
 				const pages = Array.from(document.querySelectorAll(".printedjs_page"));
+
 				for (let idx = 0; idx < pages.length; idx++) {
 					const banner = pages[idx]!.querySelector("#target-banner");
+
 					if (banner) {
 						const rows = Array.from(pages[idx]!.querySelectorAll("tbody tr"));
 						const bannerRowIndex = rows.findIndex((r) => r.contains(banner));
+
 						const hasRowsAfterBanner =
 							bannerRowIndex >= 0 && bannerRowIndex < rows.length - 1;
+
 						return {
 							pageIndex: idx + 1,
 							isOrphanAtBottom: bannerRowIndex === rows.length - 1,
@@ -437,6 +471,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 						};
 					}
 				}
+
 				return null;
 			});
 
@@ -445,6 +480,7 @@ describe.runIf(Boolean(executablePath))("Complex Matrix table rendering", () => 
 			expect(bannerPage?.hasRowsAfterBanner).toBe(true);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}

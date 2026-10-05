@@ -2,10 +2,15 @@ let sharedAudioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
 	if (typeof window === "undefined") return null;
-	const AudioCtxClass =
-		window.AudioContext ||
-		(window as unknown as { webkitAudioContext?: typeof AudioContext })
-			.webkitAudioContext;
+
+	interface WindowWithWebkitAudio extends Window {
+		webkitAudioContext?: typeof AudioContext;
+	}
+
+	// SAFETY: Window in legacy webkit browsers exposes webkitAudioContext constructor
+	const win = window as WindowWithWebkitAudio;
+	const AudioCtxClass = window.AudioContext || win.webkitAudioContext;
+
 	if (!AudioCtxClass) return null;
 
 	if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
@@ -15,14 +20,17 @@ function getAudioContext(): AudioContext | null {
 			return null;
 		}
 	}
+
 	if (sharedAudioCtx.state === "suspended") {
 		void sharedAudioCtx.resume();
 	}
+
 	return sharedAudioCtx;
 }
 
 export function playPageTurnSound(): void {
 	const ctx = getAudioContext();
+
 	if (!ctx) return;
 
 	try {

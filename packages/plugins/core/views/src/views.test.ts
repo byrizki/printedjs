@@ -19,6 +19,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		expect(css).toContain("@media print");
 
 		const containerAttrs: Record<string, string> = {};
+
 		const fakeDoc = {
 			querySelector: (sel: string) => {
 				if (sel.includes("printedjs_pages")) {
@@ -28,6 +29,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 						},
 					};
 				}
+
 				return null;
 			},
 		};
@@ -55,6 +57,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		expect(css).toContain("inset -15px 0 25px -10px");
 
 		const containerAttrs: Record<string, string> = {};
+
 		const fakeDoc = {
 			querySelector: (sel: string) => {
 				if (sel.includes("printedjs_pages")) {
@@ -64,6 +67,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 						},
 					};
 				}
+
 				return null;
 			},
 		};
@@ -86,6 +90,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 			attach(container) {
 				attached = true;
 				(container as unknown as Record<string, unknown>).__custom = customController;
+
 				return customController;
 			},
 			detach() {
@@ -100,15 +105,18 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 			initialMode: "single",
 			adapters: [customAdapter],
 		});
+
 		expect(plugin.name).toBe("page-views");
 
 		const css = plugin.transformStyles?.("body {}", {
 			metadata: {},
 			pagedjsCompatible: false,
 		});
+
 		expect(css).toContain(".custom-mode { display: flex; }");
 
 		const containerAttrs: Record<string, string> = {};
+
 		const fakeContainer = {
 			style: {} as CSSStyleDeclaration,
 			classList: {
@@ -132,6 +140,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		const fakeDoc = {
 			querySelector: (sel: string) => {
 				if (sel.includes("printedjs_pages")) return fakeContainer;
+
 				return null;
 			},
 		};
@@ -139,6 +148,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		const metadata: Record<string, unknown> = {
 			document: fakeDoc as unknown as Document,
 		};
+
 		plugin.afterRender?.({ metadata, pagedjsCompatible: false });
 
 		const controller = metadata["pageViews"] as PageViewsController;
@@ -161,6 +171,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		expect(plugin.name).toBe("page-views");
 
 		const containerAttrs: Record<string, string> = {};
+
 		const fakeContainer = {
 			style: {} as CSSStyleDeclaration,
 			classList: {
@@ -186,6 +197,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 				if (sel.includes("printedjs_pages")) {
 					return fakeContainer;
 				}
+
 				return null;
 			},
 		};
@@ -193,6 +205,7 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 		const metadata: Record<string, unknown> = {
 			document: fakeDoc as unknown as Document,
 		};
+
 		const context = {
 			metadata,
 			pagedjsCompatible: false,
@@ -242,11 +255,13 @@ describe("Phase 18: Built-in Page View Plugins", () => {
 				const custom = event as CustomEvent;
 				events.push({ type: custom.type, detail: custom.detail });
 				const fns = listeners.get(event.type);
+
 				if (fns) {
 					for (const fn of fns) {
 						fn(event);
 					}
 				}
+
 				return true;
 			},
 		};

@@ -9,6 +9,28 @@ import type {
 	SourceLocation,
 } from "./ast.js";
 
+interface MutableSourceLocation {
+	source?: string | undefined;
+	startLine: number;
+	startColumn: number;
+	endLine: number;
+	endColumn: number;
+}
+
+interface MutableCssPageRule {
+	selector?: string | undefined;
+	declarations: readonly CssDeclaration[];
+	marginBoxes: readonly CssMarginBoxRule[];
+	loc?: SourceLocation | undefined;
+}
+
+interface MutableCssAst {
+	rules: readonly CssRule[];
+	pageRules: readonly CssPageRule[];
+	atRules: readonly CssAtRule[];
+	sourceUrl?: string | undefined;
+}
+
 function toSourceLocation(
 	loc: csstree.CssLocation | null | undefined,
 	sourceUrl?: string,
@@ -16,13 +38,19 @@ function toSourceLocation(
 	if (!loc) {
 		return undefined;
 	}
-	return {
-		...(sourceUrl ? { source: sourceUrl } : {}),
+
+	const location: MutableSourceLocation = {
 		startLine: loc.start.line,
 		startColumn: loc.start.column,
 		endLine: loc.end.line,
 		endColumn: loc.end.column,
 	};
+
+	if (sourceUrl) {
+		location.source = sourceUrl;
+	}
+
+	return location;
 }
 
 export function parseCss(css: string, sourceUrl?: string): CssAst {
@@ -69,6 +97,7 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 		visit: "Atrule",
 		enter(node) {
 			const name = node.name.toLowerCase();
+
 			if (name === "page") {
 				const selector = node.prelude ? csstree.generate(node.prelude).trim() : undefined;
 				const declarations: CssDeclaration[] = [];
@@ -85,6 +114,7 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 						} else if (child.type === "Atrule") {
 							const boxName = child.name.toLowerCase();
 							const boxDeclarations: CssDeclaration[] = [];
+
 							if (child.block) {
 								csstree.walk(child.block, {
 									visit: "Declaration",
@@ -97,6 +127,7 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 									},
 								});
 							}
+
 							marginBoxes.push({
 								marginBox: boxName,
 								declarations: boxDeclarations,
@@ -106,12 +137,17 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 					});
 				}
 
-				pageRules.push({
-					...(selector ? { selector } : {}),
+				const pageRule: MutableCssPageRule = {
 					declarations,
 					marginBoxes,
 					loc: toSourceLocation(node.loc, sourceUrl),
-				});
+				};
+
+				if (selector) {
+					pageRule.selector = selector;
+				}
+
+				pageRules.push(pageRule);
 			} else if (node.name !== "margin") {
 				// Other top-level at-rules
 				atRules.push({
@@ -124,12 +160,17 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 		},
 	});
 
-	return {
+	const ast: MutableCssAst = {
 		rules,
 		pageRules,
 		atRules,
-		...(sourceUrl ? { sourceUrl } : {}),
 	};
+
+	if (sourceUrl) {
+		ast.sourceUrl = sourceUrl;
+	}
+
+	return ast;
 }
 
 export function generateCss(ast: CssAst): string {
@@ -144,15 +185,19 @@ export function generateCss(ast: CssAst): string {
 	for (const pageRule of ast.pageRules) {
 		const selector = pageRule.selector ? ` ${pageRule.selector}` : "";
 		const inner: string[] = [];
+
 		for (const decl of pageRule.declarations) {
 			inner.push(`  ${decl.property}: ${decl.value};`);
 		}
+
 		for (const box of pageRule.marginBoxes) {
 			const boxDecls = box.declarations
 				.map((d) => `    ${d.property}: ${d.value};`)
 				.join("\n");
+
 			inner.push(`  @${box.marginBox} {\n${boxDecls}\n  }`);
 		}
+
 		parts.push(`@page${selector} {\n${inner.join("\n")}\n}`);
 	}
 
@@ -186,6 +231,7 @@ export function stripPageRules(css: string): string {
 							hasAtrule = true;
 						}
 					});
+
 					if (!hasAtrule) {
 						list.remove(item);
 					}

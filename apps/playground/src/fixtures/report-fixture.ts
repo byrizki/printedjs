@@ -21,6 +21,7 @@ export const REPORT_FIXTURE: PlaygroundFixture = {
 			const cat = categories[idx % categories.length]!;
 			const status = statuses[idx % statuses.length]!;
 			const cost = costs[idx % costs.length]! * (1 + ((idx * 7) % 5) * 0.1);
+
 			return {
 				id: `TX-${1000 + id}`,
 				date: `2026-08-${String((id % 28) + 1).padStart(2, "0")}`,

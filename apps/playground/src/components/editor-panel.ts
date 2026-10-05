@@ -223,6 +223,7 @@ export class EditorPanelComponent {
 		const templateHostEl = this.element.querySelector<HTMLElement>(
 			"#pm-template-monaco-host",
 		)!;
+
 		const dataHostEl = this.element.querySelector<HTMLElement>("#pm-data-monaco-host")!;
 
 		// Initialize Monaco Models
@@ -287,7 +288,9 @@ export class EditorPanelComponent {
 
 		tabButtons.forEach((btn) => {
 			btn.addEventListener("click", () => {
+				// SAFETY: data-tab attribute matches defined EditorTabId domain values
 				const tabId = btn.getAttribute("data-tab") as EditorTabId;
+
 				if (!tabId) return;
 				this.activeTab = tabId;
 
@@ -327,6 +330,7 @@ export class EditorPanelComponent {
 		// Listen to Monaco diagnostic markers (built-in linting)
 		monaco.editor.onDidChangeMarkers((uris) => {
 			const affectsData = uris.some((u) => u.toString() === dataUri.toString());
+
 			if (affectsData) {
 				this.updateDataMarkers();
 			}
@@ -336,6 +340,7 @@ export class EditorPanelComponent {
 		const formatTemplateBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-format-template-btn",
 		)!;
+
 		formatTemplateBtn.addEventListener("click", () => {
 			void this.templateEditor.getAction("editor.action.formatDocument")?.run();
 		});
@@ -343,6 +348,7 @@ export class EditorPanelComponent {
 		// Toggle Line Wrap
 		const wrapToggleBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-wrap-toggle-btn")!;
+
 		wrapToggleBtn.addEventListener("click", () => {
 			this.isWordWrap = !this.isWordWrap;
 			const wrapMode = this.isWordWrap ? "on" : "off";
@@ -354,9 +360,11 @@ export class EditorPanelComponent {
 		// Format JSON button
 		const formatJsonBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-format-json-btn")!;
+
 		formatJsonBtn.addEventListener("click", () => {
 			const currentVal = this.dataModel.getValue();
 			const formatted = formatJsonString(currentVal);
+
 			if (!formatted.error) {
 				this.dataModel.setValue(formatted.formatted);
 				this.validateJson(formatted.formatted);
@@ -370,8 +378,10 @@ export class EditorPanelComponent {
 		const resetTemplateBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-reset-template-btn",
 		)!;
+
 		const resetJsonBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-reset-json-btn")!;
+
 		resetTemplateBtn.addEventListener("click", () => callbacks.onResetFixture());
 		resetJsonBtn.addEventListener("click", () => callbacks.onResetFixture());
 
@@ -379,6 +389,7 @@ export class EditorPanelComponent {
 		const collapseBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-collapse-sidebar-btn",
 		);
+
 		collapseBtn?.addEventListener("click", () => {
 			callbacks.onToggleSidebar?.();
 		});
@@ -386,6 +397,7 @@ export class EditorPanelComponent {
 		// Helpers Modal
 		const openHelpersBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-open-helpers-btn")!;
+
 		const closeHelpersBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-close-helpers-btn",
 		)!;
@@ -414,15 +426,21 @@ export class EditorPanelComponent {
 		// Snippet action buttons inside modal
 		const snippetActionButtons =
 			this.helpersModalEl.querySelectorAll<HTMLButtonElement>("[data-insert]");
+
 		snippetActionButtons.forEach((btn) => {
 			btn.addEventListener("click", () => {
 				const type = btn.getAttribute("data-insert");
 				let snippet = "";
+
 				if (type === "interpolate") snippet = "<%= variable %>";
+
 				if (type === "raw") snippet = "<%- rawHtml %>";
+
 				if (type === "loop")
 					snippet = "<% items.forEach(function(item) { %>\n\t\n<% }); %>";
+
 				if (type === "if") snippet = "<% if (condition) { %>\n\t\n<% } %>";
+
 				if (type === "getbypath")
 					snippet = `function getByPath(path, defaultValue = "", source = it) {
   const parts = path.split(".");
@@ -443,6 +461,7 @@ export class EditorPanelComponent {
 	setCollapsed(collapsed: boolean): void {
 		this.isCollapsed = collapsed;
 		this.element.classList.toggle("collapsed", collapsed);
+
 		if (!collapsed) {
 			setTimeout(() => {
 				this.layout();
@@ -452,6 +471,7 @@ export class EditorPanelComponent {
 
 	private insertSnippet(snippet: string): void {
 		const selection = this.templateEditor.getSelection();
+
 		if (selection) {
 			this.templateEditor.executeEdits("snippet", [
 				{ range: selection, text: snippet, forceMoveMarkers: true },
@@ -481,6 +501,7 @@ export class EditorPanelComponent {
 
 	private validateJson(jsonStr: string): void {
 		const result = parseJsonData(jsonStr);
+
 		if (result.error) {
 			this.jsonStatusBadge.className = "pm-validation-badge invalid";
 			this.jsonStatusBadge.textContent = "✗ Invalid JSON";
@@ -517,6 +538,7 @@ export class EditorPanelComponent {
 
 	layout(): void {
 		if (this.isCollapsed) return;
+
 		if (this.activeTab === "template") {
 			this.templateEditor.layout();
 		} else if (this.activeTab === "data") {

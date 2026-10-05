@@ -221,9 +221,11 @@ export class HeaderComponent {
 		this.renderBtn = this.element.querySelector<HTMLButtonElement>("#pm-render-btn")!;
 		this.themeToggleBtn =
 			this.element.querySelector<HTMLButtonElement>("#pm-theme-toggle-btn")!;
+
 		const sidebarToggleBtn = this.element.querySelector<HTMLButtonElement>(
 			"#pm-sidebar-toggle-btn",
 		)!;
+
 		const clearBtn = this.element.querySelector<HTMLButtonElement>("#pm-clear-btn")!;
 
 		this.presetTriggerBtn.addEventListener("click", () => {
@@ -253,6 +255,7 @@ export class HeaderComponent {
 			} else if (e.key === "Enter") {
 				e.preventDefault();
 				const selectedItem = this.filteredFixtures[this.activeIndex];
+
 				if (selectedItem) {
 					this.selectFixture(selectedItem.id);
 				}
@@ -264,18 +267,27 @@ export class HeaderComponent {
 		});
 
 		this.presetList.addEventListener("click", (e: MouseEvent) => {
-			const item = (e.target as HTMLElement)?.closest<HTMLElement>(".pm-preset-item");
+			const item =
+				e.target instanceof Element
+					? e.target.closest<HTMLElement>(".pm-preset-item")
+					: null;
+
 			if (item) {
 				const fixtureId = item.getAttribute("data-fixture-id");
+
 				if (fixtureId) {
 					this.selectFixture(fixtureId);
 				}
 			}
 		});
 
-		if (typeof window !== "undefined") {
+		if ("window" in globalThis) {
 			window.addEventListener("click", (e: MouseEvent) => {
-				if (this.isDropdownOpen && !this.presetCombobox.contains(e.target as Node)) {
+				if (
+					this.isDropdownOpen &&
+					e.target instanceof Node &&
+					!this.presetCombobox.contains(e.target)
+				) {
 					this.closeDropdown();
 				}
 			});
@@ -287,7 +299,10 @@ export class HeaderComponent {
 		});
 
 		this.isolationSelect.addEventListener("change", () => {
-			callbacks.onIsolationChange(this.isolationSelect.value as "root" | "iframe");
+			const isolation: "root" | "iframe" =
+				this.isolationSelect.value === "iframe" ? "iframe" : "root";
+
+			callbacks.onIsolationChange(isolation);
 		});
 
 		this.autoRenderCheckbox.addEventListener("change", () => {
@@ -329,9 +344,11 @@ export class HeaderComponent {
 		this.presetSearchInput.value = "";
 		this.presetSearchClear.style.display = "none";
 		this.filterFixtures("");
+
 		const selectedIndex = this.filteredFixtures.findIndex(
 			(f) => f.id === this.currentFixtureId,
 		);
+
 		this.setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
 		setTimeout(() => this.presetSearchInput.focus(), 20);
 	}
@@ -345,6 +362,7 @@ export class HeaderComponent {
 
 	private filterFixtures(query: string): void {
 		const q = query.trim().toLowerCase();
+
 		if (!q) {
 			this.filteredFixtures = [...this.fixtures];
 		} else {
@@ -355,6 +373,7 @@ export class HeaderComponent {
 					f.category.toLowerCase().includes(q),
 			);
 		}
+
 		this.activeIndex = this.filteredFixtures.length > 0 ? 0 : -1;
 		this.renderDropdownList();
 	}
@@ -362,6 +381,7 @@ export class HeaderComponent {
 	private renderDropdownList(): void {
 		if (this.filteredFixtures.length === 0) {
 			this.presetList.innerHTML = `<div class="pm-preset-empty">No presets found matching your search.</div>`;
+
 			return;
 		}
 
@@ -372,11 +392,14 @@ export class HeaderComponent {
 		];
 
 		let html = "";
+
 		for (const cat of categories) {
 			const items = this.filteredFixtures.filter((f) => f.category === cat.id);
+
 			if (items.length === 0) continue;
 
 			html += `<div class="pm-preset-group-header">${escapeHtml(cat.label)}</div>`;
+
 			for (const f of items) {
 				const globalIdx = this.filteredFixtures.indexOf(f);
 				const isSelected = f.id === this.currentFixtureId;
@@ -402,8 +425,10 @@ export class HeaderComponent {
 	private setActiveIndex(index: number): void {
 		if (this.filteredFixtures.length === 0) {
 			this.activeIndex = -1;
+
 			return;
 		}
+
 		this.activeIndex = Math.max(0, Math.min(index, this.filteredFixtures.length - 1));
 
 		const items = this.presetList.querySelectorAll<HTMLElement>(".pm-preset-item");
@@ -411,6 +436,7 @@ export class HeaderComponent {
 			const idx = parseInt(item.getAttribute("data-index") ?? "-1", 10);
 			const isActive = idx === this.activeIndex;
 			item.classList.toggle("active", isActive);
+
 			if (isActive) {
 				item.scrollIntoView({ block: "nearest" });
 			}
@@ -440,6 +466,7 @@ export class HeaderComponent {
 				<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
 			</svg>`;
 		}
+
 		return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 			<circle cx="12" cy="12" r="5"></circle>
 			<line x1="12" y1="1" x2="12" y2="3"></line>
@@ -484,6 +511,7 @@ export class HeaderComponent {
 		this.currentFixtureId = fixtureId;
 		this.fixtureSelect.value = fixtureId;
 		const fixture = this.fixtures.find((f) => f.id === fixtureId);
+
 		if (fixture && this.presetTriggerLabel) {
 			this.presetTriggerLabel.textContent = fixture.title;
 		}

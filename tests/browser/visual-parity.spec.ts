@@ -15,7 +15,9 @@ const pixelmatch: typeof import("pixelmatch") =
 	pixelmatchRaw;
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
+
 const baselineAcceptedDir = resolve(repositoryRoot, "tests/fixtures/baselines");
+
 const diffOutputDir = resolve(repositoryRoot, "output-samples/visual-diffs");
 
 interface VisualFixtureConfig {
@@ -269,6 +271,7 @@ test.describe("Visual Output Comparison (Pixelmatch)", () => {
 				resolve(repositoryRoot, fixture.htmlPath),
 				"utf-8",
 			);
+
 			const baselineBuffer = readFileSync(baselinePngPath);
 			const baselineImg = PNG.sync.read(baselineBuffer);
 
@@ -285,11 +288,13 @@ test.describe("Visual Output Comparison (Pixelmatch)", () => {
 					const { createRenderer } = (
 						window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 					).Printedjs;
+
 					const { standardPreset } = (
 						window as unknown as {
 							PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
 						}
 					).PrintedjsPlugins;
+
 					const views = (
 						window as unknown as {
 							PrintedjsViews?: typeof import("@printedjs/plugin-views");
@@ -297,6 +302,7 @@ test.describe("Visual Output Comparison (Pixelmatch)", () => {
 					).PrintedjsViews;
 
 					const target = document.querySelector<HTMLElement>("#target")!;
+
 					const plugins =
 						isSpread && views?.spreadPageViewPlugin
 							? [...standardPreset(), views.spreadPageViewPlugin()]
@@ -318,6 +324,7 @@ test.describe("Visual Output Comparison (Pixelmatch)", () => {
 				fullPage: true,
 				animations: "disabled",
 			});
+
 			const actualImg = PNG.sync.read(actualScreenshotBuffer);
 
 			// Dimensions should match the baseline render dimensions

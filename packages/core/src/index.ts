@@ -30,7 +30,11 @@ export type {
 	RenderWarning,
 } from "./contracts/result.js";
 
-export type { PrintedjsPlugin, PluginContext } from "./contracts/plugin.js";
+export type {
+	PrintedjsPlugin,
+	PluginContext,
+	PluginMetadata,
+} from "./contracts/plugin.js";
 
 export { orderPlugins } from "./plugins/order.js";
 
@@ -68,5 +72,7 @@ export type {
 } from "./css/ast.js";
 
 export { generateCss, parseCss, stripPageRules } from "./css/parser.js";
+
 export { CssTransformContext } from "./css/transform-context.js";
+
 export { formatPageNumber, type PageCounterStyle } from "./counters/formatters.js";

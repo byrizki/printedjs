@@ -30,6 +30,13 @@ export interface PageBleed {
 	readonly left: string;
 }
 
+export interface FourSides {
+	readonly top: string;
+	readonly right: string;
+	readonly bottom: string;
+	readonly left: string;
+}
+
 export interface PageRule {
 	readonly selector: string;
 	readonly size?: PageSize | undefined;
@@ -39,7 +46,12 @@ export interface PageRule {
 	readonly marks?: readonly string[] | undefined;
 }
 
-const STANDARD_PAGE_SIZES: Record<string, { width: string; height: string }> = {
+export interface StandardPageSize {
+	readonly width: string;
+	readonly height: string;
+}
+
+const STANDARD_PAGE_SIZES = {
 	letter: { width: "8.5in", height: "11in" },
 	legal: { width: "8.5in", height: "14in" },
 	ledger: { width: "11in", height: "17in" },
@@ -53,36 +65,42 @@ const STANDARD_PAGE_SIZES: Record<string, { width: string; height: string }> = {
 	a6: { width: "105mm", height: "148mm" },
 	b4: { width: "250mm", height: "353mm" },
 	b5: { width: "176mm", height: "250mm" },
-};
+} as const satisfies Record<string, StandardPageSize>;
 
 function normalizeLength(value: string): string {
 	const trimmed = value.trim();
+
 	if (trimmed === "0") {
 		return "0px";
 	}
+
 	return trimmed;
 }
 
-function parseFourSides(
-	value: string,
-	fallback = "0mm",
-): { top: string; right: string; bottom: string; left: string } {
+function parseFourSides(value: string, fallback = "0mm"): FourSides {
 	const parts = value.trim().split(/\s+/).map(normalizeLength);
+
 	if (parts.length === 1) {
 		const m = parts[0] ?? fallback;
+
 		return { top: m, right: m, bottom: m, left: m };
 	}
+
 	if (parts.length === 2) {
 		const topBottom = parts[0] ?? fallback;
 		const leftRight = parts[1] ?? fallback;
+
 		return { top: topBottom, right: leftRight, bottom: topBottom, left: leftRight };
 	}
+
 	if (parts.length === 3) {
 		const top = parts[0] ?? fallback;
 		const leftRight = parts[1] ?? fallback;
 		const bottom = parts[2] ?? fallback;
+
 		return { top, right: leftRight, bottom, left: leftRight };
 	}
+
 	return {
 		top: parts[0] ?? fallback,
 		right: parts[1] ?? fallback,
@@ -108,6 +126,7 @@ function parseSize(value: string): PageSize {
 
 	for (const token of tokens) {
 		const lower = token.toLowerCase();
+
 		if (lower === "landscape" || lower === "portrait") {
 			orientation = lower;
 		} else {
@@ -120,8 +139,10 @@ function parseSize(value: string): PageSize {
 
 	if (filtered.length === 1) {
 		const key = filtered[0]?.toLowerCase() ?? "letter";
-		const standard = STANDARD_PAGE_SIZES[key];
-		if (standard) {
+
+		if (Object.prototype.hasOwnProperty.call(STANDARD_PAGE_SIZES, key)) {
+			// SAFETY: verified key exists on STANDARD_PAGE_SIZES
+			const standard = STANDARD_PAGE_SIZES[key as keyof typeof STANDARD_PAGE_SIZES];
 			width = standard.width;
 			height = standard.height;
 		}
@@ -137,6 +158,19 @@ function parseSize(value: string): PageSize {
 	return orientation ? { width, height, orientation } : { width, height };
 }
 
+type MutableMargins = { -readonly [K in keyof PageMargins]?: string };
+
+type MutablePadding = { -readonly [K in keyof PagePadding]?: string };
+
+interface MutablePageRule {
+	selector: string;
+	size?: PageSize;
+	margin?: PageMargins;
+	padding?: PagePadding;
+	bleed?: PageBleed;
+	marks?: readonly string[];
+}
+
 export function parsePageRules(css: string): PageRule[] {
 	const ast = parseCss(css);
 	const pageRules: PageRule[] = [];
@@ -144,8 +178,8 @@ export function parsePageRules(css: string): PageRule[] {
 	for (const rule of ast.pageRules) {
 		const rawSelector = rule.selector?.trim() || "*";
 		let size: PageSize | undefined;
-		let margin: PageMargins | undefined;
-		let padding: PagePadding | undefined;
+		let margin: MutableMargins | undefined;
+		let padding: MutablePadding | undefined;
 		let bleed: PageBleed | undefined;
 		let marks: string[] | undefined;
 
@@ -156,33 +190,42 @@ export function parsePageRules(css: string): PageRule[] {
 			if (property === "size") {
 				size = parseSize(val);
 			} else if (property === "margin") {
-				const m = parseMargins(val);
-				margin = { ...margin, ...m };
+				margin = Object.assign(margin ?? {}, parseMargins(val));
 			} else if (property === "margin-top") {
-				margin = { ...margin, top: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.top = normalizeLength(val);
 			} else if (property === "margin-right") {
-				margin = { ...margin, right: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.right = normalizeLength(val);
 			} else if (property === "margin-bottom") {
-				margin = { ...margin, bottom: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.bottom = normalizeLength(val);
 			} else if (property === "margin-left") {
-				margin = { ...margin, left: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.left = normalizeLength(val);
 			} else if (property === "margin-inside") {
-				margin = { ...margin, inside: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.inside = normalizeLength(val);
 			} else if (property === "margin-outside") {
-				margin = { ...margin, outside: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.outside = normalizeLength(val);
 			} else if (property === "gutter") {
-				margin = { ...margin, gutter: normalizeLength(val) };
+				margin = margin ?? {};
+				margin.gutter = normalizeLength(val);
 			} else if (property === "padding") {
-				const p = parsePadding(val);
-				padding = { ...padding, ...p };
+				padding = Object.assign(padding ?? {}, parsePadding(val));
 			} else if (property === "padding-top") {
-				padding = { ...padding, top: normalizeLength(val) };
+				padding = padding ?? {};
+				padding.top = normalizeLength(val);
 			} else if (property === "padding-right") {
-				padding = { ...padding, right: normalizeLength(val) };
+				padding = padding ?? {};
+				padding.right = normalizeLength(val);
 			} else if (property === "padding-bottom") {
-				padding = { ...padding, bottom: normalizeLength(val) };
+				padding = padding ?? {};
+				padding.bottom = normalizeLength(val);
 			} else if (property === "padding-left") {
-				padding = { ...padding, left: normalizeLength(val) };
+				padding = padding ?? {};
+				padding.left = normalizeLength(val);
 			} else if (property === "bleed") {
 				const b = normalizeLength(val);
 				bleed = { top: b, right: b, bottom: b, left: b };
@@ -195,14 +238,29 @@ export function parsePageRules(css: string): PageRule[] {
 			bleed = { top: "6mm", right: "6mm", bottom: "6mm", left: "6mm" };
 		}
 
-		pageRules.push({
-			selector: rawSelector,
-			...(size ? { size } : {}),
-			...(margin ? { margin } : {}),
-			...(padding ? { padding } : {}),
-			...(bleed ? { bleed } : {}),
-			...(marks && marks.length > 0 ? { marks } : {}),
-		});
+		const pageRule: MutablePageRule = { selector: rawSelector };
+
+		if (size) {
+			pageRule.size = size;
+		}
+
+		if (margin) {
+			pageRule.margin = margin;
+		}
+
+		if (padding) {
+			pageRule.padding = padding;
+		}
+
+		if (bleed) {
+			pageRule.bleed = bleed;
+		}
+
+		if (marks && marks.length > 0) {
+			pageRule.marks = marks;
+		}
+
+		pageRules.push(pageRule);
 	}
 
 	return pageRules;

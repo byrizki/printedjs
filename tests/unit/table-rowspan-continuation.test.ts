@@ -101,6 +101,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 			const pageCount = await page.evaluate(
 				() => document.querySelectorAll(".printedjs_page").length,
 			);
+
 			expect(pageCount).toBe(2);
 
 			// Page 1: first row has the original zcell, clamped to 3 rows
@@ -108,6 +109,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 				const p1 = document.querySelectorAll(".printedjs_page")[0];
 				const firstRow = p1?.querySelector("tbody tr");
 				const cell = firstRow?.children[0] as HTMLElement | undefined;
+
 				return {
 					tagName: cell?.tagName,
 					rowspan: cell?.getAttribute("rowspan"),
@@ -118,6 +120,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 					text: cell?.textContent?.trim(),
 				};
 			});
+
 			expect(page1ZCell.tagName).toBe("TD");
 			expect(page1ZCell.rowspan).toBe("3");
 			expect(page1ZCell.className).toContain("zcell");
@@ -130,6 +133,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 				const firstRow = p2?.querySelector("tbody tr");
 				const cells = Array.from(firstRow?.children ?? []) as HTMLElement[];
 				const continuationCell = cells[0];
+
 				return {
 					cellCount: cells.length,
 					continuation: {
@@ -163,6 +167,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 			const page2OtherRows = await page.evaluate(() => {
 				const p2 = document.querySelectorAll(".printedjs_page")[1];
 				const rows = Array.from(p2?.querySelectorAll("tbody tr") ?? []);
+
 				return rows.slice(1).map((r) => ({
 					cellCount: r.children.length,
 					firstCellText: r.children[0]?.textContent?.trim(),
@@ -175,6 +180,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 			]);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
@@ -260,12 +266,14 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 			const continuationContent = await page.evaluate(() => {
 				const p2 = document.querySelectorAll(".printedjs_page")[1];
 				const contCell = p2?.querySelector(".printedjs-rowspan-continuation");
+
 				return contCell?.textContent?.trim();
 			});
 
 			expect(continuationContent).toBe("Repeated Label");
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
@@ -353,6 +361,7 @@ describe.runIf(Boolean(executablePath))("Table rowspan continuation across pages
 			expect(continuationCount).toBe(0);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}

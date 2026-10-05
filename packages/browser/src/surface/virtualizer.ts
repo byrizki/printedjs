@@ -29,12 +29,14 @@ export function virtualizePages(
 	const observer = new IntersectionObserver(
 		(entries) => {
 			entries.forEach((entry) => {
+				// SAFETY: observed targets are HTMLElement page nodes
 				const page = entry.target as HTMLElement;
 				const sheet = page.querySelector<HTMLElement>(".printedjs_sheet, .pagedjs_sheet");
 
 				if (entry.isIntersecting) {
 					// Restore page content
 					const saved = hiddenContents.get(page);
+
 					if (saved) {
 						page.appendChild(saved);
 						hiddenContents.delete(page);
@@ -43,9 +45,11 @@ export function virtualizePages(
 					// Unmount offscreen page content if not already hidden
 					if (sheet && !hiddenContents.has(page)) {
 						const fragment = document.createDocumentFragment();
+
 						while (page.firstChild) {
 							fragment.appendChild(page.firstChild);
 						}
+
 						hiddenContents.set(page, fragment);
 					}
 				}
@@ -64,6 +68,7 @@ export function virtualizePages(
 			observer.disconnect();
 			pages.forEach((page) => {
 				const saved = hiddenContents.get(page);
+
 				if (saved) {
 					page.appendChild(saved);
 					hiddenContents.delete(page);

@@ -5,6 +5,7 @@ import { Page, PageOrientation } from "../Page/Page.js";
 import { SizeType, type FlipSetting } from "../Settings.js";
 
 type FrameAction = () => void;
+
 type AnimationSuccessAction = () => void;
 
 /**
@@ -139,16 +140,20 @@ export abstract class Render {
 
 		if (typeof requestAnimationFrame === "undefined") {
 			this.render(0);
+
 			return;
 		}
 
 		const loop = (timer: number): void => {
 			if (this.isDestroyed) return;
 			const dist = this.app.getUI().getDistElement();
-			if (dist && typeof dist.isConnected === "boolean" && !dist.isConnected) {
+
+			if (dist && "isConnected" in dist && !dist.isConnected) {
 				this.destroy();
+
 				return;
 			}
+
 			this.render(timer);
 			this.animationFrameId = requestAnimationFrame(loop);
 		};
@@ -158,6 +163,7 @@ export abstract class Render {
 
 	public destroy(): void {
 		this.isDestroyed = true;
+
 		if (this.animationFrameId !== null && typeof cancelAnimationFrame !== "undefined") {
 			cancelAnimationFrame(this.animationFrameId);
 			this.animationFrameId = null;
@@ -218,6 +224,7 @@ export abstract class Render {
 		let orientation = Orientation.LANDSCAPE;
 
 		const blockWidth = this.getBlockWidth();
+
 		const middlePoint: Point = {
 			x: blockWidth / 2,
 			y: this.getBlockHeight() / 2,
@@ -243,6 +250,7 @@ export abstract class Render {
 			if (pageWidth > this.setting.maxWidth) pageWidth = this.setting.maxWidth;
 
 			pageHeight = pageWidth / ratio;
+
 			if (pageHeight > this.getBlockHeight()) {
 				pageHeight = this.getBlockHeight();
 				pageWidth = pageHeight * ratio;
@@ -298,11 +306,13 @@ export abstract class Render {
 
 	public getBlockWidth(): number {
 		const ui = this.app.getUI();
+
 		return ui ? ui.getDistElement().offsetWidth : this.setting.width * 2;
 	}
 
 	public getBlockHeight(): number {
 		const ui = this.app.getUI();
+
 		return ui ? ui.getDistElement().offsetHeight : this.setting.height;
 	}
 
@@ -312,6 +322,7 @@ export abstract class Render {
 
 	public getRect(): PageRect {
 		if (this.boundsRect === null) this.calculateBoundsRect();
+
 		return this.boundsRect!;
 	}
 
@@ -357,6 +368,7 @@ export abstract class Render {
 					: PageOrientation.RIGHT,
 			);
 		}
+
 		this.bottomPage = page;
 	}
 
@@ -369,11 +381,13 @@ export abstract class Render {
 					: PageOrientation.RIGHT,
 			);
 		}
+
 		this.flippingPage = page;
 	}
 
 	public convertToBook(pos: Point): Point {
 		const rect = this.getRect();
+
 		return {
 			x: pos.x - rect.left,
 			y: pos.y - rect.top,
@@ -387,6 +401,7 @@ export abstract class Render {
 	public convertToPage(pos: Point, direction?: FlipDirection): Point {
 		const dir = direction ?? this.direction;
 		const rect = this.getRect();
+
 		const x =
 			dir === FlipDirection.FORWARD
 				? pos.x - rect.left - rect.width / 2
@@ -400,9 +415,11 @@ export abstract class Render {
 
 	public convertToGlobal(pos: Point, direction?: FlipDirection): Point {
 		const dir = direction ?? this.direction;
+
 		if (pos == null) return { x: 0, y: 0 };
 
 		const rect = this.getRect();
+
 		const x =
 			dir === FlipDirection.FORWARD
 				? pos.x + rect.left + rect.width / 2

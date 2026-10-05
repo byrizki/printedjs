@@ -5,4 +5,5 @@ export {
 	type PageRule,
 	type PageSize,
 } from "./parser.js";
+
 export { generatePageCss, pageRulesPlugin } from "./plugin.js";

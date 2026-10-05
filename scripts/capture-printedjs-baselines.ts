@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const repoRoot = resolve(__dirname, "..");
 
 import { legacyFixtureManifest } from "../tests/fixtures/manifest.ts";
@@ -14,15 +15,20 @@ import {
 } from "../tests/helpers/browser-render.ts";
 
 const args = process.argv.slice(2);
+
 const promoteFlag = args.includes("--promote");
+
 const filterArg = args.find((a) => a.startsWith("--filter="))?.split("=")[1];
+
 const outDirArg = args.find((a) => a.startsWith("--outDir="))?.split("=")[1];
+
 const targetArg = args.find((a) => a.startsWith("--target="))?.split("=")[1];
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
 // Determine output directory: default to tests/fixtures/baselines unless explicitly directed elsewhere
 let outputDir: string;
+
 if (outDirArg) {
 	outputDir = resolve(repoRoot, outDirArg);
 } else if (targetArg === "printedjs-accepted" || promoteFlag) {
@@ -106,6 +112,7 @@ export const FEATURE_VISUAL_FIXTURES: readonly CaptureFixtureItem[] = [
 async function run() {
 	console.log(`Starting Printedjs baseline capture into: ${outputDir}`);
 	const browser = await chromium.launch();
+
 	const page = await browser.newPage({
 		viewport: { width: 1440, height: 1000 },
 		deviceScaleFactor: 1,
@@ -114,6 +121,7 @@ async function run() {
 	const fixturesArg = args.find((a) => a.startsWith("--fixtures="))?.split("=")[1];
 
 	let targetFixtures: CaptureFixtureItem[];
+
 	if (fixturesArg === "visual" || (!filterArg && !args.includes("--all"))) {
 		targetFixtures = [
 			...legacyFixtureManifest.filter((f) =>
@@ -159,11 +167,13 @@ async function run() {
 					const { createRenderer } = (
 						window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 					).Printedjs;
+
 					const { standardPreset } = (
 						window as unknown as {
 							PrintedjsPlugins: typeof import("@printedjs/plugins");
 						}
 					).PrintedjsPlugins;
+
 					const views = (
 						window as unknown as {
 							PrintedjsViews?: typeof import("@printedjs/plugin-views");
@@ -171,6 +181,7 @@ async function run() {
 					).PrintedjsViews;
 
 					const target = document.querySelector("#target")!;
+
 					const plugins =
 						isSpread && views?.spreadPageViewPlugin
 							? [...standardPreset(), views.spreadPageViewPlugin()]
@@ -182,15 +193,19 @@ async function run() {
 						pagedjsCompatible: true,
 						plugins,
 					});
+
 					const res = await renderer.render({
 						content: { html },
 						limits: { maxPages: 50 },
 					});
+
 					const pageElements = Array.from(
 						target.querySelectorAll(".pagedjs_page, .printedjs_page"),
 					);
+
 					const pages = pageElements.map((p, idx) => {
 						const rect = p.getBoundingClientRect();
+
 						return {
 							pageNumber: idx + 1,
 							width: rect.width,
@@ -198,6 +213,7 @@ async function run() {
 							classes: Array.from(p.classList),
 						};
 					});
+
 					return {
 						pageCount: res.pages.length,
 						domCount: pageElements.length,
@@ -211,6 +227,7 @@ async function run() {
 				fullPage: true,
 				animations: "disabled",
 			});
+
 			const docSha256 = computeSha256(docScreenshot);
 			writeFileSync(resolve(fixtureDir, "document.png"), docScreenshot);
 

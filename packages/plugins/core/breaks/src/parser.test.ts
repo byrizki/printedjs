@@ -12,6 +12,7 @@ describe("breaks/parser", () => {
 				break-after: avoid;
 			}
 		`;
+
 		const rules = parseBreakStyles(css);
 		expect(rules).toHaveLength(2);
 		expect(rules[0]).toEqual({
@@ -33,6 +34,7 @@ describe("breaks/parser", () => {
 				page-break-inside: avoid;
 			}
 		`;
+
 		const rules = parseBreakStyles(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]).toEqual({
@@ -50,6 +52,7 @@ describe("breaks/parser", () => {
 				top: 0;
 			}
 		`;
+
 		const rules = parseBreakStyles(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]).toEqual({
@@ -67,6 +70,7 @@ describe("breaks/parser", () => {
 				page: auto;
 			}
 		`;
+
 		const rules = parseBreakStyles(css);
 		expect(rules).toHaveLength(2);
 		expect(rules[0]).toEqual({

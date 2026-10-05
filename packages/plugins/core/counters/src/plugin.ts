@@ -19,6 +19,7 @@ export function countersPlugin(): PrintedjsPlugin {
 				/target-counter\s*\(\s*attr\s*\(\s*href(?:\s+url)?\s*\)\s*,\s*page(?:\s*,\s*([a-zA-Z0-9_-]+))?\s*\)/gi,
 				(_, rawStyle) => {
 					const style = rawStyle?.trim().toLowerCase();
+
 					return style ? `attr(data-target-page-${style})` : "attr(data-target-page)";
 				},
 			);
@@ -28,6 +29,7 @@ export function countersPlugin(): PrintedjsPlugin {
 				/target-counter\s*\(\s*([#a-zA-Z0-9_-]+)\s*,\s*page(?:\s*,\s*([a-zA-Z0-9_-]+))?\s*\)/gi,
 				(_, _target, rawStyle) => {
 					const style = rawStyle?.trim().toLowerCase();
+
 					return style ? `attr(data-target-page-${style})` : "attr(data-target-page)";
 				},
 			);
@@ -37,15 +39,19 @@ export function countersPlugin(): PrintedjsPlugin {
 				/target-text\s*\(\s*(?:attr\s*\(\s*href(?:\s+url)?\s*\)|[#a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\s*\)/gi,
 				(_, rawStyle) => {
 					const style = rawStyle?.trim().toLowerCase();
+
 					if (style === "first-letter") {
 						return "attr(data-target-text-first-letter)";
 					}
+
 					if (style === "before") {
 						return "attr(data-target-text-before)";
 					}
+
 					if (style === "after") {
 						return "attr(data-target-text-after)";
 					}
+
 					return "attr(data-target-text)";
 				},
 			);
@@ -53,7 +59,8 @@ export function countersPlugin(): PrintedjsPlugin {
 			return transformed;
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) {
 				return;
 			}
@@ -64,17 +71,22 @@ export function countersPlugin(): PrintedjsPlugin {
 			// Set total page count on root element and pages container for counter-reset: pages
 			const totalStr = String(totalPages);
 			const pagedjsCompatible = context.pagedjsCompatible ?? false;
+
 			if (doc.documentElement) {
 				doc.documentElement.style.setProperty("--printedjs-page-count", totalStr);
+
 				if (pagedjsCompatible) {
 					doc.documentElement.style.setProperty("--pagedjs-page-count", totalStr);
 				}
 			}
+
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				pagesContainer.style.setProperty("--printedjs-page-count", totalStr);
+
 				if (pagedjsCompatible) {
 					pagesContainer.style.setProperty("--pagedjs-page-count", totalStr);
 				}
@@ -93,6 +105,7 @@ export function countersPlugin(): PrintedjsPlugin {
 				const sectionCountStr = String(sectionCount);
 				page.style.setProperty("--printedjs-section-page-count", sectionCountStr);
 				page.setAttribute("data-section-page-count", sectionCountStr);
+
 				if (pagedjsCompatible) {
 					page.style.setProperty("--pagedjs-section-page-count", sectionCountStr);
 				}
@@ -102,11 +115,13 @@ export function countersPlugin(): PrintedjsPlugin {
 			const links = doc.querySelectorAll<HTMLElement>("[href]");
 			links.forEach((link) => {
 				const href = link.getAttribute("href");
+
 				if (!href || !href.startsWith("#")) {
 					return;
 				}
 
 				const targetId = href.slice(1);
+
 				if (!targetId) {
 					return;
 				}
@@ -114,16 +129,20 @@ export function countersPlugin(): PrintedjsPlugin {
 				const targetEl =
 					doc.getElementById?.(targetId) ||
 					doc.querySelector?.(`[data-id="${targetId}"]`);
+
 				if (!targetEl) {
 					return;
 				}
 
+				// SAFETY: closest page element in rendered document DOM is an HTMLElement
 				const containingPage = targetEl.closest?.(
 					".printedjs_page, .pagedjs_page",
 				) as HTMLElement | null;
+
 				if (containingPage) {
 					const pageNumAttr = containingPage.getAttribute("data-page-number");
 					const pageNum = pageNumAttr ? parseInt(pageNumAttr, 10) : 1;
+
 					const pageFormatted =
 						containingPage.getAttribute("data-page-formatted") || (pageNumAttr ?? "1");
 
@@ -163,26 +182,31 @@ export function countersPlugin(): PrintedjsPlugin {
 				// Resolve target-text
 				const text = targetEl.textContent?.trim() ?? "";
 				link.setAttribute("data-target-text", text);
+
 				if (text.length > 0) {
 					link.setAttribute("data-target-text-first-letter", text.charAt(0));
 				}
 
 				// Resolve before / after pseudo content if available
 				const win = doc.defaultView;
-				if (win && typeof win.getComputedStyle === "function") {
+
+				if (win && "getComputedStyle" in win) {
 					try {
 						const beforeVal = win
 							.getComputedStyle(targetEl, "::before")
 							.getPropertyValue("content");
+
 						if (beforeVal && beforeVal !== "none" && beforeVal !== "normal") {
 							link.setAttribute(
 								"data-target-text-before",
 								beforeVal.replace(/^["']|["']$/g, ""),
 							);
 						}
+
 						const afterVal = win
 							.getComputedStyle(targetEl, "::after")
 							.getPropertyValue("content");
+
 						if (afterVal && afterVal !== "none" && afterVal !== "normal") {
 							link.setAttribute(
 								"data-target-text-after",

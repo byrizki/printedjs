@@ -65,6 +65,7 @@ describe("Paged.js Compatible Configuration", () => {
 						this.attributes[k] = v;
 					},
 				};
+
 				return el as unknown as HTMLElement;
 			},
 		} as unknown as Document;
@@ -113,6 +114,7 @@ describe("Paged.js Compatible Configuration", () => {
 				margin: 15mm;
 			}
 		`;
+
 		const rules = parsePageRules(mixedCss);
 		const css = generatePageCss(rules, true);
 

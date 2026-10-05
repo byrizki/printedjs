@@ -54,6 +54,7 @@ export async function setupPrintedjsPage(
 	);
 	await page.addScriptTag({ path: browserBundlePath });
 	await page.addScriptTag({ path: pluginsBundlePath });
+
 	if (includeViews) {
 		await page.addScriptTag({ path: viewsBundlePath });
 	}
@@ -74,6 +75,7 @@ export async function renderFixture(
 			const { createRenderer } = (
 				window as unknown as { Printedjs: typeof import("@printedjs/browser") }
 			).Printedjs;
+
 			const { standardPreset } = (
 				window as unknown as {
 					PrintedjsPlugins: typeof import("@printedjs/plugin-preset");
@@ -81,6 +83,7 @@ export async function renderFixture(
 			).PrintedjsPlugins;
 
 			const target = document.querySelector<HTMLElement>(targetSelector ?? "#target")!;
+
 			const renderer = createRenderer({
 				target,
 				isolation: isolation ?? "root",
@@ -95,6 +98,7 @@ export async function renderFixture(
 			const renderedPages = target.querySelectorAll<HTMLElement>(
 				".printedjs_page, .pagedjs_page",
 			);
+
 			const firstPage = renderedPages[0];
 			const rect = firstPage ? firstPage.getBoundingClientRect() : null;
 

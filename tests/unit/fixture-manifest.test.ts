@@ -9,29 +9,38 @@ import {
 } from "../fixtures/manifest.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
+
 const resourceAttributes =
 	/<(?:script|img|source|video|audio|iframe|embed|object|link)\b[^>]*?\b(?:src|href)=["']([^"']+)["']/gi;
+
 const stylesheetImports = /@import\s+(?:url\(\s*)?["']([^"']+)["']/gi;
 
 function localResourcePath(reference: string, sourcePath: string): string | null {
 	const cleanReference = reference.split(/[?#]/, 1)[0];
+
 	if (!cleanReference || /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(cleanReference))
 		return null;
+
 	if (cleanReference.endsWith("/dist/paged.polyfill.js")) return null;
+
 	return resolve(dirname(sourcePath), cleanReference);
 }
 
 function referencedLocalResources(sourcePath: string): string[] {
 	const source = readFileSync(sourcePath, "utf8");
+
 	const references = [
 		...(!sourcePath.endsWith(".css")
 			? [...source.matchAll(resourceAttributes)].map((match) => match[1])
 			: []),
 		...[...source.matchAll(stylesheetImports)].map((match) => match[1]),
 	];
-	return references
-		.map((reference) => localResourcePath(reference, sourcePath))
-		.filter((resourcePath): resourcePath is string => resourcePath !== null);
+
+	return references.flatMap((reference) => {
+		const resourcePath = localResourcePath(reference, sourcePath);
+
+		return resourcePath !== null ? [resourcePath] : [];
+	});
 }
 
 describe("legacy fixture manifest", () => {
@@ -57,6 +66,7 @@ describe("legacy fixture manifest", () => {
 				...fixture.copiedStylePaths,
 				...fixture.copiedAssetPaths,
 			];
+
 			for (const path of declaredPaths)
 				expect(
 					existsSync(resolve(repositoryRoot, path)),
@@ -67,6 +77,7 @@ describe("legacy fixture manifest", () => {
 				fixture.copiedInputHtmlPath,
 				...fixture.copiedStylePaths,
 			].flatMap((path) => referencedLocalResources(resolve(repositoryRoot, path)));
+
 			for (const resource of resources) {
 				const resourcePath = resolve(repositoryRoot, resource);
 				expect(
@@ -85,7 +96,9 @@ describe("legacy fixture manifest", () => {
 		const oracleEntries = Object.entries(legacySourceMappingOracle).sort(
 			([left], [right]) => left.localeCompare(right),
 		);
+
 		expect(oracleEntries).toHaveLength(116);
+
 		const manifestMappings = legacyFixtureManifest
 			.filter((fixture) => legacySpecFixtureIds.includes(fixture.id))
 			.map(
@@ -96,6 +109,7 @@ describe("legacy fixture manifest", () => {
 					] as const,
 			)
 			.sort(([left], [right]) => left.localeCompare(right));
+
 		expect(manifestMappings).toEqual(oracleEntries);
 		expect(
 			legacyFixtureManifest.find((fixture) => fixture.id === "default/default")
@@ -127,6 +141,7 @@ describe("legacy fixture manifest", () => {
 		const fixtureById = new Map(
 			legacyFixtureManifest.map((fixture) => [fixture.id, fixture]),
 		);
+
 		expect(fixtureById.get("hyphens/awesome/awesome")).toMatchObject({
 			expectedPageCount: 2,
 			sourceEvidence: expect.stringContaining("expects 7"),
@@ -166,6 +181,7 @@ describe("legacy fixture manifest", () => {
 		const fixturesWithVariance = legacyFixtureManifest.filter(
 			(fixture) => fixture.captureVariance,
 		);
+
 		expect(fixturesWithVariance).toHaveLength(1);
 		expect(fixturesWithVariance[0]).toMatchObject({
 			id: "notes/footnotes-lastpage/footnotes-lastpage",

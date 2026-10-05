@@ -19,6 +19,7 @@ export class ImagePage extends Page {
 	}
 
 	public draw(): void {
+		// SAFETY: ImagePage is rendered exclusively with CanvasRender
 		const ctx = (this.render as CanvasRender).getContext();
 
 		const pagePos = this.render.convertToGlobal(this.state.position);
@@ -50,6 +51,7 @@ export class ImagePage extends Page {
 
 	public simpleDraw(orient: PageOrientation): void {
 		const rect = this.render.getRect();
+		// SAFETY: ImagePage is rendered exclusively with CanvasRender
 		const ctx = (this.render as CanvasRender).getContext();
 
 		const pageWidth = rect.pageWidth;
@@ -97,6 +99,7 @@ export class ImagePage extends Page {
 		ctx.closePath();
 
 		this.loadingAngle += 0.07;
+
 		if (this.loadingAngle >= 2 * Math.PI) {
 			this.loadingAngle = 0;
 		}

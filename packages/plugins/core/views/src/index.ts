@@ -1,6 +1,9 @@
 export { singlePageViewPlugin } from "./single-page/plugin.js";
+
 export { spreadPageViewPlugin } from "./spread-page/plugin.js";
+
 export { pageViewsPlugin, DomPageViewsController } from "./manager.js";
+
 export type {
 	ActivePageChangeDetail,
 	PageViewsController,
@@ -15,8 +18,13 @@ import { singlePageViewPlugin } from "./single-page/plugin.js";
 import { spreadPageViewPlugin } from "./spread-page/plugin.js";
 import { pageViewsPlugin, DomPageViewsController } from "./manager.js";
 
+interface WindowWithPrintedjsViews {
+	PrintedjsViews?: unknown;
+}
+
 if (typeof window !== "undefined") {
-	const win = window as unknown as Record<string, unknown>;
+	// SAFETY: Window object augmented with views plugin exports
+	const win = window as Window & WindowWithPrintedjsViews;
 	win.PrintedjsViews = {
 		singlePageViewPlugin,
 		spreadPageViewPlugin,

@@ -9,6 +9,7 @@ describe("css/parser", () => {
 				font-size: 24px;
 			}
 		`;
+
 		const ast = parseCss(css, "style.css");
 		expect(ast.rules).toHaveLength(1);
 		expect(ast.rules[0]?.selector).toBe("h1");
@@ -28,6 +29,7 @@ describe("css/parser", () => {
 				}
 			}
 		`;
+
 		const ast = parseCss(css);
 		expect(ast.pageRules).toHaveLength(1);
 		expect(ast.pageRules[0]?.selector).toBe(":left");

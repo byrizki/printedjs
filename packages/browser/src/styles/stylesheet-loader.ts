@@ -38,6 +38,7 @@ export function unwrapPrintMedia(css: string): string {
 					i += 2;
 					continue;
 				}
+
 				if (char === "'") {
 					inSingleQuote = false;
 				}
@@ -46,6 +47,7 @@ export function unwrapPrintMedia(css: string): string {
 					i += 2;
 					continue;
 				}
+
 				if (char === '"') {
 					inDoubleQuote = false;
 				}
@@ -55,6 +57,7 @@ export function unwrapPrintMedia(css: string): string {
 					i += 2;
 					continue;
 				}
+
 				if (char === "'") {
 					inSingleQuote = true;
 				} else if (char === '"') {
@@ -65,6 +68,7 @@ export function unwrapPrintMedia(css: string): string {
 					depth--;
 				}
 			}
+
 			i++;
 		}
 
@@ -73,10 +77,12 @@ export function unwrapPrintMedia(css: string): string {
 			result += css.slice(lastIndex, matchStart);
 
 			const isPrint = prelude.split(",").some((part) => part.trim().includes("print"));
+
 			const isScreenOnly =
 				!isPrint &&
 				prelude.split(",").every((part) => {
 					const p = part.trim();
+
 					return p === "screen" || (p.startsWith("screen and") && !p.includes("print"));
 				});
 
@@ -98,6 +104,7 @@ export function unwrapPrintMedia(css: string): string {
 	}
 
 	result += css.slice(lastIndex);
+
 	return result;
 }
 
@@ -115,12 +122,15 @@ export async function loadStylesheet(
 	if (source.type === "url") {
 		try {
 			const response = await fetch(source.url, signal ? { signal } : undefined);
+
 			if (!response.ok) {
 				throw new PrintedjsStylesheetError(
 					`Failed to fetch stylesheet from "${source.url}": HTTP ${response.status} ${response.statusText}`,
 				);
 			}
+
 			const css = await response.text();
+
 			return {
 				type: "url",
 				url: source.url,
@@ -130,6 +140,7 @@ export async function loadStylesheet(
 			if (err instanceof PrintedjsStylesheetError) {
 				throw err;
 			}
+
 			throw new PrintedjsStylesheetError(
 				`Failed to load stylesheet from "${source.url}": ${err instanceof Error ? err.message : String(err)}`,
 			);
@@ -146,5 +157,6 @@ export async function loadStylesheets(
 	if (!sources || sources.length === 0) {
 		return [];
 	}
+
 	return Promise.all(sources.map((src) => loadStylesheet(src, signal)));
 }

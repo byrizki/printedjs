@@ -202,6 +202,10 @@ body {
 }
 `;
 
+interface PageViewsHostElement extends HTMLElement {
+	__printedjs_page_views?: PageViewsController | undefined;
+}
+
 export class RenderService {
 	private currentRenderer: BrowserRenderer | null = null;
 	private currentOverlay: DevtoolsOverlay | null = null;
@@ -219,6 +223,7 @@ export class RenderService {
 		const { compiledHtml, isolation, compileDurationMs, showOverlay } = options;
 
 		let capturedReport: TraceReport | null = null;
+
 		const devtools = devtoolsPlugin({
 			onReport(report) {
 				capturedReport = report;
@@ -229,16 +234,20 @@ export class RenderService {
 			initialMode: options.viewMode ?? "single",
 			adapters: [flipBookViewAdapter()],
 		});
+
 		const plugins = [...standardPreset(), views, devtools];
 
 		let target: HTMLElement = this.viewportElement;
 		let createdIframe: HTMLIFrameElement | null = null;
+
 		if (isolation === "iframe") {
 			this.viewportElement.innerHTML =
 				'<iframe data-playground-frame scrolling="no" style="border: none; background: transparent; display: block; overflow: hidden; margin: 0 auto;"></iframe>';
+
 			const iframe = this.viewportElement.querySelector<HTMLIFrameElement>(
 				"iframe[data-playground-frame]",
 			);
+
 			if (iframe) {
 				target = iframe;
 				createdIframe = iframe;
@@ -254,22 +263,25 @@ export class RenderService {
 		});
 
 		const renderStart = performance.now();
+
 		const result = await this.currentRenderer.render({
 			content: { html: compiledHtml },
 		});
+
 		const layoutDurationMs = performance.now() - renderStart;
 
 		if (createdIframe?.contentDocument) {
 			const doc = createdIframe.contentDocument;
-			let styleEl = doc.getElementById(
-				"pm-iframe-viewport-styles",
-			) as HTMLStyleElement | null;
+
+			let styleEl = doc.querySelector<HTMLStyleElement>("#pm-iframe-viewport-styles");
+
 			if (!styleEl) {
 				styleEl = doc.createElement("style");
 				styleEl.id = "pm-iframe-viewport-styles";
 				styleEl.textContent = IFRAME_VIEWPORT_STYLES;
 				doc.head.appendChild(styleEl);
 			}
+
 			options.onIframeReady?.(createdIframe);
 		}
 
@@ -297,6 +309,7 @@ export class RenderService {
 			this.currentOverlay.destroy();
 			this.currentOverlay = null;
 		}
+
 		if (visible) {
 			this.currentOverlay = createDevtoolsOverlay(this.rootElement, report);
 		}
@@ -307,10 +320,12 @@ export class RenderService {
 			this.currentRenderer.destroy();
 			this.currentRenderer = null;
 		}
+
 		if (this.currentOverlay) {
 			this.currentOverlay.destroy();
 			this.currentOverlay = null;
 		}
+
 		this.viewportElement.innerHTML = "";
 	}
 
@@ -318,19 +333,24 @@ export class RenderService {
 		const iframe = this.viewportElement.querySelector<HTMLIFrameElement>(
 			"iframe[data-playground-frame]",
 		);
+
 		const doc = iframe?.contentDocument ?? this.viewportElement;
+
 		const pagesContainer = doc.querySelector<HTMLElement>(
 			".printedjs_pages, .pagedjs_pages",
 		);
+
 		if (!pagesContainer) return null;
-		return (
-			((pagesContainer as unknown as Record<string, unknown>).__printedjs_page_views as
-				PageViewsController | undefined) ?? null
-		);
+
+		// SAFETY: pages container element in DOM hosts page views controller reference
+		const host = pagesContainer as PageViewsHostElement;
+
+		return host.__printedjs_page_views ?? null;
 	}
 
 	setViewMode(mode: ViewMode): void {
 		const controller = this.getPageViewsController();
+
 		if (controller) {
 			controller.setMode(mode);
 		}

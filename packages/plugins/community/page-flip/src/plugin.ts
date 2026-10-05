@@ -113,9 +113,13 @@ const pageFlipCss = `
 }
 `;
 
+interface FlipbookHostElement extends HTMLElement {
+	__printedjs_flipbook?: PageFlipController | undefined;
+}
+
 export interface ViewModeAdapter {
 	readonly mode: string | readonly string[];
-	attach(container: HTMLElement, options?: unknown): unknown;
+	attach(container: HTMLElement, options?: PageFlipOptions): PageFlipController;
 	detach?(container: HTMLElement): void;
 	transformStyles?(css: string, context?: PluginContext): string;
 }
@@ -123,24 +127,28 @@ export interface ViewModeAdapter {
 export function flipBookViewAdapter(options: PageFlipOptions = {}): ViewModeAdapter {
 	return {
 		mode: ["flipbook", "book"],
-		attach(container: HTMLElement, overrideOptions?: unknown): PageFlipController {
-			const merged = {
-				...options,
-				...(typeof overrideOptions === "object" && overrideOptions !== null
-					? overrideOptions
-					: {}),
-			};
+		attach(
+			container: HTMLElement,
+			overrideOptions?: PageFlipOptions,
+		): PageFlipController {
+			const merged: PageFlipOptions = { ...options };
+
+			if (overrideOptions) {
+				Object.assign(merged, overrideOptions);
+			}
+
 			const controller = new PageFlipController(container, merged);
-			(container as unknown as Record<string, unknown>).__printedjs_flipbook = controller;
+			// SAFETY: assigning controller to custom property on DOM node
+			const host = container as FlipbookHostElement;
+			host.__printedjs_flipbook = controller;
+
 			return controller;
 		},
 		detach(container: HTMLElement): void {
-			const existing = (container as unknown as Record<string, unknown>)
-				.__printedjs_flipbook as { destroy?: () => void } | undefined;
-			if (existing && typeof existing.destroy === "function") {
-				existing.destroy();
-			}
-			delete (container as unknown as Record<string, unknown>).__printedjs_flipbook;
+			// SAFETY: accessing controller from custom property on DOM node
+			const host = container as FlipbookHostElement;
+			host.__printedjs_flipbook?.destroy();
+			delete host.__printedjs_flipbook;
 		},
 		transformStyles(css: string): string {
 			return `${css}\n\n${pageFlipCss}`;
@@ -157,18 +165,21 @@ export function pageFlipPlugin(options: PageFlipOptions = {}): PrintedjsPlugin {
 			return `${css}\n\n${pageFlipCss}`;
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) return;
 
 			const pagesContainer = doc.querySelector<HTMLElement>(
 				".printedjs_pages, .pagedjs_pages",
 			);
+
 			if (pagesContainer) {
 				const controller = new PageFlipController(pagesContainer, options);
-				context.metadata["flipBook"] = controller;
-				context.metadata["pageFlip"] = controller;
-				(pagesContainer as unknown as Record<string, unknown>).__printedjs_flipbook =
-					controller;
+				context.metadata.flipBook = controller;
+				context.metadata.pageFlip = controller;
+				// SAFETY: assigning controller to custom property on DOM node
+				const host = pagesContainer as FlipbookHostElement;
+				host.__printedjs_flipbook = controller;
 			}
 		},
 	};

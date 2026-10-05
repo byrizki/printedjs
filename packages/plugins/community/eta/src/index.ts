@@ -1,10 +1,14 @@
 import type { PrintedjsPlugin } from "@printedjs/core";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import { Eta } from "eta";
 import numeral from "numeral";
 
-const numInstance =
-	(numeral as unknown as { default?: typeof numeral }).default ?? numeral;
+interface NumeralModule {
+	readonly default?: typeof numeral | undefined;
+}
+
+// SAFETY: numeral CJS/ESM bundle interop
+const numInstance = (numeral as NumeralModule).default ?? numeral;
 
 try {
 	if (!numInstance.locales?.["id"]) {
@@ -15,34 +19,93 @@ try {
 			currency: { symbol: "Rp. " },
 		});
 	}
+
 	numInstance.locale("id");
 } catch {
 	// Ignore if locale is already registered
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type TemplateHelper = (...args: any[]) => unknown;
+export type TemplateScalar =
+	| string
+	| number
+	| boolean
+	| null
+	| undefined
+	| bigint
+	| Date
+	| Dayjs;
 
-export const defaultTemplateHelpers: Record<string, TemplateHelper> = {
-	dayjs: (d: unknown) => dayjs(d as string | number | Date),
-	format: (v: unknown) => numInstance(v).format(),
-};
+export interface TemplateDataMap {
+	[key: string]: TemplateContextValue;
+}
+
+export type TemplateHelper = (
+	...args: readonly TemplateContextValue[]
+) => TemplateScalar | void;
+
+export type TemplateContextValue =
+	| TemplateScalar
+	| readonly TemplateScalar[]
+	| TemplateDataMap
+	| TemplateHelper;
+
+function isString(value: TemplateContextValue | symbol): value is string {
+	return Object.prototype.toString.call(value) === "[object String]";
+}
+
+function isSymbol(value: TemplateContextValue | symbol): value is symbol {
+	return Object.prototype.toString.call(value) === "[object Symbol]";
+}
+
+function isBigInt(value: TemplateContextValue): value is bigint {
+	return Object.prototype.toString.call(value) === "[object BigInt]";
+}
+
+function isObject(value: TemplateContextValue): value is TemplateDataMap {
+	return value !== null && Object.prototype.toString.call(value) === "[object Object]";
+}
+
+export const defaultTemplateHelpers = {
+	dayjs: (d: TemplateContextValue) => {
+		// SAFETY: argument to dayjs helper is expected to be date-compatible
+		return dayjs(d as string | number | Date);
+	},
+	format: (v: TemplateContextValue) => numInstance(v).format(),
+} satisfies Record<string, TemplateHelper>;
+
+function convertBigInts(value: TemplateContextValue): TemplateContextValue {
+	if (isBigInt(value)) {
+		return Number(value);
+	}
+
+	if (Array.isArray(value)) {
+		return value.map((item) => (isBigInt(item) ? Number(item) : item));
+	}
+
+	if (isObject(value)) {
+		return deepToNumber(value);
+	}
+
+	return value;
+}
 
 /**
  * Recursively converts BigInt values to Numbers for template engine compatibility.
  */
-export function deepToNumber(obj: unknown): unknown {
-	if (obj === null || typeof obj !== "object") {
-		return typeof obj === "bigint" ? Number(obj) : obj;
+export function deepToNumber(data: TemplateDataMap): TemplateDataMap {
+	const result: TemplateDataMap = {};
+
+	for (const key of Object.keys(data)) {
+		const val = data[key];
+		result[key] = convertBigInts(val);
 	}
-	if (Array.isArray(obj)) {
-		return obj.map((v) => deepToNumber(v));
-	}
-	const result: Record<string, unknown> = {};
-	for (const key of Object.keys(obj as Record<string, unknown>)) {
-		result[key] = deepToNumber((obj as Record<string, unknown>)[key]);
-	}
+
 	return result;
+}
+
+export interface RenderTemplateOptions {
+	readonly helpers?: Record<string, TemplateHelper> | undefined;
+	readonly useWith?: boolean | undefined;
 }
 
 /**
@@ -50,48 +113,61 @@ export function deepToNumber(obj: unknown): unknown {
  */
 export function renderTemplate(
 	templateStr: string,
-	context: Record<string, unknown> = {},
-	options?: {
-		readonly helpers?: Record<string, TemplateHelper> | undefined;
-		readonly useWith?: boolean | undefined;
-	},
+	context: TemplateDataMap = {},
+	options?: RenderTemplateOptions,
 ): string {
 	const eta = new Eta({
 		useWith: options?.useWith ?? true,
 	});
 
-	const cleanContext = (deepToNumber(context) as Record<string, unknown>) ?? {};
-	const combinedContext: Record<string, unknown> = {
+	const cleanContext = deepToNumber(context);
+
+	const combinedContext = {
 		...defaultTemplateHelpers,
-		...(options?.helpers ?? {}),
+		...options?.helpers,
 		...cleanContext,
 		it: cleanContext,
 		locals: cleanContext,
-	};
+	} satisfies TemplateDataMap;
 
 	const safeContext = new Proxy(combinedContext, {
 		has(t, p) {
-			if (typeof p === "string" && (p.startsWith("__") || p === "it" || p === "locals")) {
+			if (isString(p) && (p.startsWith("__") || p === "it" || p === "locals")) {
 				return p in t;
 			}
-			if (typeof p === "string" && p in globalThis) {
+
+			if (isString(p) && p in globalThis) {
 				return false;
 			}
+
 			if (p === Symbol.unscopables) {
 				return false;
 			}
+
 			return true;
 		},
-		get(t, p, r) {
-			if (p === Symbol.unscopables) return undefined;
-			if (p in t) return Reflect.get(t, p, r);
-			if (typeof p === "string" && (p.startsWith("__") || p.startsWith("Eta"))) {
+		get(t, p) {
+			if (p === Symbol.unscopables) {
 				return undefined;
 			}
-			if (typeof p === "string" && p in globalThis) {
+
+			if (p in t) {
+				// SAFETY: property exists on target combined context
+				return (t as Record<string | symbol, TemplateContextValue>)[p];
+			}
+
+			if (isString(p) && (p.startsWith("__") || p.startsWith("Eta"))) {
 				return undefined;
 			}
-			if (typeof p === "symbol") return undefined;
+
+			if (isString(p) && p in globalThis) {
+				return undefined;
+			}
+
+			if (isSymbol(p)) {
+				return undefined;
+			}
+
 			return "";
 		},
 	});
@@ -106,13 +182,22 @@ export interface TemplateCompileResult {
 }
 
 export interface JsonParseResult {
-	readonly data: Record<string, unknown>;
+	readonly data: TemplateDataMap;
 	readonly error: string | null;
 }
 
-export function formatCurrencyValue(value: unknown, currency: string = "USD"): string {
-	const numeric = typeof value === "number" ? value : Number(value);
-	if (isNaN(numeric)) {
+export interface FormattedJsonResult {
+	readonly formatted: string;
+	readonly error: string | null;
+}
+
+export function formatCurrencyValue(
+	value: TemplateContextValue,
+	currency: string = "USD",
+): string {
+	const numeric = Number(value);
+
+	if (!Number.isFinite(numeric)) {
 		return String(value ?? "");
 	}
 
@@ -120,6 +205,7 @@ export function formatCurrencyValue(value: unknown, currency: string = "USD"): s
 		if (currency === "IDR") {
 			return `Rp ${Math.round(numeric).toLocaleString("id-ID")}`;
 		}
+
 		return new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency,
@@ -131,86 +217,103 @@ export function formatCurrencyValue(value: unknown, currency: string = "USD"): s
 	}
 }
 
-export const playgroundTemplateHelpers: Record<string, TemplateHelper> = {
+export const playgroundTemplateHelpers = {
 	...defaultTemplateHelpers,
-	currency: (value: unknown, currency?: unknown) =>
-		formatCurrencyValue(value, typeof currency === "string" ? currency : "USD"),
-	uppercase: (value: unknown) => String(value ?? "").toUpperCase(),
-	lowercase: (value: unknown) => String(value ?? "").toLowerCase(),
-	date: (value: unknown, formatStr?: unknown) =>
-		dayjs(value as string | number | Date).format(
-			typeof formatStr === "string" ? formatStr : "YYYY-MM-DD",
-		),
-	sum: (array: unknown, key?: unknown) => {
-		if (!Array.isArray(array)) return 0;
-		return array.reduce((acc: number, item: unknown) => {
-			if (typeof key === "string" && item && typeof item === "object") {
-				const val = (item as Record<string, unknown>)[key];
-				return acc + (typeof val === "number" ? val : Number(val) || 0);
+	currency: (value, currency) =>
+		formatCurrencyValue(value, isString(currency) ? currency : "USD"),
+	uppercase: (value) => String(value ?? "").toUpperCase(),
+	lowercase: (value) => String(value ?? "").toLowerCase(),
+	date: (value, formatStr) => {
+		// SAFETY: value passed to date helper is string, number, or Date
+		return dayjs(value as string | number | Date).format(
+			isString(formatStr) ? formatStr : "YYYY-MM-DD",
+		);
+	},
+	sum: (array, key) => {
+		if (!Array.isArray(array)) {
+			return 0;
+		}
+
+		return array.reduce((acc: number, item) => {
+			if (isString(key) && isObject(item)) {
+				const val = item[key];
+				const num = Number(val);
+
+				return acc + (Number.isFinite(num) ? num : 0);
 			}
-			return acc + (typeof item === "number" ? item : Number(item) || 0);
+
+			const num = Number(item);
+
+			return acc + (Number.isFinite(num) ? num : 0);
 		}, 0);
 	},
-};
+} satisfies Record<string, TemplateHelper>;
 
 export function parseJsonData(jsonString: string): JsonParseResult {
 	const trimmed = jsonString.trim();
+
 	if (!trimmed) {
 		return { data: {}, error: null };
 	}
 
 	try {
 		const parsed = JSON.parse(trimmed);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+
+		if (!isObject(parsed) || Array.isArray(parsed)) {
 			return {
 				data: {},
 				error: "Dynamic data root must be a JSON object (e.g. { ... }).",
 			};
 		}
-		return { data: deepToNumber(parsed) as Record<string, unknown>, error: null };
-	} catch (err: unknown) {
+
+		return { data: deepToNumber(parsed), error: null };
+	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
+
 		return { data: {}, error: message };
 	}
 }
 
-export function formatJsonString(jsonString: string): {
-	formatted: string;
-	error: string | null;
-} {
+export function formatJsonString(jsonString: string): FormattedJsonResult {
 	const parsed = parseJsonData(jsonString);
+
 	if (parsed.error) {
 		return { formatted: jsonString, error: parsed.error };
 	}
+
 	try {
 		return {
 			formatted: JSON.stringify(parsed.data, null, 2),
 			error: null,
 		};
-	} catch (err: unknown) {
+	} catch (err) {
 		return { formatted: jsonString, error: String(err) };
 	}
 }
 
 export function compileTemplate(
 	templateStr: string,
-	data: Record<string, unknown>,
+	data: TemplateDataMap,
 ): TemplateCompileResult {
 	const startTime = performance.now();
+
 	try {
 		const rendered = renderTemplate(templateStr, data, {
 			helpers: playgroundTemplateHelpers,
 			useWith: true,
 		});
+
 		const durationMs = performance.now() - startTime;
+
 		return {
 			html: rendered,
 			durationMs,
 			error: null,
 		};
-	} catch (err: unknown) {
+	} catch (err) {
 		const durationMs = performance.now() - startTime;
 		const message = err instanceof Error ? err.message : String(err);
+
 		return {
 			html: templateStr,
 			durationMs,
@@ -220,9 +323,9 @@ export function compileTemplate(
 }
 
 export interface EtaPluginOptions {
-	readonly data?: Record<string, unknown>;
-	readonly helpers?: Record<string, TemplateHelper>;
-	readonly useWith?: boolean;
+	readonly data?: TemplateDataMap | undefined;
+	readonly helpers?: Record<string, TemplateHelper> | undefined;
+	readonly useWith?: boolean | undefined;
 }
 
 /**
@@ -233,7 +336,7 @@ export function etaPlugin(options: EtaPluginOptions = {}): PrintedjsPlugin {
 		name: "eta-template",
 		setup(context) {
 			context.metadata["eta"] = {
-				render: (tpl: string, data?: Record<string, unknown>) =>
+				render: (tpl: string, data?: TemplateDataMap) =>
 					renderTemplate(tpl, data ?? options.data, {
 						helpers: options.helpers,
 						useWith: options.useWith,

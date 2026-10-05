@@ -12,6 +12,7 @@ describe("Mirrored Margins and Gutter Binding", () => {
 				gutter: 5mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		expect(rules).toHaveLength(1);
 		expect(rules[0]?.margin?.inside).toBe("25mm");
@@ -28,6 +29,7 @@ describe("Mirrored Margins and Gutter Binding", () => {
 				gutter: 5mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		const output = generatePageCss(rules);
 
@@ -50,6 +52,7 @@ describe("Mirrored Margins and Gutter Binding", () => {
 				gutter: 6mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		const output = generatePageCss(rules);
 
@@ -74,6 +77,7 @@ describe("Mirrored Margins and Gutter Binding", () => {
 				gutter: 4mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		const output = generatePageCss(rules);
 
@@ -94,6 +98,7 @@ describe("Mirrored Margins and Gutter Binding", () => {
 				gutter: 3mm;
 			}
 		`;
+
 		const rules = parsePageRules(css);
 		const output = generatePageCss(rules, true);
 

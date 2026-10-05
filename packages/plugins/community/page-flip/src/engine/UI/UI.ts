@@ -143,10 +143,12 @@ export abstract class UI {
 		// Ensure styles are present in document
 		const doc =
 			inBlock.ownerDocument ?? (typeof document !== "undefined" ? document : null);
+
 		if (doc && !doc.getElementById("st-page-flip-styles")) {
 			const style = doc.createElement("style");
 			style.id = "st-page-flip-styles";
 			style.textContent = ST_PAGE_FLIP_CSS;
+
 			if (doc.head) {
 				doc.head.appendChild(style);
 			} else if (doc.documentElement) {
@@ -157,6 +159,7 @@ export abstract class UI {
 		inBlock.classList.add("stf__parent");
 		inBlock.insertAdjacentHTML("afterbegin", '<div class="stf__wrapper"></div>');
 
+		// SAFETY: .stf__wrapper was just inserted into the DOM
 		this.wrapper = inBlock.querySelector(".stf__wrapper") as HTMLElement;
 		this.distElement = this.wrapper;
 
@@ -180,6 +183,7 @@ export abstract class UI {
 		if (typeof window !== "undefined") {
 			window.addEventListener("resize", this.onResize, false);
 		}
+
 		this.swipeDistance = setting.swipeDistance;
 	}
 
@@ -208,6 +212,7 @@ export abstract class UI {
 				this.wrapper.style.paddingBottom =
 					(this.app.getSettings().height / this.app.getSettings().width) * 100 + "%";
 			}
+
 			this.wrapper.classList.add("--portrait");
 		} else {
 			if (this.app.getSettings().autoSize) {
@@ -215,6 +220,7 @@ export abstract class UI {
 					(this.app.getSettings().height / (this.app.getSettings().width * 2)) * 100 +
 					"%";
 			}
+
 			this.wrapper.classList.add("--landscape");
 		}
 
@@ -230,6 +236,7 @@ export abstract class UI {
 			this.distElement.removeEventListener("mousedown", this.onMouseDown);
 			this.distElement.removeEventListener("touchstart", this.onTouchStart);
 		}
+
 		if (typeof window !== "undefined") {
 			window.removeEventListener("mousemove", this.onMouseMove);
 			window.removeEventListener("touchmove", this.onTouchMove);
@@ -242,12 +249,14 @@ export abstract class UI {
 		if (typeof window !== "undefined") {
 			window.addEventListener("resize", this.onResize, false);
 		}
+
 		if (!this.app.getSettings().useMouseEvents) return;
 
 		if (this.distElement) {
 			this.distElement.addEventListener("mousedown", this.onMouseDown);
 			this.distElement.addEventListener("touchstart", this.onTouchStart);
 		}
+
 		if (typeof window !== "undefined") {
 			window.addEventListener("mousemove", this.onMouseMove);
 			window.addEventListener("touchmove", this.onTouchMove, {
@@ -269,8 +278,10 @@ export abstract class UI {
 
 	private checkTarget(target: EventTarget | null): boolean {
 		if (!target) return false;
+
 		if (!this.app.getSettings().clickEventForward) return true;
 
+		// SAFETY: event target in DOM mouse event is expected to be an Element
 		if (["a", "button"].includes((target as HTMLElement).tagName?.toLowerCase() ?? "")) {
 			return false;
 		}
@@ -290,6 +301,7 @@ export abstract class UI {
 		if (this.checkTarget(e.target)) {
 			if (e.changedTouches.length > 0) {
 				const t = e.changedTouches[0];
+
 				if (!t) return;
 				const pos = this.getMousePos(t.clientX, t.clientY);
 
@@ -322,6 +334,7 @@ export abstract class UI {
 	private readonly onTouchMove = (e: TouchEvent): void => {
 		if (e.changedTouches.length > 0) {
 			const t = e.changedTouches[0];
+
 			if (!t) return;
 			const pos = this.getMousePos(t.clientX, t.clientY);
 
@@ -347,6 +360,7 @@ export abstract class UI {
 	private readonly onTouchEnd = (e: TouchEvent): void => {
 		if (e.changedTouches.length > 0) {
 			const t = e.changedTouches[0];
+
 			if (!t) return;
 			const pos = this.getMousePos(t.clientX, t.clientY);
 			let isSwipe = false;
@@ -361,6 +375,7 @@ export abstract class UI {
 					Date.now() - this.touchPoint.time < this.swipeTimeout
 				) {
 					const halfH = this.app.getRender().getRect().height / 2;
+
 					if (dx > 0) {
 						this.app.flipPrev(
 							this.touchPoint.point.y < halfH ? FlipCorner.TOP : FlipCorner.BOTTOM,
@@ -370,6 +385,7 @@ export abstract class UI {
 							this.touchPoint.point.y < halfH ? FlipCorner.TOP : FlipCorner.BOTTOM,
 						);
 					}
+
 					isSwipe = true;
 				}
 

@@ -3,12 +3,15 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 		const marginGroup = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}, .pagedjs_margin-${loc})`,
 		);
+
 		const center = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-center, .pagedjs_margin-${loc}-center)`,
 		);
+
 		const left = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-left, .pagedjs_margin-${loc}-left)`,
 		);
+
 		const right = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-right, .pagedjs_margin-${loc}-right)`,
 		);
@@ -26,6 +29,7 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 		if (leftContent) {
 			leftWidth = win.getComputedStyle(left).maxWidth;
 		}
+
 		if (rightContent) {
 			rightWidth = win.getComputedStyle(right).maxWidth;
 		}
@@ -47,8 +51,10 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 							const leftOuterWidth = left.offsetWidth;
 							const centerOuterWidth = center.offsetWidth;
 							const outerwidths = leftOuterWidth + centerOuterWidth;
+
 							const newcenterWidth =
 								outerwidths > 0 ? (centerOuterWidth * 100) / outerwidths : 50;
+
 							marginGroup.style.gridTemplateColumns = `minmax(16.66%, 1fr) minmax(33%, ${newcenterWidth}%) minmax(16.66%, 1fr)`;
 							left.style.whiteSpace = "normal";
 							center.style.whiteSpace = "normal";
@@ -72,13 +78,16 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 								const centerOuterWidth = center.offsetWidth;
 								const rightOuterWidth = right.offsetWidth;
 								const outerwidths = leftOuterWidth + centerOuterWidth + rightOuterWidth;
+
 								const newcenterWidth =
 									outerwidths > 0 ? (centerOuterWidth * 100) / outerwidths : 33.33;
+
 								if (newcenterWidth > 40) {
 									marginGroup.style.gridTemplateColumns = `minmax(16.66%, 1fr) minmax(33%, ${newcenterWidth}%) minmax(16.66%, 1fr)`;
 								} else {
 									marginGroup.style.gridTemplateColumns = "repeat(3, 1fr)";
 								}
+
 								left.style.whiteSpace = "normal";
 								center.style.whiteSpace = "normal";
 								right.style.whiteSpace = "normal";
@@ -95,8 +104,10 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 						const rightOuterWidth = right.offsetWidth;
 						const centerOuterWidth = center.offsetWidth;
 						const outerwidths = rightOuterWidth + centerOuterWidth;
+
 						const newcenterWidth =
 							outerwidths > 0 ? (centerOuterWidth * 100) / outerwidths : 50;
+
 						marginGroup.style.gridTemplateColumns = `minmax(16.66%, 1fr) minmax(33%, ${newcenterWidth}%) minmax(16.66%, 1fr)`;
 						right.style.whiteSpace = "normal";
 						center.style.whiteSpace = "normal";
@@ -137,8 +148,10 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 							const leftOuterWidth = left.offsetWidth;
 							const rightOuterWidth = right.offsetWidth;
 							const outerwidths = leftOuterWidth + rightOuterWidth;
+
 							const newLeftWidth =
 								outerwidths > 0 ? (leftOuterWidth * 100) / outerwidths : 50;
+
 							marginGroup.style.gridTemplateColumns = `minmax(16.66%, ${newLeftWidth}%) 0 1fr`;
 							left.style.whiteSpace = "normal";
 							right.style.whiteSpace = "normal";
@@ -159,12 +172,15 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 		const middle = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-middle, .pagedjs_margin-${loc}-middle).hasContent`,
 		);
+
 		const marginGroup = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}, .pagedjs_margin-${loc})`,
 		);
+
 		const top = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-top, .pagedjs_margin-${loc}-top)`,
 		);
+
 		const bottom = pageEl.querySelector<HTMLElement>(
 			`:is(.printedjs_margin-${loc}-bottom, .pagedjs_margin-${loc}-bottom)`,
 		);
@@ -180,6 +196,7 @@ export function distributeMarginTracks(pageEl: HTMLElement, win: Window): void {
 		if (topContent) {
 			topHeight = win.getComputedStyle(top).maxHeight;
 		}
+
 		if (bottomContent) {
 			bottomHeight = win.getComputedStyle(bottom).maxHeight;
 		}

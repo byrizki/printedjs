@@ -36,6 +36,7 @@ export class FlipCalculation {
 		try {
 			this.position = this.calcAngleAndPosition(localPos);
 			this.calculateIntersectPoint(this.position);
+
 			return true;
 		} catch {
 			return false;
@@ -47,12 +48,14 @@ export class FlipCalculation {
 		let clipBottom = false;
 
 		result.push(this.rect.topLeft);
+
 		if (this.topIntersectPoint) result.push(this.topIntersectPoint);
 
 		if (this.sideIntersectPoint === null) {
 			clipBottom = true;
 		} else {
 			result.push(this.sideIntersectPoint);
+
 			if (this.bottomIntersectPoint === null) clipBottom = false;
 		}
 
@@ -76,6 +79,7 @@ export class FlipCalculation {
 			if (this.topIntersectPoint !== null) {
 				result.push({ x: this.pageWidth, y: 0 });
 			}
+
 			result.push({ x: this.pageWidth, y: this.pageHeight });
 		}
 
@@ -96,6 +100,7 @@ export class FlipCalculation {
 		}
 
 		if (this.bottomIntersectPoint) result.push(this.bottomIntersectPoint);
+
 		if (this.topIntersectPoint) result.push(this.topIntersectPoint);
 
 		return result;
@@ -105,6 +110,7 @@ export class FlipCalculation {
 		if (this.direction === FlipDirection.FORWARD) {
 			return -this.angle;
 		}
+
 		return this.angle;
 	}
 
@@ -120,6 +126,7 @@ export class FlipCalculation {
 		if (this.direction === FlipDirection.FORWARD) {
 			return this.rect.topLeft;
 		}
+
 		return this.rect.topRight;
 	}
 
@@ -141,6 +148,7 @@ export class FlipCalculation {
 		if (this.direction === FlipDirection.BACK) {
 			return { x: this.pageWidth, y: 0 };
 		}
+
 		return { x: 0, y: 0 };
 	}
 
@@ -148,7 +156,9 @@ export class FlipCalculation {
 		if (this.corner === FlipCorner.TOP) {
 			return this.topIntersectPoint ?? { x: 0, y: 0 };
 		}
+
 		if (this.sideIntersectPoint !== null) return this.sideIntersectPoint;
+
 		return this.topIntersectPoint ?? { x: 0, y: 0 };
 	}
 
@@ -161,6 +171,7 @@ export class FlipCalculation {
 		if (this.direction === FlipDirection.FORWARD) {
 			return angle;
 		}
+
 		return Math.PI - angle;
 	}
 
@@ -204,6 +215,7 @@ export class FlipCalculation {
 		if (top < 0) angle = -angle;
 
 		const da = Math.PI - angle;
+
 		if (!isFinite(angle) || (da >= 0 && da < 0.003)) {
 			throw new Error("The G point is too small");
 		}
@@ -332,6 +344,7 @@ export class FlipCalculation {
 		let result = checkedPos;
 
 		const tmp = Helper.LimitPointToCircle(centerOne, this.pageWidth, result);
+
 		if (result !== tmp) {
 			result = tmp;
 			this.updateAngleAndGeometry(result);

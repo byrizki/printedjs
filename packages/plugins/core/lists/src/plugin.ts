@@ -9,24 +9,30 @@ export function listsPlugin(): PrintedjsPlugin {
 		name: "lists",
 		after: ["breaks", "page-rules"],
 		beforeLayout(context: PluginContext) {
-			const contentRoot = context.metadata["contentRoot"] as ParentNode | undefined;
-			if (!contentRoot || typeof contentRoot.querySelectorAll !== "function") {
+			// SAFETY: contentRoot is a DOM node supporting querySelectorAll during layout
+			const contentRoot = context.metadata.contentRoot as ParentNode | undefined;
+
+			if (!contentRoot || !("querySelectorAll" in contentRoot)) {
 				return;
 			}
 
 			const orderedLists = contentRoot.querySelectorAll<HTMLOListElement>("ol");
 			orderedLists.forEach((list) => {
 				let start = 1;
+
 				if (list.hasAttribute("start")) {
 					const parsed = parseInt(list.getAttribute("start") ?? "", 10);
+
 					if (!isNaN(parsed)) {
 						start = parsed;
 					}
 				}
 
 				let itemIndex = 0;
+
 				for (let i = 0; i < list.children.length; i++) {
 					const child = list.children[i];
+
 					if (child && child.tagName.toUpperCase() === "LI") {
 						child.setAttribute("data-item-num", String(start + itemIndex));
 						itemIndex++;
@@ -35,7 +41,8 @@ export function listsPlugin(): PrintedjsPlugin {
 			});
 		},
 		afterRender(context: PluginContext) {
-			const doc = context.metadata["document"] as Document | undefined;
+			const doc = context.metadata.document;
+
 			if (!doc) {
 				return;
 			}
@@ -45,8 +52,10 @@ export function listsPlugin(): PrintedjsPlugin {
 				const orderedLists = page.querySelectorAll<HTMLOListElement>("ol");
 				orderedLists.forEach((list) => {
 					const firstItem = list.querySelector<HTMLElement>(":scope > li");
+
 					if (firstItem?.hasAttribute("data-item-num")) {
 						const num = parseInt(firstItem.getAttribute("data-item-num")!, 10);
+
 						if (!isNaN(num)) {
 							list.setAttribute("start", String(num));
 							list.start = num;

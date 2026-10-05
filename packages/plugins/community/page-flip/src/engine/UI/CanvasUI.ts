@@ -12,6 +12,7 @@ export class CanvasUI extends UI {
 		super(inBlock, app, setting);
 
 		this.wrapper.innerHTML = '<canvas class="stf__canvas"></canvas>';
+		// SAFETY: canvas element was just inserted into wrapper
 		this.canvas = inBlock.querySelectorAll("canvas")[0] as HTMLCanvasElement;
 		this.distElement = this.canvas;
 
@@ -21,8 +22,10 @@ export class CanvasUI extends UI {
 
 	private resizeCanvas(): void {
 		if (!this.canvas) return;
+
 		const cs =
 			typeof getComputedStyle !== "undefined" ? getComputedStyle(this.canvas) : null;
+
 		const width = parseInt(cs?.getPropertyValue("width") || "0", 10) || 300;
 		const height = parseInt(cs?.getPropertyValue("height") || "0", 10) || 150;
 

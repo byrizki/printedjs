@@ -22,6 +22,7 @@ describe("Playground & Engine Fixes Verification", () => {
 		it("all fixtures in FIXTURE_CATALOG have unique IDs and valid html markup", () => {
 			expect(FIXTURE_CATALOG.length).toBeGreaterThan(5);
 			const ids = new Set<string>();
+
 			for (const fixture of FIXTURE_CATALOG) {
 				expect(ids.has(fixture.id)).toBe(false);
 				ids.add(fixture.id);
@@ -52,6 +53,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				.landscape-section { page: landscape-sheet; }
 				.portrait-return { page: auto; }
 			`;
+
 			const rules = parseBreakStyles(css);
 			expect(rules).toContainEqual({
 				selector: ".landscape-section",
@@ -90,6 +92,7 @@ describe("Playground & Engine Fixes Verification", () => {
 					<p>Math test: <%= Math.round(10.6) %></p>
 				</div>
 			`;
+
 			const result = compileTemplate(template, {
 				title: "Quarterly Update",
 				recipient: "Shareholders",
@@ -106,11 +109,13 @@ describe("Playground & Engine Fixes Verification", () => {
 			const continuousFixture = FIXTURE_CATALOG.find(
 				(f) => f.id === "continuous-flow" || f.title.toLowerCase().includes("continuous"),
 			);
+
 			if (continuousFixture) {
 				const result = compileTemplate(
 					continuousFixture.html,
 					continuousFixture.data ?? {},
 				);
+
 				expect(result.error).toBeNull();
 				expect(result.html.length).toBeGreaterThan(0);
 			}
@@ -123,6 +128,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				const num = i + 1;
 				const attrs: Record<string, string> = { "data-page-number": String(num) };
 				const classList = new Set<string>();
+
 				return {
 					style: { display: "" },
 					offsetWidth: 400,
@@ -161,6 +167,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				},
 				querySelectorAll: (sel: string) => {
 					if (sel.includes("printedjs_page")) return pageElements;
+
 					return [];
 				},
 				querySelector: (sel: string) => {
@@ -169,6 +176,7 @@ describe("Playground & Engine Fixes Verification", () => {
 							children.find((c) => (c.className ?? "").includes("pm-book-spacer")) ?? null
 						);
 					}
+
 					return null;
 				},
 				prepend: (node: HTMLElement) => {
@@ -191,6 +199,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("places Page 1 and lone last page strictly on right slot, never centering alone", async () => {
 			const { container, pageElements } = createMockBookContainer(4);
+
 			const controller = new DomFlipBookController(container, {
 				sound: false,
 				turnDurationMs: 0,
@@ -221,6 +230,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("correctly handles 2-page documents in book view with Page 1 on right and Page 2 on left", async () => {
 			const { container, pageElements } = createMockBookContainer(2);
+
 			const controller = new DomFlipBookController(container, {
 				sound: false,
 				turnDurationMs: 0,
@@ -259,6 +269,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				pointerEvents: "",
 				setProperty: () => {},
 			};
+
 			const fakeElement = {
 				style: fakeStyle,
 				classList: { add: () => {}, remove: () => {} },
@@ -294,6 +305,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("preserves running headers and only freezes actual page counter folios", async () => {
 			const { container, pageElements } = createMockBookContainer(3);
+
 			const leftMarginContent = {
 				textContent: "",
 				getAttribute: (k: string) =>
@@ -307,6 +319,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				attrs: {} as Record<string, string>,
 				firstElementChild: null,
 			};
+
 			const rightMarginContent = {
 				textContent: "",
 				getAttribute: (k: string) =>
@@ -338,9 +351,11 @@ describe("Playground & Engine Fixes Verification", () => {
 						if (node === leftMarginContent && pseudo === "::after") {
 							return { content: '"2"' };
 						}
+
 						if (node === rightMarginContent && pseudo === "::after") {
 							return { content: '"Alice\'s Adventures in Wonderland"' };
 						}
+
 						return { content: "none" };
 					},
 				},
@@ -353,6 +368,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				if (sel.includes("margin-content")) {
 					return [leftMarginContent, rightMarginContent];
 				}
+
 				return [];
 			};
 
@@ -374,6 +390,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("preserves footer page counter folios and leaves margin contents untouched for native CSS counters", async () => {
 			const { container, pageElements } = createMockBookContainer(3);
+
 			const footerLeftContent = {
 				textContent: "",
 				getAttribute: (k: string) =>
@@ -388,6 +405,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				attrs: {} as Record<string, string>,
 				firstElementChild: null,
 			};
+
 			const footerCenterContent = {
 				textContent: "",
 				getAttribute: (k: string) =>
@@ -421,9 +439,11 @@ describe("Playground & Engine Fixes Verification", () => {
 							// Real browser returns raw counter expression
 							return { content: "counter(page)" };
 						}
+
 						if (node === footerCenterContent && pseudo === "::after") {
 							return { content: '"Section 1 Notes"' };
 						}
+
 						return { content: "none" };
 					},
 				},
@@ -436,6 +456,7 @@ describe("Playground & Engine Fixes Verification", () => {
 				if (sel.includes("margin-content")) {
 					return [footerLeftContent, footerCenterContent];
 				}
+
 				return [];
 			};
 
@@ -495,24 +516,33 @@ describe("Playground & Engine Fixes Verification", () => {
 					},
 					matches: (sel: string) => {
 						if (idx === 0 && sel.includes("_first_page")) return true;
+
 						if ((idx === 1 || idx === 2) && sel.includes('data-page="frontmatter"'))
 							return true;
+
 						if (idx === 3 && sel.includes('data-page="body-page"')) return true;
+
 						if (idx === 4 && sel.includes('data-page="appendix-page"')) return true;
+
 						if (sel.includes(".printedjs_page .printedjs_margin-bottom-right"))
 							return true;
+
 						return false;
 					},
 					attrs: {} as Record<string, string>,
 					firstElementChild: null,
 				};
+
 				(page as unknown as Record<string, unknown>).querySelectorAll = (sel: string) => {
 					if (sel.includes("margin-content")) return [marginNode];
+
 					if (sel.includes("data-folio-frozen")) {
 						return marginNode.attrs["data-folio-frozen"] ? [marginNode] : [];
 					}
+
 					return [];
 				};
+
 				return marginNode;
 			});
 
@@ -618,31 +648,37 @@ describe("Playground & Engine Fixes Verification", () => {
 	describe("Item 5: Searchable Preset Combobox", () => {
 		it("filters fixture catalog accurately by title, id, and category", () => {
 			const query1 = "alice";
+
 			const matches1 = FIXTURE_CATALOG.filter(
 				(f) =>
 					f.title.toLowerCase().includes(query1) ||
 					f.id.toLowerCase().includes(query1) ||
 					f.category.toLowerCase().includes(query1),
 			);
+
 			expect(matches1.length).toBeGreaterThan(0);
 			expect(matches1[0].id).toBe("complete-novel-book");
 
 			const query2 = "financial";
+
 			const matches2 = FIXTURE_CATALOG.filter(
 				(f) =>
 					f.title.toLowerCase().includes(query2) ||
 					f.id.toLowerCase().includes(query2) ||
 					f.category.toLowerCase().includes(query2),
 			);
+
 			expect(matches2.length).toBeGreaterThan(0);
 
 			const query3 = "paged-media";
+
 			const matches3 = FIXTURE_CATALOG.filter(
 				(f) =>
 					f.title.toLowerCase().includes(query3) ||
 					f.id.toLowerCase().includes(query3) ||
 					f.category.toLowerCase().includes(query3),
 			);
+
 			expect(matches3.length).toBeGreaterThan(3);
 		});
 	});
@@ -698,6 +734,7 @@ describe("Playground & Engine Fixes Verification", () => {
 		function setupMockDom() {
 			const originalDoc = (globalThis as unknown as Record<string, unknown>).document;
 			const originalWin = (globalThis as unknown as Record<string, unknown>).window;
+
 			const originalRaf = (globalThis as unknown as Record<string, unknown>)
 				.requestAnimationFrame;
 
@@ -705,29 +742,37 @@ describe("Playground & Engine Fixes Verification", () => {
 				cb: () => void,
 			) => {
 				cb();
+
 				return 1;
 			};
 
 			function matchesSingle(el: MockElement, s: string): boolean {
 				s = s.trim();
+
 				if (s.startsWith("#")) return el.id === s.slice(1);
+
 				if (s.startsWith(".")) {
 					const className = s.slice(1);
+
 					return (
 						el.classList.contains(className) ||
 						(typeof el.className === "string" &&
 							el.className.split(/\s+/).includes(className))
 					);
 				}
+
 				if (s.includes("[data-page-number=")) {
 					const match = s.match(/\[data-page-number="([^"]+)"\]/);
+
 					if (match) return el.getAttribute("data-page-number") === match[1];
 				}
+
 				return false;
 			}
 
 			function matchesSel(el: MockElement, sel: string): boolean {
 				const parts = sel.split(",");
+
 				return parts.some((p) => matchesSingle(el, p));
 			}
 
@@ -753,6 +798,7 @@ describe("Playground & Engine Fixes Verification", () => {
 					},
 					set className(val: string) {
 						classListSet.clear();
+
 						if (val) {
 							for (const c of val.split(/\s+/)) {
 								if (c) classListSet.add(c);
@@ -775,8 +821,10 @@ describe("Playground & Engine Fixes Verification", () => {
 						toggle: (c: string, force?: boolean) => {
 							const has = classListSet.has(c);
 							const next = force !== undefined ? force : !has;
+
 							if (next) el.classList.add(c);
 							else el.classList.remove(c);
+
 							return next;
 						},
 						contains: (c: string) => classListSet.has(c),
@@ -791,6 +839,7 @@ describe("Playground & Engine Fixes Verification", () => {
 					appendChild: (child: MockElement) => {
 						children.push(child);
 						child.parentElement = el;
+
 						return child;
 					},
 					addEventListener: (type: string, fn: (e: Event) => void) => {
@@ -802,25 +851,32 @@ describe("Playground & Engine Fixes Verification", () => {
 					},
 					dispatchEvent: (e: Event) => {
 						const fns = listeners.get(e.type);
+
 						if (fns) {
 							for (const fn of fns) fn(e);
 						}
+
 						return true;
 					},
 					querySelector: (sel: string) => {
 						for (const child of children) {
 							if (matchesSel(child, sel)) return child;
 							const found = child.querySelector?.(sel);
+
 							if (found) return found;
 						}
+
 						return null;
 					},
 					querySelectorAll: (sel: string) => {
 						const results: MockElement[] = [];
+
 						for (const child of children) {
 							if (matchesSel(child, sel)) results.push(child);
+
 							if (child.querySelectorAll) results.push(...child.querySelectorAll(sel));
 						}
+
 						return results;
 					},
 					getBoundingClientRect: () => ({
@@ -837,10 +893,12 @@ describe("Playground & Engine Fixes Verification", () => {
 					offsetTop: 0,
 					offsetHeight: 1000,
 				};
+
 				return el;
 			}
 
 			const elementMap = new Map<string, MockElement>();
+
 			const requiredIds = [
 				"pm-canvas-scroll",
 				"render-viewport",
@@ -884,12 +942,16 @@ describe("Playground & Engine Fixes Verification", () => {
 						mainEl.querySelector = (sel: string) => {
 							if (sel.startsWith("#")) {
 								const id = sel.slice(1);
+
 								if (elementMap.has(id)) return elementMap.get(id)!;
 							}
+
 							return null;
 						};
+
 						return mainEl;
 					}
+
 					return createMockElement("", tag);
 				},
 			};
@@ -915,8 +977,10 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("emits page:change and updates floating toolbar indicator in single view", () => {
 			const dom = setupMockDom();
+
 			try {
 				const events: CustomEvent[] = [];
+
 				const viewport = new ViewportComponent({
 					initialZoom: 1.0,
 					initialViewMode: "single",
@@ -968,8 +1032,10 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("emits page:change and displays spread range in floating toolbar for spread view", () => {
 			const dom = setupMockDom();
+
 			try {
 				const events: CustomEvent[] = [];
+
 				const viewport = new ViewportComponent({
 					initialZoom: 1.0,
 					initialViewMode: "spread",
@@ -1028,6 +1094,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("formats custom roman and prefix counters accurately in spread and single view", () => {
 			const dom = setupMockDom();
+
 			try {
 				const viewport = new ViewportComponent({
 					initialZoom: 1.0,
@@ -1090,6 +1157,7 @@ describe("Playground & Engine Fixes Verification", () => {
 
 		it("floating toolbar receives external page:change events directly", () => {
 			const dom = setupMockDom();
+
 			try {
 				const viewport = new ViewportComponent({
 					initialZoom: 1.0,

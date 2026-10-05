@@ -9,6 +9,7 @@ const executablePath = resolveChromeExecutable();
 describe.runIf(Boolean(executablePath))("Footnotes rendering", () => {
 	test("properly renders in-text footnote call, bottom area, and footnote marker", async () => {
 		const tempHtmlPath = resolve(__dirname, "../fixtures/temp-footnote-test.html");
+
 		const template = `<style>
 @page {
   size: 6in 9in;
@@ -79,9 +80,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 			const footnoteData = await page.evaluate(() => {
 				const area = document.querySelector(".printedjs_footnote_area") as HTMLElement;
+
 				const content = document.querySelector(
 					".printedjs_footnote_content",
 				) as HTMLElement;
+
 				const call = document.querySelector(".printedjs_footnote_call") as HTMLElement;
 				const note = document.querySelector(".footnote") as HTMLElement;
 				const pseudoBefore = window.getComputedStyle(note, "::before");
@@ -130,6 +133,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 			expect(footnoteData.noteBottom).toBeLessThanOrEqual(footnoteData.areaBottom + 0.5);
 		} finally {
 			await browser.close();
+
 			if (existsSync(tempHtmlPath)) {
 				unlinkSync(tempHtmlPath);
 			}
