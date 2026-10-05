@@ -1,4 +1,7 @@
-import * as csstree from "css-tree";
+import generate from "css-tree/generator";
+import parse from "css-tree/parser";
+import walk from "css-tree/walker";
+import type { CssLocation } from "css-tree";
 import type {
 	CssAst,
 	CssAtRule,
@@ -31,8 +34,38 @@ interface MutableCssAst {
 	sourceUrl?: string | undefined;
 }
 
+const MAX_AST_CACHE_SIZE = 128;
+
+const astCache = new Map<string, CssAst>();
+
+function getCachedAst(key: string): CssAst | undefined {
+	const entry = astCache.get(key);
+
+	if (!entry) return undefined;
+	astCache.delete(key);
+	astCache.set(key, entry);
+
+	return entry;
+}
+
+function setCachedAst(key: string, ast: CssAst): void {
+	if (astCache.size >= MAX_AST_CACHE_SIZE) {
+		const firstKey = astCache.keys().next().value;
+
+		if (firstKey !== undefined) {
+			astCache.delete(firstKey);
+		}
+	}
+
+	astCache.set(key, ast);
+}
+
+const MAX_STRIP_CACHE_SIZE = 128;
+
+const stripPageRulesCache = new Map<string, string>();
+
 function toSourceLocation(
-	loc: csstree.CssLocation | null | undefined,
+	loc: CssLocation | null | undefined,
 	sourceUrl?: string,
 ): SourceLocation | undefined {
 	if (!loc) {
@@ -54,7 +87,14 @@ function toSourceLocation(
 }
 
 export function parseCss(css: string, sourceUrl?: string): CssAst {
-	const parsedAst = csstree.parse(css, {
+	const cacheKey = sourceUrl ? `${sourceUrl}\0${css}` : css;
+	const cached = getCachedAst(cacheKey);
+
+	if (cached) {
+		return cached;
+	}
+
+	const parsedAst = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseRulePrelude: false,
@@ -66,19 +106,19 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 	const pageRules: CssPageRule[] = [];
 	const atRules: CssAtRule[] = [];
 
-	csstree.walk(parsedAst, {
+	walk(parsedAst, {
 		visit: "Rule",
 		enter(node) {
-			const selector = node.prelude ? csstree.generate(node.prelude).trim() : "";
+			const selector = node.prelude ? generate(node.prelude).trim() : "";
 			const declarations: CssDeclaration[] = [];
 
 			if (node.block) {
-				csstree.walk(node.block, {
+				walk(node.block, {
 					visit: "Declaration",
 					enter(decl) {
 						declarations.push({
 							property: decl.property,
-							value: csstree.generate(decl.value).trim(),
+							value: generate(decl.value).trim(),
 							loc: toSourceLocation(decl.loc, sourceUrl),
 						});
 					},
@@ -93,13 +133,13 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 		},
 	});
 
-	csstree.walk(parsedAst, {
+	walk(parsedAst, {
 		visit: "Atrule",
 		enter(node) {
 			const name = node.name.toLowerCase();
 
 			if (name === "page") {
-				const selector = node.prelude ? csstree.generate(node.prelude).trim() : undefined;
+				const selector = node.prelude ? generate(node.prelude).trim() : undefined;
 				const declarations: CssDeclaration[] = [];
 				const marginBoxes: CssMarginBoxRule[] = [];
 
@@ -108,7 +148,7 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 						if (child.type === "Declaration") {
 							declarations.push({
 								property: child.property,
-								value: csstree.generate(child.value).trim(),
+								value: generate(child.value).trim(),
 								loc: toSourceLocation(child.loc, sourceUrl),
 							});
 						} else if (child.type === "Atrule") {
@@ -116,12 +156,12 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 							const boxDeclarations: CssDeclaration[] = [];
 
 							if (child.block) {
-								csstree.walk(child.block, {
+								walk(child.block, {
 									visit: "Declaration",
 									enter(d) {
 										boxDeclarations.push({
 											property: d.property,
-											value: csstree.generate(d.value).trim(),
+											value: generate(d.value).trim(),
 											loc: toSourceLocation(d.loc, sourceUrl),
 										});
 									},
@@ -152,8 +192,8 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 				// Other top-level at-rules
 				atRules.push({
 					name: node.name,
-					prelude: node.prelude ? csstree.generate(node.prelude).trim() : undefined,
-					block: node.block ? csstree.generate(node.block).trim() : undefined,
+					prelude: node.prelude ? generate(node.prelude).trim() : undefined,
+					block: node.block ? generate(node.block).trim() : undefined,
 					loc: toSourceLocation(node.loc, sourceUrl),
 				});
 			}
@@ -169,6 +209,8 @@ export function parseCss(css: string, sourceUrl?: string): CssAst {
 	if (sourceUrl) {
 		ast.sourceUrl = sourceUrl;
 	}
+
+	setCachedAst(cacheKey, ast);
 
 	return ast;
 }
@@ -210,7 +252,13 @@ export function generateCss(ast: CssAst): string {
 }
 
 export function stripPageRules(css: string): string {
-	const parsedAst = csstree.parse(css, {
+	const cached = stripPageRulesCache.get(css);
+
+	if (cached !== undefined) {
+		return cached;
+	}
+
+	const parsedAst = parse(css, {
 		positions: true,
 		parseAtrulePrelude: false,
 		parseRulePrelude: false,
@@ -218,7 +266,7 @@ export function stripPageRules(css: string): string {
 		parseCustomProperty: false,
 	});
 
-	csstree.walk(parsedAst, {
+	walk(parsedAst, {
 		visit: "Atrule",
 		enter(node, item, list) {
 			if (node.name.toLowerCase() === "page" && list && item) {
@@ -242,5 +290,17 @@ export function stripPageRules(css: string): string {
 		},
 	});
 
-	return csstree.generate(parsedAst);
+	const result = generate(parsedAst);
+
+	if (stripPageRulesCache.size >= MAX_STRIP_CACHE_SIZE) {
+		const firstKey = stripPageRulesCache.keys().next().value;
+
+		if (firstKey !== undefined) {
+			stripPageRulesCache.delete(firstKey);
+		}
+	}
+
+	stripPageRulesCache.set(css, result);
+
+	return result;
 }

@@ -558,6 +558,109 @@ export interface PageShellOptions {
 	readonly counterReset?: number | undefined;
 }
 
+interface ShellTemplates {
+	standard: HTMLTemplateElement;
+	compat: HTMLTemplateElement;
+}
+
+const docTemplateCache = new WeakMap<Document, ShellTemplates>();
+
+function buildShellHtml(pagedjsCompatible: boolean): string {
+	return `
+	<div class="${cls("sheet", pagedjsCompatible)}" data-printedjs-sheet="">
+		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-top", pagedjsCompatible)}">
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+			<div class="${cls("marks-middle", pagedjsCompatible)}">
+				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
+			</div>
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+		</div>
+		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-bottom", pagedjsCompatible)}">
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+			<div class="${cls("marks-middle", pagedjsCompatible)}">
+				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
+			</div>
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+		</div>
+		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-left", pagedjsCompatible)}">
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+			<div class="${cls("marks-middle", pagedjsCompatible)}">
+				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
+			</div>
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+		</div>
+		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-right", pagedjsCompatible)}">
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+			<div class="${cls("marks-middle", pagedjsCompatible)}">
+				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
+			</div>
+			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
+		</div>
+		<div class="${cls("pagebox", pagedjsCompatible)}" data-printedjs-pagebox="">
+			<div class="${cls("margin-top-left-corner-holder", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-left-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-top", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-left", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-center", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-right", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-top-right-corner-holder", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-right-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-right", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-top", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-middle", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-bottom", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-left", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-top", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-middle", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-bottom", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-bottom-left-corner-holder", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-left-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-bottom", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-left", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-center", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-right", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("margin-bottom-right-corner-holder", pagedjsCompatible)}">
+				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-right-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
+			</div>
+			<div class="${cls("area", pagedjsCompatible)}" data-printedjs-area="">
+				<div class="${cls("page_content", pagedjsCompatible)}" data-printedjs-content=""><div></div></div>
+				<div class="${cls("footnote_area", pagedjsCompatible)}">
+					<div class="${cls("footnote_content", pagedjsCompatible)} ${cls("footnote_empty", pagedjsCompatible)}">
+						<div class="${cls("footnote_inner_content", pagedjsCompatible)}"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>`;
+}
+
+function getShellTemplate(
+	doc: Document,
+	pagedjsCompatible: boolean,
+): HTMLTemplateElement {
+	let templates = docTemplateCache.get(doc);
+
+	if (!templates) {
+		const standard = doc.createElement("template");
+		standard.innerHTML = buildShellHtml(false);
+
+		const compat = doc.createElement("template");
+		compat.innerHTML = buildShellHtml(true);
+
+		templates = { standard, compat };
+		docTemplateCache.set(doc, templates);
+	}
+
+	return pagedjsCompatible ? templates.compat : templates.standard;
+}
+
 export function createPageShell(
 	pageNumber: number,
 	doc: Document = document,
@@ -632,79 +735,13 @@ export function createPageShell(
 
 	page.className = classes.join(" ");
 
-	page.innerHTML = `
-	<div class="${cls("sheet", pagedjsCompatible)}" data-printedjs-sheet="">
-		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-top", pagedjsCompatible)}">
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-			<div class="${cls("marks-middle", pagedjsCompatible)}">
-				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
-			</div>
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-		</div>
-		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-bottom", pagedjsCompatible)}">
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-			<div class="${cls("marks-middle", pagedjsCompatible)}">
-				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
-			</div>
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-		</div>
-		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-left", pagedjsCompatible)}">
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-			<div class="${cls("marks-middle", pagedjsCompatible)}">
-				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
-			</div>
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-		</div>
-		<div class="${cls("bleed", pagedjsCompatible)} ${cls("bleed-right", pagedjsCompatible)}">
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-			<div class="${cls("marks-middle", pagedjsCompatible)}">
-				<div class="${cls("marks-cross", pagedjsCompatible)}"></div>
-			</div>
-			<div class="${cls("marks-crop", pagedjsCompatible)}"></div>
-		</div>
-		<div class="${cls("pagebox", pagedjsCompatible)}" data-printedjs-pagebox="">
-			<div class="${cls("margin-top-left-corner-holder", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-left-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-top", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-left", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-center", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-right", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-top-right-corner-holder", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-top-right-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-right", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-top", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-middle", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-right-bottom", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-left", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-top", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-middle", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-left-bottom", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-bottom-left-corner-holder", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-left-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-bottom", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-left", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-center", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-right", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("margin-bottom-right-corner-holder", pagedjsCompatible)}">
-				<div class="${cls("margin", pagedjsCompatible)} ${cls("margin-bottom-right-corner", pagedjsCompatible)}"><div class="${cls("margin-content", pagedjsCompatible)}"></div></div>
-			</div>
-			<div class="${cls("area", pagedjsCompatible)}" data-printedjs-area="">
-				<div class="${cls("page_content", pagedjsCompatible)}" data-printedjs-content=""><div></div></div>
-				<div class="${cls("footnote_area", pagedjsCompatible)}">
-					<div class="${cls("footnote_content", pagedjsCompatible)} ${cls("footnote_empty", pagedjsCompatible)}">
-						<div class="${cls("footnote_inner_content", pagedjsCompatible)}"></div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>`;
+	const template = getShellTemplate(doc, pagedjsCompatible);
+
+	if (template.content) {
+		page.appendChild(template.content.cloneNode(true));
+	} else {
+		page.innerHTML = buildShellHtml(pagedjsCompatible);
+	}
 
 	return page;
 }

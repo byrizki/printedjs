@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { generateCss, parseCss } from "./parser.js";
+import { generateCss, parseCss, stripPageRules } from "./parser.js";
 
 describe("css/parser", () => {
 	test("parses standard CSS rules with selectors and declarations", () => {
@@ -49,5 +49,17 @@ describe("css/parser", () => {
 		const generated = generateCss(ast);
 		expect(generated).toContain("h1 {");
 		expect(generated).toContain("color: red;");
+	});
+
+	test("memoizes parseCss and stripPageRules results", () => {
+		const css = `@page { size: A4; margin: 10mm; } p { color: blue; }`;
+		const ast1 = parseCss(css);
+		const ast2 = parseCss(css);
+		expect(ast1).toBe(ast2);
+
+		const stripped1 = stripPageRules(css);
+		const stripped2 = stripPageRules(css);
+		expect(stripped1).toBe(stripped2);
+		expect(stripped1).not.toContain("margin: 10mm;");
 	});
 });

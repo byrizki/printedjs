@@ -843,6 +843,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 	private readonly pagedjsCompatible: boolean;
 	private pagesContainer!: HTMLElement;
 	private remainingWork: WorkNode[] = [];
+	private workIndex = 0;
 	private fixedElements: HTMLElement[] = [];
 	private readonly fixedSelectors: readonly string[];
 	private readonly startedAncestors = new Set<HTMLElement>();
@@ -954,6 +955,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			this.remainingWork = allWork;
 		}
 
+		this.workIndex = 0;
 		this.initialized = true;
 	}
 
@@ -964,7 +966,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 		this.purgeUndisplayedLeadingWork();
 
-		return this.remainingWork.length > 0;
+		return this.workIndex < this.remainingWork.length;
 	}
 
 	private isWorkNodeUndisplayed(head: WorkNode, doc: Document): boolean {
@@ -1042,14 +1044,14 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 	private purgeUndisplayedLeadingWork(): void {
 		const doc = this.surface.document;
 
-		while (this.remainingWork.length > 0) {
-			const head = this.remainingWork[0];
+		while (this.workIndex < this.remainingWork.length) {
+			const head = this.remainingWork[this.workIndex];
 
 			if (!head || !this.isWorkNodeUndisplayed(head, doc)) {
 				break;
 			}
 
-			this.remainingWork.shift();
+			this.workIndex++;
 		}
 	}
 
@@ -1063,7 +1065,11 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 	async layoutPage(pageNumber: number): Promise<LayoutStepResult> {
 		const doc = this.surface.document;
-		const headNode = this.remainingWork.length > 0 ? this.remainingWork[0] : null;
+
+		const headNode =
+			this.workIndex < this.remainingWork.length
+				? this.remainingWork[this.workIndex]
+				: null;
 
 		const targetPageName = headNode
 			? getNamedPage(headNode.node ?? null, headNode.ancestors)
@@ -1137,7 +1143,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			throw new Error("Invalid page shell structure");
 		}
 
-		if (this.pendingBreakTarget && this.remainingWork.length > 0) {
+		if (this.pendingBreakTarget && this.workIndex < this.remainingWork.length) {
 			const target = this.pendingBreakTarget;
 			let isTarget = false;
 
@@ -1151,11 +1157,12 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				this.markBlankPage(pageShell);
 				this.pendingBreakTarget = null;
 				const pageRect = pageShell.getBoundingClientRect();
+				const remainingCount = this.remainingWork.length - this.workIndex;
 
 				return {
 					breakToken: {
 						page: pageNumber,
-						cursor: `blank:${pageNumber}:${this.remainingWork.length}`,
+						cursor: `blank:${pageNumber}:${remainingCount}`,
 						finished: false,
 					},
 					pageResult: {
@@ -1183,6 +1190,12 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			? areaRect.bottom - areaPaddingBottom
 			: Number.POSITIVE_INFINITY;
 
+		const baseContentParentBottom = contentParent.getBoundingClientRect().bottom;
+
+		const footnoteArea = pageShell.querySelector<HTMLElement>(
+			".printedjs_footnote_area, .pagedjs_footnote_area",
+		);
+
 		let hasRenderedOnThisPage = false;
 		let renderCountOnThisPage = 0;
 		let isBlankPage = false;
@@ -1193,8 +1206,8 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 		const recentAvoidBreakAfter: Array<{ clonedNode: HTMLElement; workNode: WorkNode }> =
 			[];
 
-		while (this.remainingWork.length > 0) {
-			const current = this.remainingWork[0];
+		while (this.workIndex < this.remainingWork.length) {
+			const current = this.remainingWork[this.workIndex];
 
 			if (!current) {
 				break;
@@ -1462,16 +1475,13 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			targetParent.appendChild(clonedNode);
 
 			// Measure overflow
-			const footnoteArea = pageShell.querySelector<HTMLElement>(
-				".printedjs_footnote_area, .pagedjs_footnote_area",
-			);
-
-			const footnoteHeight = footnoteArea
-				? footnoteArea.getBoundingClientRect().height
-				: 0;
+			const footnoteHeight =
+				footnoteArea && footnoteArea.children.length > 0
+					? footnoteArea.getBoundingClientRect().height
+					: 0;
 
 			const maxBottom = Math.min(
-				contentParent.getBoundingClientRect().bottom,
+				baseContentParentBottom,
 				baseAreaContentBottom - footnoteHeight,
 			);
 
@@ -1491,11 +1501,12 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 			const isOverflowing =
 				currentBottom > maxBottom + 0.5 ||
-				contentParent.scrollHeight > contentParent.clientHeight + 0.5;
+				(currentBottom >= maxBottom - 5 &&
+					contentParent.scrollHeight > contentParent.clientHeight + 0.5);
 
 			if (!isOverflowing) {
 				// Fits on page
-				this.remainingWork.shift();
+				this.workIndex++;
 				hasRenderedOnThisPage = true;
 				renderCountOnThisPage++;
 				pageShell.setAttribute("data-last-work-id", String(current.id));
@@ -1526,7 +1537,10 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				}
 
 				// Check break-after on closing ancestors
-				const nextWork = this.remainingWork[0];
+				const nextWork =
+					this.workIndex < this.remainingWork.length
+						? this.remainingWork[this.workIndex]
+						: undefined;
 
 				for (const ancestor of current.ancestors) {
 					if (!nextWork || !nextWork.ancestors.includes(ancestor)) {
@@ -1566,7 +1580,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				for (let i = recentAvoidBreakAfter.length - 1; i >= 0; i--) {
 					const item = recentAvoidBreakAfter[i]!;
 					item.clonedNode.parentNode?.removeChild(item.clonedNode);
-					this.remainingWork.unshift(item.workNode);
+					this.workIndex--;
 				}
 
 				break;
@@ -1608,13 +1622,12 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				const splitRemaining = this.splitTextElement(clonedNode, maxBottom);
 
 				if (splitRemaining) {
-					// Part fit on this page, remainder goes to next page
-					this.remainingWork.shift();
-					this.remainingWork.unshift({
+					// Part fit on this page, remainder goes to next page in-place
+					this.remainingWork[this.workIndex] = {
 						id: current.id,
 						node: splitRemaining,
 						ancestors: current.ancestors,
-					});
+					};
 					pageShell.setAttribute("data-last-work-id", String(current.id));
 					hasRenderedOnThisPage = true;
 					break;
@@ -1628,15 +1641,21 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				break;
 			} else {
 				// Empty page: keep it to ensure progress
-				this.remainingWork.shift();
+				this.workIndex++;
 				hasRenderedOnThisPage = true;
 				pageShell.setAttribute("data-last-work-id", String(current.id));
 				break;
 			}
 		}
 
-		const isFinished = this.remainingWork.length === 0;
-		const nextNode = this.remainingWork[0]?.node;
+		const remainingCount = this.remainingWork.length - this.workIndex;
+		const isFinished = remainingCount <= 0;
+
+		const nextNode =
+			this.workIndex < this.remainingWork.length
+				? this.remainingWork[this.workIndex]?.node
+				: undefined;
+
 		const textLen = (nextNode && nextNode.textContent?.length) ?? 0;
 
 		const breakToken: BreakToken | null = isFinished
@@ -1644,8 +1663,8 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			: {
 					page: pageNumber,
 					cursor: isBlankPage
-						? `blank:${pageNumber}:${this.remainingWork.length}`
-						: `node:${this.remainingWork.length}:t:${textLen}`,
+						? `blank:${pageNumber}:${remainingCount}`
+						: `node:${remainingCount}:t:${textLen}`,
 					finished: false,
 				};
 
@@ -1830,6 +1849,12 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			return null;
 		}
 
+		const prefixLengths: number[] = [0];
+
+		for (let i = 0; i < words.length; i++) {
+			prefixLengths.push(prefixLengths[i]! + words[i]!.length);
+		}
+
 		let low = 1;
 		let high = words.length;
 		let bestFit = 0;
@@ -1837,7 +1862,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 		while (low <= high) {
 			const mid = Math.floor((low + high) / 2);
-			element.textContent = words.slice(0, mid).join("");
+			element.textContent = fullText.slice(0, prefixLengths[mid]);
 			const currentBottom = element.getBoundingClientRect().bottom;
 
 			if (currentBottom <= maxBottom + 0.5) {
@@ -1854,8 +1879,8 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			return null;
 		}
 
-		const fittingText = words.slice(0, bestFit).join("");
-		const remainingText = words.slice(bestFit).join("").trimStart();
+		const fittingText = fullText.slice(0, prefixLengths[bestFit]);
+		const remainingText = fullText.slice(prefixLengths[bestFit]).trimStart();
 
 		if (!remainingText) {
 			element.textContent = originalText;
