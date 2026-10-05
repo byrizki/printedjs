@@ -127,6 +127,7 @@
 	font-weight: 600;
 	cursor: pointer;
 	border: none;
+	text-decoration: none;
 	transition: all var(--pm-transition-fast);
 	outline: none;
 	user-select: none;

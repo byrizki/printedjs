@@ -83,10 +83,55 @@
 					color: #475569;
 					letter-spacing: 0.01em;
 				}
+
+				/* Floating navigation pill linking to Interactive Playground */
+				.demo-top-bar {
+					position: fixed;
+					top: 14px;
+					left: 50%;
+					transform: translateX(-50%);
+					z-index: 9999;
+					display: flex;
+					align-items: center;
+					gap: 12px;
+					padding: 6px 16px;
+					background: rgba(15, 23, 42, 0.9);
+					backdrop-filter: blur(12px);
+					-webkit-backdrop-filter: blur(12px);
+					border: 1px solid rgba(255, 255, 255, 0.12);
+					border-radius: 9999px;
+					box-shadow:
+						0 10px 25px -5px rgba(0, 0, 0, 0.25),
+						0 8px 10px -6px rgba(0, 0, 0, 0.2);
+					color: #f8fafc;
+					font-size: 12px;
+					font-weight: 500;
+				}
+
+				.demo-top-bar a {
+					color: #38bdf8;
+					text-decoration: none;
+					display: flex;
+					align-items: center;
+					gap: 6px;
+					font-weight: 600;
+					transition: color 0.15s ease;
+				}
+
+				.demo-top-bar a:hover {
+					color: #7dd3fc;
+				}
+
+				.demo-top-bar-divider {
+					width: 1px;
+					height: 14px;
+					background: rgba(255, 255, 255, 0.2);
+				}
 			}
 
 			@media print {
-				.loading-overlay {
+				.loading-overlay,
+				.demo-top-bar {
 					display: none !important;
 				}
 			}
@@ -595,11 +640,51 @@
 			<div class="loading-label">Rendering document with Printedjs...</div>
 		</div>
 
+		<!-- Screen navigation pill linking back to Playground -->
+		<div
+			id="demo-top-bar"
+			class="demo-top-bar"
+			data-printedjs-ignore="true"
+			data-pagedjs-ignore="true"
+		>
+			<a href="../" title="Open Interactive Playground">
+				<svg
+					width="13"
+					height="13"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<polyline points="15 18 9 12 15 6"></polyline>
+				</svg>
+				<span>Playground</span>
+			</a>
+			<span class="demo-top-bar-divider"></span>
+			<span style="color: #94a3b8">Minimal Demo</span>
+			<span class="demo-top-bar-divider"></span>
+			<a
+				href="https://github.com/byrizki/printedjs"
+				target="_blank"
+				rel="noopener noreferrer"
+				style="color: #cbd5e1"
+				>GitHub</a
+			>
+		</div>
+
 		<script>
-			// Attach overlay to documentElement so document.body.replaceChildren() does not remove it during layout
+			// Attach overlay and top bar to documentElement so document.body.replaceChildren() does not remove them during layout
 			const overlay = document.getElementById("loading-overlay");
+			const topBar = document.getElementById("demo-top-bar");
+
 			if (overlay && document.documentElement) {
 				document.documentElement.appendChild(overlay);
+			}
+
+			if (topBar && document.documentElement) {
+				document.documentElement.appendChild(topBar);
 			}
 
 			function dismissLoader() {

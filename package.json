@@ -25,6 +25,7 @@
 		"printedjs": "node packages/cli/dist/cli.js",
 		"dev": "pnpm --filter playground dev",
 		"dev:minimal": "pnpm --filter minimal-demo dev",
+		"build:pages": "tsx scripts/build-pages.ts",
 		"pack:check": "tsx scripts/check-public-exports.ts && tsx scripts/check-package-contents.ts",
 		"verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit"
 	},
