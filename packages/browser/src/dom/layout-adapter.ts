@@ -731,8 +731,12 @@ function extractTableColumnWidths(table: HTMLElement): number[] {
 	}
 
 	const colWidths = new Map<number, number>();
+
 	const activeSpans = new Map<number, number>();
-	const rows = Array.from(table.querySelectorAll("tr"));
+
+	const rows = Array.from(table.querySelectorAll("tr")).filter(
+		(r) => r.closest("table") === table,
+	);
 
 	for (let rIdx = 0; rIdx < rows.length; rIdx++) {
 		const row = rows[rIdx]!;
@@ -802,6 +806,14 @@ function extractTableColumnWidths(table: HTMLElement): number[] {
 
 function applyTableColgroup(table: HTMLElement, widths: number[], doc: Document): void {
 	if (!widths || widths.length === 0) return;
+
+	if (
+		table.getAttribute("data-sync-columns") === "false" ||
+		table.getAttribute("data-table-layout") === "auto"
+	) {
+		return;
+	}
+
 	// SAFETY: querySelector returns matching colgroup HTMLElement or null
 	let colgroup = table.querySelector(":scope > colgroup") as HTMLElement | null;
 
@@ -827,11 +839,17 @@ function applyTableColgroup(table: HTMLElement, widths: number[], doc: Document)
 		return;
 	}
 
+	const tableWidth = table.getBoundingClientRect().width;
+	const sumWidths = widths.reduce((sum, w) => sum + w, 0);
+	const scale = tableWidth > 0 && sumWidths > tableWidth + 1 ? tableWidth / sumWidths : 1;
+
 	colgroup.replaceChildren();
 
 	for (const w of widths) {
 		const col = doc.createElement("col");
-		col.style.width = `${Math.round(w * 100) / 100}px`;
+		const finalWidth = Math.round(w * scale * 100) / 100;
+
+		col.style.width = `${finalWidth}px`;
 		colgroup.appendChild(col);
 	}
 }
@@ -1391,7 +1409,13 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 
 						if (savedWidths && savedWidths.length > 0) {
 							applyTableColgroup(existing, savedWidths, doc);
-							existing.style.tableLayout = "fixed";
+
+							if (
+								existing.getAttribute("data-sync-columns") !== "false" &&
+								existing.getAttribute("data-table-layout") !== "auto"
+							) {
+								existing.style.tableLayout = "fixed";
+							}
 						}
 					}
 
@@ -1402,11 +1426,11 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 						if (ancTag === "LI") {
 							existing.style.listStyleType = "none";
 						}
-					}
 
-					if (existing.hasAttribute("id")) {
-						existing.setAttribute("data-id", existing.getAttribute("id")!);
-						existing.removeAttribute("id");
+						if (existing.hasAttribute("id")) {
+							existing.setAttribute("data-id", existing.getAttribute("id")!);
+							existing.removeAttribute("id");
+						}
 					}
 
 					targetParent.appendChild(existing);
@@ -1525,7 +1549,15 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 					} else if (breakAfter === "left" || breakAfter === "verso") {
 						shouldBreakAfter = true;
 						this.pendingBreakTarget = breakAfter;
-					} else if (breakAfter === "avoid") {
+					}
+
+					const isTheadRow =
+						isElement(current.node) &&
+						(current.node.tagName.toUpperCase() === "CAPTION" ||
+							current.node.tagName.toUpperCase() === "THEAD" ||
+							current.node.parentElement?.tagName.toUpperCase() === "THEAD");
+
+					if (breakAfter === "avoid" || isTheadRow) {
 						// SAFETY: clonedNode inserted into layout is an HTMLElement
 						recentAvoidBreakAfter.push({
 							clonedNode: clonedNode as HTMLElement,
@@ -1570,17 +1602,66 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 				continue;
 			}
 
-			// Node overflows
+			// Try splitting table row with nested table
+			if (isElement(clonedNode) && clonedNode.tagName.toUpperCase() === "TR") {
+				const splitRemaining = this.splitTableRowWithNestedTable(clonedNode, maxBottom);
+
+				if (splitRemaining) {
+					// Part fit on this page, remainder goes to next page in-place
+					this.remainingWork[this.workIndex] = {
+						id: current.id,
+						node: splitRemaining,
+						ancestors: current.ancestors,
+					};
+					pageShell.setAttribute("data-last-work-id", String(current.id));
+					hasRenderedOnThisPage = true;
+					break;
+				}
+			}
+
+			// Try splitting text element
+			if (
+				isElement(clonedNode) &&
+				clonedNode.children.length === 0 &&
+				clonedNode.tagName.toUpperCase() !== "TR" &&
+				clonedNode.textContent &&
+				clonedNode.textContent.trim().length > 0
+			) {
+				const splitRemaining = this.splitTextElement(clonedNode, maxBottom);
+
+				if (splitRemaining) {
+					// Part fit on this page, remainder goes to next page in-place
+					this.remainingWork[this.workIndex] = {
+						id: current.id,
+						node: splitRemaining,
+						ancestors: current.ancestors,
+					};
+					pageShell.setAttribute("data-last-work-id", String(current.id));
+					hasRenderedOnThisPage = true;
+					break;
+				}
+			}
+
+			// Node overflows and cannot be split
 			if (
 				recentAvoidBreakAfter.length > 0 &&
 				renderCountOnThisPage > recentAvoidBreakAfter.length
 			) {
 				clonedNode.parentNode?.removeChild(clonedNode);
+				this.startedNodes.delete(current.node);
 
 				for (let i = recentAvoidBreakAfter.length - 1; i >= 0; i--) {
 					const item = recentAvoidBreakAfter[i]!;
 					item.clonedNode.parentNode?.removeChild(item.clonedNode);
+					this.startedNodes.delete(item.workNode.node);
 					this.workIndex--;
+				}
+
+				this.cleanupOrphanTableAndEmptyAncestors(targetParent, contentArea, ancestorMap);
+
+				if (contentArea.children.length === 0) {
+					hasRenderedOnThisPage = false;
+					renderCountOnThisPage = 0;
 				}
 
 				break;
@@ -1608,28 +1689,18 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			) {
 				if (hasRenderedOnThisPage) {
 					clonedNode.parentNode?.removeChild(clonedNode);
-					break;
-				}
-			}
+					this.startedNodes.delete(current.node);
+					this.cleanupOrphanTableAndEmptyAncestors(
+						targetParent,
+						contentArea,
+						ancestorMap,
+					);
 
-			if (
-				isElement(clonedNode) &&
-				clonedNode.children.length === 0 &&
-				clonedNode.tagName.toUpperCase() !== "TR" &&
-				clonedNode.textContent &&
-				clonedNode.textContent.trim().length > 0
-			) {
-				const splitRemaining = this.splitTextElement(clonedNode, maxBottom);
+					if (contentArea.children.length === 0) {
+						hasRenderedOnThisPage = false;
+						renderCountOnThisPage = 0;
+					}
 
-				if (splitRemaining) {
-					// Part fit on this page, remainder goes to next page in-place
-					this.remainingWork[this.workIndex] = {
-						id: current.id,
-						node: splitRemaining,
-						ancestors: current.ancestors,
-					};
-					pageShell.setAttribute("data-last-work-id", String(current.id));
-					hasRenderedOnThisPage = true;
 					break;
 				}
 			}
@@ -1638,6 +1709,14 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			if (hasRenderedOnThisPage) {
 				// Remove from current page and defer to next page
 				clonedNode.parentNode?.removeChild(clonedNode);
+				this.startedNodes.delete(current.node);
+				this.cleanupOrphanTableAndEmptyAncestors(targetParent, contentArea, ancestorMap);
+
+				if (contentArea.children.length === 0) {
+					hasRenderedOnThisPage = false;
+					renderCountOnThisPage = 0;
+				}
+
 				break;
 			} else {
 				// Empty page: keep it to ensure progress
@@ -1678,7 +1757,13 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 					if (widths.length > 0 && widths.every((w) => w > 0)) {
 						this.tableColumnWidths.set(sourceAncestor, widths);
 						applyTableColgroup(renderedAncestor, widths, doc);
-						renderedAncestor.style.tableLayout = "fixed";
+
+						if (
+							renderedAncestor.getAttribute("data-sync-columns") !== "false" &&
+							renderedAncestor.getAttribute("data-table-layout") !== "auto"
+						) {
+							renderedAncestor.style.tableLayout = "fixed";
+						}
 					}
 				}
 			}
@@ -1916,5 +2001,229 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 		}
 
 		return remainingElement;
+	}
+
+	private computeExtraBottomBelow(
+		element: HTMLElement,
+		boundaryAncestor: HTMLElement,
+	): number {
+		let extraBottom = 0;
+
+		let curr: HTMLElement | null = element.parentElement;
+
+		const doc = this.surface.document;
+
+		const win = doc.defaultView ?? window;
+
+		while (curr && curr !== boundaryAncestor.parentElement) {
+			const style = win.getComputedStyle(curr);
+
+			extraBottom +=
+				(Number.parseFloat(style.paddingBottom) || 0) +
+				(Number.parseFloat(style.borderBottomWidth) || 0);
+
+			curr = curr.parentElement;
+		}
+
+		return extraBottom;
+	}
+
+	private splitTableRowWithNestedTable(
+		row: HTMLElement,
+		maxBottom: number,
+	): HTMLElement | null {
+		const nestedTable = row.querySelector("table");
+
+		if (!nestedTable) {
+			return null;
+		}
+
+		const tbody = nestedTable.querySelector(":scope > tbody") ?? nestedTable;
+		// SAFETY: querySelectorAll returns matching tr HTMLElement instances
+		const innerRows = Array.from(tbody.querySelectorAll(":scope > tr")) as HTMLElement[];
+
+		const outerTable = row.closest("table") ?? row;
+
+		const outerExtraBottom = this.computeExtraBottomBelow(nestedTable, outerTable);
+
+		const safetyBuffer = 8;
+
+		const effectiveMaxBottom = maxBottom - outerExtraBottom - safetyBuffer;
+
+		let splitIndex = 0;
+
+		let deepSplitRemaining: HTMLElement | null = null;
+
+		let deepSplitRowIndex = -1;
+
+		for (let i = 0; i < innerRows.length; i++) {
+			const innerRow = innerRows[i]!;
+			const rowBottom = innerRow.getBoundingClientRect().bottom;
+
+			if (rowBottom <= effectiveMaxBottom) {
+				splitIndex = i + 1;
+			} else {
+				if (innerRow.querySelector("table")) {
+					const deepSplit = this.splitTableRowWithNestedTable(
+						innerRow,
+						effectiveMaxBottom,
+					);
+
+					if (deepSplit) {
+						deepSplitRemaining = deepSplit;
+						deepSplitRowIndex = i;
+						splitIndex = i + 1;
+					}
+				}
+
+				break;
+			}
+		}
+
+		if (splitIndex < 1 || (splitIndex >= innerRows.length && !deepSplitRemaining)) {
+			return null;
+		}
+
+		// SAFETY: row is cloned as HTMLElement for continuation on next page
+		const splitRemaining = row.cloneNode(true) as HTMLElement;
+
+		splitRemaining.setAttribute("data-split-from", "");
+
+		if (deepSplitRemaining) {
+			for (let i = deepSplitRowIndex + 1; i < innerRows.length; i++) {
+				innerRows[i]?.remove();
+			}
+		} else {
+			for (let i = splitIndex; i < innerRows.length; i++) {
+				innerRows[i]?.remove();
+			}
+		}
+
+		const isRootTable = !outerTable.parentElement?.closest("table");
+
+		while (
+			splitIndex > 1 &&
+			(row.getBoundingClientRect().bottom > effectiveMaxBottom ||
+				(isRootTable && outerTable.getBoundingClientRect().bottom > maxBottom - 4))
+		) {
+			splitIndex--;
+			innerRows[splitIndex]?.remove();
+
+			if (deepSplitRemaining && deepSplitRowIndex >= splitIndex) {
+				deepSplitRemaining = null;
+			}
+		}
+
+		let next = nestedTable.nextElementSibling;
+
+		while (next) {
+			const toRemove = next;
+
+			next = next.nextElementSibling;
+			toRemove.remove();
+		}
+
+		const remNestedTable = splitRemaining.querySelector("table");
+
+		if (remNestedTable) {
+			remNestedTable.setAttribute("data-split-from", "");
+
+			// SAFETY: querySelector returns matching thead HTMLElement or null
+			const remThead = remNestedTable.querySelector(
+				":scope > thead",
+			) as HTMLElement | null;
+
+			if (remThead) {
+				const repeatThead = isTheadRepeating(remThead, this.surface.document);
+
+				if (!repeatThead) {
+					remThead.remove();
+				}
+			}
+
+			const remTbody = remNestedTable.querySelector(":scope > tbody") ?? remNestedTable;
+
+			// SAFETY: querySelectorAll returns matching tr HTMLElement instances
+			const remInnerRows = Array.from(
+				remTbody.querySelectorAll(":scope > tr"),
+			) as HTMLElement[];
+
+			if (deepSplitRemaining) {
+				for (let i = 0; i < deepSplitRowIndex; i++) {
+					remInnerRows[i]?.remove();
+				}
+
+				remInnerRows[deepSplitRowIndex]?.replaceWith(deepSplitRemaining);
+			} else {
+				for (let i = 0; i < splitIndex; i++) {
+					remInnerRows[i]?.remove();
+				}
+			}
+
+			let prev = remNestedTable.previousElementSibling;
+
+			while (prev) {
+				const toRemove = prev;
+
+				prev = prev.previousElementSibling;
+				toRemove.remove();
+			}
+		}
+
+		// SAFETY: child elements of splitRemaining row are cell HTMLElement instances
+		for (const cell of Array.from(splitRemaining.children) as HTMLElement[]) {
+			if (!cell.querySelector("table")) {
+				cell.setAttribute("data-split-from", "");
+				cell.classList.add("printedjs-cell-continuation");
+			}
+		}
+
+		return splitRemaining;
+	}
+
+	private cleanupOrphanTableAndEmptyAncestors(
+		targetParent: HTMLElement,
+		contentArea: HTMLElement,
+		ancestorMap?: Map<HTMLElement, HTMLElement>,
+	): void {
+		const tableEl = targetParent.closest("table");
+
+		if (tableEl) {
+			const dataRows = tableEl.querySelectorAll("tbody > tr, :scope > tr");
+
+			if (dataRows.length === 0) {
+				if (ancestorMap) {
+					for (const [source, cloned] of ancestorMap.entries()) {
+						if (cloned === tableEl || tableEl.contains(cloned)) {
+							ancestorMap.delete(source);
+							this.startedAncestors.delete(source);
+						}
+					}
+				}
+
+				let cleanupTarget: HTMLElement | null = tableEl.parentElement;
+				tableEl.remove();
+
+				while (cleanupTarget && cleanupTarget !== contentArea) {
+					const parent: HTMLElement | null = cleanupTarget.parentElement;
+
+					if (cleanupTarget.childNodes.length === 0) {
+						if (ancestorMap) {
+							for (const [source, cloned] of ancestorMap.entries()) {
+								if (cloned === cleanupTarget) {
+									ancestorMap.delete(source);
+									this.startedAncestors.delete(source);
+								}
+							}
+						}
+
+						cleanupTarget.remove();
+						cleanupTarget = parent;
+					} else {
+						break;
+					}
+				}
+			}
+		}
 	}
 }
