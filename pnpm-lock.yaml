@@ -63,6 +63,16 @@ importers:
         specifier: ^4.0.15
         version: 4.1.10(@types/node@24.13.3)(vite@8.3.1(@types/node@24.13.3)(esbuild@0.27.7)(tsx@4.23.15))
 
+  apps/minimal-demo:
+    dependencies:
+      '@printedjs/minimal':
+        specifier: workspace:*
+        version: link:../../packages/minimal
+    devDependencies:
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.1(@types/node@24.13.3)(esbuild@0.28.2)(tsx@4.23.15)
+
   apps/playground:
     dependencies:
       '@printedjs/browser':
@@ -153,6 +163,9 @@ importers:
       '@printedjs/plugin-preset':
         specifier: workspace:*
         version: link:../plugins/core/preset
+      '@printedjs/plugin-views':
+        specifier: workspace:*
+        version: link:../plugins/core/views
 
   packages/plugins/community/eta:
     dependencies:

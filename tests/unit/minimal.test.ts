@@ -7,8 +7,11 @@ import {
 	Handler,
 	Previewer,
 	createRenderer,
+	pageViewsPlugin,
 	polyfill,
 	registerHandlers,
+	singlePageViewPlugin,
+	spreadPageViewPlugin,
 	standardPreset,
 } from "../../packages/minimal/src/index.js";
 
@@ -20,6 +23,9 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 		expect(typeof registerHandlers).toBe("function");
 		expect(typeof Previewer).toBe("function");
 		expect(typeof Handler).toBe("function");
+		expect(typeof singlePageViewPlugin).toBe("function");
+		expect(typeof spreadPageViewPlugin).toBe("function");
+		expect(typeof pageViewsPlugin).toBe("function");
 	});
 
 	test("index.min.global.js bundle exists and is compact", () => {
@@ -97,12 +103,15 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 						__pagedPageCount?: number;
 					};
 
+					const pagesContainer = document.querySelector(".printedjs_pages");
+
 					return {
 						hasPrintedjsGlobal: !!win.Printedjs,
 						hasPagedGlobal: !!win.Paged,
 						hasPrintedjsMinimalGlobal: !!win.PrintedjsMinimal,
 						renderFinished: win.__printedjsRenderFinished === true,
 						pagesCount: document.querySelectorAll(".printedjs_page").length,
+						viewMode: pagesContainer?.getAttribute("data-view-mode"),
 					};
 				});
 
@@ -111,6 +120,7 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				expect(evalResult.hasPrintedjsMinimalGlobal).toBe(true);
 				expect(evalResult.renderFinished).toBe(true);
 				expect(evalResult.pagesCount).toBe(2);
+				expect(evalResult.viewMode).toBe("single");
 			} finally {
 				await browser.close();
 
@@ -299,6 +309,126 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				if (existsSync(tempHtmlPath)) {
 					unlinkSync(tempHtmlPath);
 				}
+			}
+		},
+		20000,
+	);
+
+	test.runIf(Boolean(resolveChromeExecutable()))(
+		"renders apps/minimal-demo with single page view mode and centers pages",
+		async () => {
+			const demoDistPath = resolve(__dirname, "../../apps/minimal-demo/dist/index.html");
+
+			if (!existsSync(demoDistPath)) {
+				return;
+			}
+
+			const executablePath = resolveChromeExecutable();
+
+			const browser = await puppeteer.launch({
+				headless: true,
+				...(executablePath ? { executablePath } : {}),
+				args: [
+					"--no-sandbox",
+					"--disable-setuid-sandbox",
+					"--allow-file-access-from-files",
+				],
+			});
+
+			try {
+				const page = await browser.newPage();
+				await page.goto(`file://${demoDistPath}`, { waitUntil: "networkidle0" });
+
+				await page.waitForFunction(
+					() =>
+						(window as unknown as { __printedjsRenderFinished?: boolean })
+							.__printedjsRenderFinished === true,
+					{ timeout: 10000 },
+				);
+
+				const result = await page.evaluate(() => {
+					const pages = document.querySelectorAll(".printedjs_page");
+					const container = document.querySelector(".printedjs_pages");
+					const overlay = document.getElementById("loading-overlay");
+					const theadCount = document.querySelectorAll(".data-table thead").length;
+
+					const continuationCells = document.querySelectorAll(
+						".printedjs-rowspan-continuation",
+					).length;
+
+					const nestedTables = document.querySelectorAll(".nested-table").length;
+
+					const tocLinksWithTarget = Array.from(
+						document.querySelectorAll(".toc-item a"),
+					).filter((a) => a.hasAttribute("data-target-page")).length;
+
+					const colspannedCells = document.querySelectorAll(
+						"td[colspan], th[colspan]",
+					).length;
+
+					const frontmatterPage = document.querySelector(
+						'.printedjs_page[data-page="frontmatter"]',
+					);
+
+					const frontmatterStyle = frontmatterPage?.getAttribute("data-page-style");
+
+					const frontmatterFormatted =
+						frontmatterPage?.getAttribute("data-page-formatted");
+
+					const execTocTarget = document
+						.querySelector('a[href="#sec-executive"]')
+						?.getAttribute("data-target-page");
+
+					return {
+						pageCount: pages.length,
+						viewMode: container?.getAttribute("data-view-mode"),
+						overlayHidden: !overlay || overlay.classList.contains("hidden"),
+						theadCount,
+						continuationCells,
+						nestedTables,
+						tocLinksWithTarget,
+						colspannedCells,
+						frontmatterStyle,
+						frontmatterFormatted,
+						execTocTarget,
+					};
+				});
+
+				expect(result.pageCount).toBeGreaterThanOrEqual(5);
+				expect(result.viewMode).toBe("single");
+				expect(result.overlayHidden).toBe(true);
+				expect(result.theadCount).toBeGreaterThanOrEqual(2);
+				expect(result.continuationCells).toBeGreaterThanOrEqual(1);
+				expect(result.nestedTables).toBeGreaterThanOrEqual(1);
+				expect(result.tocLinksWithTarget).toBeGreaterThanOrEqual(4);
+				expect(result.colspannedCells).toBeGreaterThanOrEqual(4);
+				expect(result.frontmatterStyle).toBe("lower-roman");
+				expect(result.frontmatterFormatted).toBe("i");
+				expect(result.execTocTarget).toBe("i");
+
+				// Verify clicking TOC link navigates across pages to target section
+				await page.click('a[href="#sec-nested-tables"]');
+
+				await page.waitForFunction(
+					() => {
+						const el = document.querySelector("#sec-nested-tables");
+
+						if (!el) {
+							return false;
+						}
+
+						const rect = el.getBoundingClientRect();
+
+						return Math.abs(rect.top - 115) < 10;
+					},
+					{ timeout: 5000 },
+				);
+
+				const finalScrollY = await page.evaluate(() => window.scrollY);
+
+				expect(finalScrollY).toBeGreaterThan(5000);
+			} finally {
+				await browser.close();
 			}
 		},
 		20000,

@@ -24,6 +24,7 @@
 		{ "path": "./packages/plugins/core/strings" },
 		{ "path": "./packages/plugins/core/views" },
 		{ "path": "./packages/plugins/core/widows-orphans" },
-		{ "path": "./apps/playground" }
+		{ "path": "./apps/playground" },
+		{ "path": "./apps/minimal-demo" }
 	]
 }

@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": "./src"
+	},
+	"include": ["src/**/*.ts"],
+	"references": [
+		{ "path": "../../packages/core" },
+		{ "path": "../../packages/browser" },
+		{ "path": "../../packages/plugins/core/preset" },
+		{ "path": "../../packages/minimal" }
+	]
+}
