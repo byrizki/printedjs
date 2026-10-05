@@ -37,6 +37,7 @@ export function columnsPlugin(): PrintedjsPlugin {
 					columnRules.push({
 						selector: rawSel.trim(),
 						columnCount: countMatch ? parseInt(countMatch[1], 10) : undefined,
+						columnGap: gapMatch ? gapMatch[1].trim() : undefined,
 						columnFill: parseColumnFill(fillMatch?.[1]),
 					});
 				}
