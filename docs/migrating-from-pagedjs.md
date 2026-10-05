@@ -6,7 +6,7 @@ This guide explains the architectural differences between legacy Paged.js and Pr
 
 ## 1. Key Differences
 
-For an exhaustive feature-by-feature comparison and technical capabilities catalog, see the **[Printedjs Feature Catalog & Comparison](./features.md)**.
+For an exhaustive feature-by-feature comparison and technical capabilities catalog, see the **[Printedjs vs. Paged.js Feature Comparison](../README.md#printedjs-vs-pagedjs-feature-comparison)**.
 
 | Feature             | Legacy Paged.js                             | Printedjs                                                       |
 | :------------------ | :------------------------------------------ | :-------------------------------------------------------------- |

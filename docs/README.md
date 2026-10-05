@@ -10,7 +10,6 @@ Printedjs is designed as a modular, high-performance, and resilient successor to
 
 | Guide                                                  | Description                                                                              |
 | :----------------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| [Feature Catalog & Comparison](./features.md)          | Complete catalog of all current features, architecture subsystems, and Paged.js matrix.  |
 | [Architecture Overview](./architecture.md)             | Multi-package architecture, pure core design, lifecycle pipeline, and surface isolation. |
 | [Package Catalog](./packages-overview.md)              | Comprehensive catalog of all `@printedjs/*` packages, their boundaries, and exports.     |
 | [Migrating from Paged.js](./migrating-from-pagedjs.md) | Guide for transitioning from legacy Paged.js, API comparisons, and compatibility shims.  |
