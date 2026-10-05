@@ -5,6 +5,7 @@ import { ViewportComponent } from "./components/viewport.js";
 import { FIXTURE_CATALOG } from "./fixtures/index.js";
 import { setMonacoTheme } from "./services/monaco-setup.js";
 import { RenderService } from "./services/render-service.js";
+import { injectSourceLineNumbers } from "@printedjs/devtools";
 import { compileTemplate, parseJsonData } from "./services/template-service.js";
 import "./styles/index.css";
 import type { ViewMode } from "./types/editor.js";
@@ -120,6 +121,7 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 			},
 			onOverlayToggle(visible) {
 				state.showDevtoolsOverlay = visible;
+				viewportComponent.setToolbarHidden(visible);
 				renderService.setOverlayVisible(visible, state.stats?.traceReport);
 			},
 			onPrintClick() {
@@ -130,9 +132,27 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 
 	viewportSlot.appendChild(viewportComponent.element);
 
+	let editorPanelComponent: EditorPanelComponent;
+
 	const renderService = new RenderService({
 		rootElement,
 		viewportElement: viewportComponent.renderViewport,
+		viewportContainer: viewportComponent.element,
+		createExtraControls() {
+			return viewportComponent.createDevtoolsPageControls();
+		},
+		onOverlayClose() {
+			state.showDevtoolsOverlay = false;
+			viewportComponent.setDevtoolsActive(false);
+			renderService.setOverlayVisible(false);
+		},
+		onInspectElement(element) {
+			if (element) {
+				editorPanelComponent.revealElement(element);
+			} else {
+				editorPanelComponent.clearInspectHighlight();
+			}
+		},
 	});
 
 	const toggleSidebar = () => {
@@ -154,9 +174,10 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 		document.documentElement.setAttribute("data-theme", nextTheme);
 		setMonacoTheme(nextTheme);
 		headerComponent.setTheme(nextTheme);
+		renderService.setTheme(nextTheme);
 	};
 
-	const editorPanelComponent = new EditorPanelComponent({
+	editorPanelComponent = new EditorPanelComponent({
 		initialFixture,
 		initialTemplate: state.templateContent,
 		initialDataJson: state.dataJsonContent,
@@ -254,8 +275,9 @@ export function initPlayground(rootElement: HTMLElement): PlaygroundApp {
 				throw new Error(`Data Error: ${dataResult.error}`);
 			}
 
-			// 2. Compile Eta/EJS template
-			const compileResult = compileTemplate(state.templateContent, dataResult.data);
+			// 2. Compile Eta/EJS template with source line annotations for inspector
+			const annotatedTemplate = injectSourceLineNumbers(state.templateContent);
+			const compileResult = compileTemplate(annotatedTemplate, dataResult.data);
 
 			if (compileResult.error) {
 				throw new Error(compileResult.error);

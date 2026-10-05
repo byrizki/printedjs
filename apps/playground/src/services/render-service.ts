@@ -3,6 +3,7 @@ import {
 	createDevtoolsOverlay,
 	devtoolsPlugin,
 	type DevtoolsOverlay,
+	type ElementPrintMetrics,
 	type TraceReport,
 } from "@printedjs/devtools";
 import { standardPreset } from "@printedjs/plugin-preset";
@@ -17,6 +18,10 @@ import type { RenderStats } from "../types/playground.js";
 export interface RenderServiceOptions {
 	readonly rootElement: HTMLElement;
 	readonly viewportElement: HTMLElement;
+	readonly viewportContainer?: HTMLElement | undefined;
+	readonly onInspectElement?: ((element: HTMLElement | null) => void) | undefined;
+	readonly createExtraControls?: (() => HTMLElement) | undefined;
+	readonly onOverlayClose?: (() => void) | undefined;
 }
 
 export interface RenderExecutionOptions {
@@ -209,12 +214,21 @@ interface PageViewsHostElement extends HTMLElement {
 export class RenderService {
 	private currentRenderer: BrowserRenderer | null = null;
 	private currentOverlay: DevtoolsOverlay | null = null;
+	private currentTheme: "dark" | "light" | "auto" = "auto";
 	private readonly rootElement: HTMLElement;
 	private readonly viewportElement: HTMLElement;
+	private readonly viewportContainer?: HTMLElement | undefined;
+	private readonly onInspectElement?: ((element: HTMLElement | null) => void) | undefined;
+	private readonly createExtraControls?: (() => HTMLElement) | undefined;
+	private readonly onOverlayClose?: (() => void) | undefined;
 
 	constructor(options: RenderServiceOptions) {
 		this.rootElement = options.rootElement;
 		this.viewportElement = options.viewportElement;
+		this.viewportContainer = options.viewportContainer;
+		this.onInspectElement = options.onInspectElement;
+		this.createExtraControls = options.createExtraControls;
+		this.onOverlayClose = options.onOverlayClose;
 	}
 
 	async executeRender(options: RenderExecutionOptions): Promise<RenderStats> {
@@ -225,7 +239,7 @@ export class RenderService {
 		let capturedReport: TraceReport | null = null;
 
 		const devtools = devtoolsPlugin({
-			onReport(report) {
+			onReport(report: TraceReport) {
 				capturedReport = report;
 			},
 		});
@@ -286,10 +300,23 @@ export class RenderService {
 		}
 
 		if (showOverlay) {
-			this.currentOverlay = createDevtoolsOverlay(
-				this.rootElement,
-				capturedReport ?? undefined,
-			);
+			this.currentOverlay = createDevtoolsOverlay(this.rootElement, {
+				report: capturedReport ?? undefined,
+				placement: "bottom-center",
+				mountTarget: this.viewportContainer,
+				theme: this.currentTheme,
+				inspectEnabled: true,
+				extraControls: this.createExtraControls?.(),
+				onClose: () => {
+					this.onOverlayClose?.();
+				},
+				onInspect: (metrics: ElementPrintMetrics | null) => {
+					this.onInspectElement?.(metrics?.element ?? null);
+				},
+				onSelect: (_metrics: ElementPrintMetrics | null, element: HTMLElement | null) => {
+					this.onInspectElement?.(element);
+				},
+			});
 		}
 
 		const totalDurationMs = compileDurationMs + layoutDurationMs;
@@ -311,8 +338,29 @@ export class RenderService {
 		}
 
 		if (visible) {
-			this.currentOverlay = createDevtoolsOverlay(this.rootElement, report);
+			this.currentOverlay = createDevtoolsOverlay(this.rootElement, {
+				report,
+				placement: "bottom-center",
+				mountTarget: this.viewportContainer,
+				theme: this.currentTheme,
+				inspectEnabled: true,
+				extraControls: this.createExtraControls?.(),
+				onClose: () => {
+					this.onOverlayClose?.();
+				},
+				onInspect: (metrics: ElementPrintMetrics | null) => {
+					this.onInspectElement?.(metrics?.element ?? null);
+				},
+				onSelect: (_metrics: ElementPrintMetrics | null, element: HTMLElement | null) => {
+					this.onInspectElement?.(element);
+				},
+			});
 		}
+	}
+
+	setTheme(theme: "dark" | "light" | "auto"): void {
+		this.currentTheme = theme;
+		this.currentOverlay?.setTheme(theme);
 	}
 
 	clear(): void {
@@ -325,6 +373,8 @@ export class RenderService {
 			this.currentOverlay.destroy();
 			this.currentOverlay = null;
 		}
+
+		this.onInspectElement?.(null);
 
 		this.viewportElement.innerHTML = "";
 	}

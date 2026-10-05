@@ -16,6 +16,7 @@ import {
 	PageDensity,
 } from "../../packages/plugins/community/page-flip/src/index.js";
 import { ViewportComponent } from "../../apps/playground/src/components/viewport.js";
+import { RenderService } from "../../apps/playground/src/services/render-service.js";
 
 describe("Playground & Engine Fixes Verification", () => {
 	describe("Item 0: Remove data persistence", () => {
@@ -805,6 +806,12 @@ describe("Playground & Engine Fixes Verification", () => {
 							}
 						}
 					},
+					get title() {
+						return attrs.get("title") ?? "";
+					},
+					set title(val: string) {
+						attrs.set("title", val);
+					},
 					style: {
 						setProperty: (k: string, v: string) => {
 							(el.style as Record<string, unknown>)[k] = v;
@@ -935,10 +942,19 @@ describe("Playground & Engine Fixes Verification", () => {
 				elementMap.set(id, createMockElement(id));
 			}
 
+			const bodyEl = createMockElement("", "body");
+			const docEl = createMockElement("", "html");
+			const headEl = createMockElement("", "head");
+
 			const mockDoc = {
+				body: bodyEl,
+				documentElement: docEl,
+				head: headEl,
+				getElementById: (id: string) => elementMap.get(id) ?? null,
 				createElement: (tag: string) => {
 					if (tag.toLowerCase() === "main") {
 						const mainEl = createMockElement("", "main");
+						const originalQuerySelector = mainEl.querySelector;
 						mainEl.querySelector = (sel: string) => {
 							if (sel.startsWith("#")) {
 								const id = sel.slice(1);
@@ -946,7 +962,7 @@ describe("Playground & Engine Fixes Verification", () => {
 								if (elementMap.has(id)) return elementMap.get(id)!;
 							}
 
-							return null;
+							return originalQuerySelector(sel);
 						};
 
 						return mainEl;
@@ -1200,6 +1216,103 @@ describe("Playground & Engine Fixes Verification", () => {
 				);
 
 				expect(indicator?.textContent).toBe("4–5 of 8");
+			} finally {
+				dom.cleanup();
+			}
+		});
+
+		it("provides zoom controls in devtools controls and synchronizes zoom percentage", () => {
+			const dom = setupMockDom();
+
+			try {
+				let currentZoom = 1.0;
+
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "single",
+					callbacks: {
+						onZoomChange: (z) => {
+							currentZoom = z;
+						},
+						onViewModeChange: () => {},
+					},
+				});
+
+				const devtoolsControls = viewport.createDevtoolsPageControls();
+				expect(devtoolsControls).toBeDefined();
+
+				const zoomLabel = devtoolsControls.querySelector(".pm-devtools-zoom-label");
+				expect(zoomLabel).toBeDefined();
+				expect(zoomLabel?.textContent).toBe("100%");
+
+				const buttons = devtoolsControls.querySelectorAll(".pm-devtools-control-btn");
+				expect(buttons.length).toBeGreaterThanOrEqual(4);
+
+				// Zoom out button
+				const zoomOutBtn = buttons.find((b) =>
+					b.getAttribute("title")?.includes("Zoom Out"),
+				);
+
+				expect(zoomOutBtn).toBeDefined();
+				zoomOutBtn?.dispatchEvent(new Event("click"));
+				expect(currentZoom).toBe(0.9);
+				expect(zoomLabel?.textContent).toBe("90%");
+
+				// Zoom in button
+				const zoomInBtn = buttons.find((b) =>
+					b.getAttribute("title")?.includes("Zoom In"),
+				);
+
+				expect(zoomInBtn).toBeDefined();
+				zoomInBtn?.dispatchEvent(new Event("click"));
+				expect(currentZoom).toBe(1.0);
+				expect(zoomLabel?.textContent).toBe("100%");
+
+				// External zoom change via setZoom
+				viewport.setZoom(1.5);
+				expect(zoomLabel?.textContent).toBe("150%");
+
+				// Clicking zoom label resets to 100%
+				zoomLabel?.dispatchEvent(new Event("click"));
+				expect(currentZoom).toBe(1.0);
+				expect(zoomLabel?.textContent).toBe("100%");
+			} finally {
+				dom.cleanup();
+			}
+		});
+
+		it("render service propagates theme changes to devtools overlay", () => {
+			const dom = setupMockDom();
+
+			try {
+				const viewport = new ViewportComponent({
+					initialZoom: 1.0,
+					initialViewMode: "single",
+					callbacks: {
+						onZoomChange: () => {},
+						onViewModeChange: () => {},
+					},
+				});
+
+				const renderService = new RenderService({
+					rootElement: viewport.renderViewport,
+					viewportElement: viewport.renderViewport,
+					viewportContainer: viewport.element,
+				});
+
+				renderService.setOverlayVisible(true);
+				const overlayEl = viewport.element.querySelector(".printedjs-devtools-overlay");
+				expect(overlayEl).toBeDefined();
+
+				renderService.setTheme("light");
+				expect(overlayEl?.getAttribute("data-theme")).toBe("light");
+				expect(overlayEl?.style.backgroundColor).toContain("255, 255, 255");
+
+				renderService.setTheme("dark");
+				expect(overlayEl?.getAttribute("data-theme")).toBe("dark");
+				expect(overlayEl?.style.backgroundColor).toContain("15, 23, 42");
+
+				renderService.setOverlayVisible(false);
 			} finally {
 				dom.cleanup();
 			}

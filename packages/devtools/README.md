@@ -53,17 +53,29 @@ await renderer.render({
 });
 ```
 
-### 2. Diagnostic HUD Overlay
+### 2. Diagnostic HUD Overlay & Hover Inspector
 
-Display an on-screen diagnostic badge over the preview:
+Display an on-screen diagnostic HUD with interactive element inspection and visual page guides:
 
 ```typescript
 import { createDevtoolsOverlay } from "@printedjs/devtools";
 
 const container = document.querySelector("#preview") as HTMLElement;
 
-// Create HUD overlay
-const overlay = createDevtoolsOverlay(container);
+// Create HUD overlay with hover inspection and page guides enabled
+const overlay = createDevtoolsOverlay(container, {
+	inspectEnabled: true,
+	guidesEnabled: true,
+	onInspect: (metrics) => {
+		if (metrics) {
+			console.log(`Inspecting ${metrics.selector} on Page ${metrics.pageNumber}`);
+		}
+	},
+});
+
+// Toggle features programmatically:
+overlay.setInspectEnabled(false);
+overlay.setGuidesEnabled(true);
 
 // Clean up when destroying preview:
 overlay.destroy();
@@ -73,17 +85,42 @@ overlay.destroy();
 
 ## API Reference
 
+### `createDevtoolsOverlay(container: HTMLElement, options?: DevtoolsOverlayOptions | TraceReport): DevtoolsOverlay`
+
+Renders an on-screen HUD badge in the bottom-right corner of the container with interactive `[Inspect]` and `[Guides]` buttons.
+
+- Returns `{ element, hoverInspector, pageGuides, setInspectEnabled, setGuidesEnabled, updateReport, destroy }`.
+
+### `createHoverInspector(container: HTMLElement, options?: HoverInspectorOptions): HoverInspector`
+
+Creates an interactive pointer tracker that renders a multi-layer box model overlay (margin, border, padding, content) and a floating print diagnostics tooltip over hovered elements.
+
+- Returns `{ enable(), disable(), isEnabled(), destroy() }`.
+
+### `createPageGuides(container: HTMLElement, initialEnabled?: boolean): PageGuides`
+
+Injects and manages non-invasive CSS paged media guide styles:
+
+- Dashed outlines and labels for all 16 margin boxes (`@top-left` .. `@bottom-right`).
+- Outlines for sheet trim boundaries and bleed zones.
+- Split continuity markers for `[data-split-to]` and `[data-split-from]`.
+
+### `extractPrintMetrics(element: HTMLElement): ElementPrintMetrics | null`
+
+Extracts computed print metrics for any element inside a `.printedjs_page`:
+
+- Selector, tag name, ID, and classes.
+- Physical dimensions in `px` and `mm`.
+- Page number and total pages.
+- Four-layer box model (margin, border, padding, content).
+- Break constraints (`break-inside`, `break-before`, `break-after`, split flags).
+- Vertical clearance: Remaining space in px and mm before the page bottom margin.
+
 ### `devtoolsPlugin(options?: DevtoolsPluginOptions): PrintedjsPlugin`
 
 Creates a Printedjs plugin that records lifecycle trace events.
 
 - `options.onReport?: (report: TraceReport) => void` — Callback invoked with the final trace report after pagination completes.
-
-### `createDevtoolsOverlay(container: HTMLElement, report?: TraceReport): DevtoolsOverlay`
-
-Renders an on-screen badge in the bottom-right corner of the container displaying render statistics.
-
-- Returns `{ element: HTMLElement, destroy(): void }`.
 
 ### `TraceCollector`
 

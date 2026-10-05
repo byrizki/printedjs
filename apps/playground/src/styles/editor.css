@@ -316,3 +316,8 @@
 	color: #ffffff;
 	border-color: var(--pm-accent-primary);
 }
+
+.pm-editor-inspect-highlight {
+	background-color: rgba(56, 189, 248, 0.16) !important;
+	border-left: 3px solid #38bdf8 !important;
+}

@@ -459,6 +459,120 @@
 	stroke: var(--pm-text-faint);
 }
 
+/* Devtools Overlay floating HUD positioning */
+[data-printedjs-devtools-overlay],
+.printedjs-devtools-overlay {
+	bottom: 24px !important;
+	left: 50% !important;
+	right: auto !important;
+	transform: translateX(-50%) !important;
+	z-index: 999999 !important;
+}
+
+.pm-floating-preview-bar.is-hidden {
+	display: none !important;
+}
+
+/* DevTools Floating Overlay positioning & theme integration inside Viewport */
+.pm-viewport-wrapper [data-printedjs-devtools-overlay] {
+	position: absolute !important;
+	bottom: 24px !important;
+	left: 50% !important;
+	transform: translateX(-50%) !important;
+	z-index: 40 !important;
+	transition:
+		background-color var(--pm-transition-fast),
+		border-color var(--pm-transition-fast),
+		color var(--pm-transition-fast),
+		box-shadow var(--pm-transition-fast);
+}
+
+[data-theme="light"] .pm-viewport-wrapper [data-printedjs-devtools-overlay] {
+	background-color: rgba(255, 255, 255, 0.94) !important;
+	color: var(--pm-text-primary) !important;
+	border: 1px solid var(--pm-border-default) !important;
+	box-shadow:
+		0 10px 30px -5px rgba(0, 0, 0, 0.12),
+		0 0 0 1px var(--pm-border-subtle) !important;
+}
+
+[data-theme="light"] [data-printedjs-devtools-tooltip] {
+	background-color: rgba(255, 255, 255, 0.96) !important;
+	color: var(--pm-text-primary) !important;
+	border: 1px solid var(--pm-border-default) !important;
+	box-shadow:
+		0 10px 30px -5px rgba(0, 0, 0, 0.12),
+		0 0 0 1px var(--pm-border-subtle) !important;
+}
+
+.pm-devtools-control-btn {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 3px 6px;
+	border-radius: 9999px;
+	font-size: 11px;
+	font-weight: 500;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	background: transparent;
+	color: var(--pm-text-secondary);
+	border: 1px solid transparent;
+	outline: none;
+	transition: all 0.15s ease;
+	font-family: inherit;
+	line-height: 1;
+}
+
+.pm-devtools-control-btn:hover {
+	background: var(--pm-bg-surface-hover);
+	color: var(--pm-text-primary);
+	border-color: var(--pm-border-hover);
+}
+
+.pm-devtools-control-btn:active {
+	transform: scale(0.96);
+}
+
+.pm-devtools-control-btn.fit {
+	padding: 3px 8px;
+	background: var(--pm-bg-surface);
+	border-color: var(--pm-border-default);
+}
+
+.pm-devtools-control-btn.fit:hover {
+	background: var(--pm-bg-surface-hover);
+	border-color: var(--pm-border-hover);
+}
+
+.pm-devtools-zoom-label {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--pm-text-muted);
+	padding: 2px 4px;
+	min-width: 36px;
+	text-align: center;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: all 0.15s ease;
+}
+
+.pm-devtools-zoom-label:hover {
+	color: var(--pm-text-primary);
+	background: var(--pm-bg-surface-hover);
+}
+
+.pm-devtools-page-indicator {
+	color: var(--pm-text-muted);
+}
+
+.pm-devtools-divider {
+	background-color: var(--pm-border-default);
+}
+
 /* Print handling */
 @media print {
 	html,

@@ -1,4 +1,5 @@
 import { formatPageNumber, type PageCounterStyle } from "@printedjs/core";
+import type { TraceEvent } from "@printedjs/devtools";
 import type { FlipBookController } from "@printedjs/plugin-page-flip";
 import type { ActivePageChangeDetail } from "@printedjs/plugin-views";
 import { ZOOM_PRESETS, type ViewMode } from "../types/editor.js";
@@ -73,6 +74,7 @@ export class ViewportComponent {
 	private readonly expandBtn: HTMLButtonElement;
 	private readonly bookSidePrev: HTMLButtonElement;
 	private readonly bookSideNext: HTMLButtonElement;
+	private devtoolsZoomLabelEl: HTMLElement | null = null;
 
 	private currentZoom: number;
 	private currentViewMode: ViewMode;
@@ -303,7 +305,7 @@ export class ViewportComponent {
 							<polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
 							<line x1="12" y1="22.08" x2="12" y2="12"></line>
 						</svg>
-						<span>Overlay</span>
+						<span>DevTool</span>
 					</button>
 
 					<button id="pm-float-print-btn" class="pm-pill-btn" title="Print Document or Save PDF">
@@ -494,7 +496,12 @@ export class ViewportComponent {
 					!(e.target instanceof HTMLInputElement) &&
 					!(e.target instanceof HTMLTextAreaElement)
 				) {
-					this.setToolbarMinimized(!this.isToolbarMinimized);
+					if (this.isOverlayVisible) {
+						this.setDevtoolsActive(false);
+						callbacks.onOverlayToggle?.(false);
+					} else {
+						this.setToolbarMinimized(!this.isToolbarMinimized);
+					}
 				}
 			});
 		}
@@ -502,6 +509,7 @@ export class ViewportComponent {
 		this.overlayBtn.addEventListener("click", () => {
 			this.isOverlayVisible = !this.isOverlayVisible;
 			this.overlayBtn.classList.toggle("active", this.isOverlayVisible);
+			this.setToolbarHidden(this.isOverlayVisible);
 			callbacks.onOverlayToggle?.(this.isOverlayVisible);
 		});
 
@@ -554,6 +562,160 @@ export class ViewportComponent {
 		const host = pagesContainer as FlipbookHostElement;
 
 		return host.__printedjs_flipbook ?? null;
+	}
+
+	setToolbarHidden(hidden: boolean): void {
+		this.floatingBarEl.classList.toggle("is-hidden", hidden);
+	}
+
+	setDevtoolsActive(active: boolean): void {
+		this.isOverlayVisible = active;
+		this.overlayBtn.classList.toggle("active", active);
+		this.setToolbarHidden(active);
+	}
+
+	createDevtoolsPageControls(): HTMLElement {
+		const group = document.createElement("div");
+		group.style.display = "flex";
+		group.style.alignItems = "center";
+		group.style.gap = "4px";
+
+		const prevBtn = document.createElement("button");
+		prevBtn.setAttribute("type", "button");
+		prevBtn.className = "pm-devtools-control-btn";
+		prevBtn.title = "Previous Page";
+		prevBtn.setAttribute("title", "Previous Page");
+		prevBtn.innerHTML = `
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polyline points="15 18 9 12 15 6"></polyline>
+			</svg>
+		`;
+		prevBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.handlePrevPage();
+		});
+
+		const indicator = document.createElement("span");
+		indicator.className = "pm-devtools-page-indicator";
+		indicator.style.fontSize = "11px";
+		indicator.style.fontWeight = "600";
+		indicator.style.color = "var(--pm-text-muted, #94a3b8)";
+		indicator.style.fontFamily =
+			"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+		indicator.style.padding = "0 4px";
+		indicator.style.minWidth = "40px";
+		indicator.style.textAlign = "center";
+		indicator.textContent = this.pageIndicatorEl.textContent || "0 pages";
+
+		if (typeof MutationObserver !== "undefined") {
+			const syncObserver = new MutationObserver(() => {
+				indicator.textContent = this.pageIndicatorEl.textContent;
+			});
+
+			try {
+				syncObserver.observe(this.pageIndicatorEl, {
+					childList: true,
+					characterData: true,
+					subtree: true,
+				});
+			} catch {
+				// Ignore if observer not supported
+			}
+		}
+
+		const nextBtn = document.createElement("button");
+		nextBtn.setAttribute("type", "button");
+		nextBtn.className = "pm-devtools-control-btn";
+		nextBtn.title = "Next Page";
+		nextBtn.setAttribute("title", "Next Page");
+		nextBtn.innerHTML = `
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polyline points="9 18 15 12 9 6"></polyline>
+			</svg>
+		`;
+		nextBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.handleNextPage();
+		});
+
+		const divider = document.createElement("div");
+		divider.className = "pm-devtools-divider";
+		divider.style.width = "1px";
+		divider.style.height = "16px";
+		divider.style.backgroundColor = "var(--pm-border-default, rgba(255, 255, 255, 0.15))";
+		divider.style.margin = "0 2px";
+
+		const zoomOutBtn = document.createElement("button");
+		zoomOutBtn.setAttribute("type", "button");
+		zoomOutBtn.className = "pm-devtools-control-btn";
+		zoomOutBtn.title = "Zoom Out (-)";
+		zoomOutBtn.setAttribute("title", "Zoom Out (-)");
+		zoomOutBtn.innerHTML = `
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="11" cy="11" r="8"></circle>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				<line x1="8" y1="11" x2="14" y2="11"></line>
+			</svg>
+		`;
+		zoomOutBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.setZoom(Math.max(0.3, Math.round((this.currentZoom - 0.1) * 10) / 10));
+			this.callbacks.onZoomChange(this.currentZoom);
+		});
+
+		const zoomLabel = document.createElement("span");
+		zoomLabel.className = "pm-devtools-zoom-label";
+		zoomLabel.title = "Reset Zoom to 100%";
+		zoomLabel.setAttribute("title", "Reset Zoom to 100%");
+		zoomLabel.textContent = `${Math.round(this.currentZoom * 100)}%`;
+		zoomLabel.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.setZoom(1.0);
+			this.callbacks.onZoomChange(this.currentZoom);
+		});
+		this.devtoolsZoomLabelEl = zoomLabel;
+
+		const zoomInBtn = document.createElement("button");
+		zoomInBtn.setAttribute("type", "button");
+		zoomInBtn.className = "pm-devtools-control-btn";
+		zoomInBtn.title = "Zoom In (+)";
+		zoomInBtn.setAttribute("title", "Zoom In (+)");
+		zoomInBtn.innerHTML = `
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="11" cy="11" r="8"></circle>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				<line x1="11" y1="8" x2="11" y2="14"></line>
+				<line x1="8" y1="11" x2="14" y2="11"></line>
+			</svg>
+		`;
+		zoomInBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.setZoom(Math.min(2.0, Math.round((this.currentZoom + 0.1) * 10) / 10));
+			this.callbacks.onZoomChange(this.currentZoom);
+		});
+
+		const zoomFitBtn = document.createElement("button");
+		zoomFitBtn.setAttribute("type", "button");
+		zoomFitBtn.className = "pm-devtools-control-btn fit";
+		zoomFitBtn.title = "Fit Content to Viewport";
+		zoomFitBtn.setAttribute("title", "Fit Content to Viewport");
+		zoomFitBtn.textContent = "Fit";
+		zoomFitBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.fitToView();
+			this.callbacks.onZoomChange(this.currentZoom);
+		});
+
+		group.appendChild(prevBtn);
+		group.appendChild(indicator);
+		group.appendChild(nextBtn);
+		group.appendChild(divider);
+		group.appendChild(zoomOutBtn);
+		group.appendChild(zoomLabel);
+		group.appendChild(zoomInBtn);
+		group.appendChild(zoomFitBtn);
+
+		return group;
 	}
 
 	private handlePrevPage(): void {
@@ -845,6 +1007,10 @@ export class ViewportComponent {
 			customOpt.value = zoomStr;
 			customOpt.textContent = percentText;
 			customOpt.selected = true;
+		}
+
+		if (this.devtoolsZoomLabelEl) {
+			this.devtoolsZoomLabelEl.textContent = percentText;
 		}
 	}
 
@@ -1443,7 +1609,7 @@ export class ViewportComponent {
 				<tbody>
 					${report.events
 						.map(
-							(e) => `
+							(e: TraceEvent) => `
 						<tr>
 							<td><span style="color: ${e.type === "phase" ? "var(--pm-accent-sky)" : "var(--pm-accent-emerald)"};">[${e.type}]</span></td>
 							<td><strong>${e.name}</strong></td>

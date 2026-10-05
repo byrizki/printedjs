@@ -1,4 +1,5 @@
 import { monaco } from "../services/monaco-setup.js";
+import { findSourceLine } from "@printedjs/devtools";
 import { formatJsonString, parseJsonData } from "../services/template-service.js";
 import type { EditorTabId } from "../types/editor.js";
 import type { PlaygroundFixture } from "../types/playground.js";
@@ -40,6 +41,8 @@ export class EditorPanelComponent {
 	private isUpdatingInternalValue = false;
 	private isWordWrap = false;
 	private isCollapsed = false;
+	private inspectDecorations: monaco.editor.IEditorDecorationsCollection | null = null;
+	private lastRevealedLine: number | null = null;
 
 	constructor(options: EditorPanelOptions) {
 		const { initialFixture, initialTemplate, initialDataJson, callbacks } = options;
@@ -284,31 +287,17 @@ export class EditorPanelComponent {
 
 		// Tab switching
 		const tabButtons = this.element.querySelectorAll<HTMLButtonElement>(".pm-tab-btn");
-		const panes = this.element.querySelectorAll<HTMLElement>(".pm-tab-pane");
 
 		tabButtons.forEach((btn) => {
 			btn.addEventListener("click", () => {
 				// SAFETY: data-tab attribute matches defined EditorTabId domain values
 				const tabId = btn.getAttribute("data-tab") as EditorTabId;
 
-				if (!tabId) return;
-				this.activeTab = tabId;
+				if (!tabId) {
+					return;
+				}
 
-				tabButtons.forEach((b) => b.classList.remove("active"));
-				btn.classList.add("active");
-
-				panes.forEach((p) => {
-					if (p.getAttribute("data-pane") === tabId) {
-						p.classList.add("active");
-					} else {
-						p.classList.remove("active");
-					}
-				});
-
-				this.layout();
-				requestAnimationFrame(() => {
-					this.layout();
-				});
+				this.switchTab(tabId);
 			});
 		});
 
@@ -546,7 +535,86 @@ export class EditorPanelComponent {
 		}
 	}
 
+	switchTab(tabId: EditorTabId, shouldFocus = true): void {
+		if (this.activeTab === tabId) {
+			return;
+		}
+
+		this.activeTab = tabId;
+
+		const tabButtons = this.element.querySelectorAll<HTMLButtonElement>(".pm-tab-btn");
+		const panes = this.element.querySelectorAll<HTMLElement>(".pm-tab-pane");
+
+		tabButtons.forEach((b) => {
+			b.classList.toggle("active", b.getAttribute("data-tab") === tabId);
+		});
+
+		panes.forEach((p) => {
+			p.classList.toggle("active", p.getAttribute("data-pane") === tabId);
+		});
+
+		this.layout();
+
+		if (shouldFocus) {
+			if (tabId === "template") {
+				this.templateEditor.focus();
+			} else if (tabId === "data") {
+				this.dataEditor.focus();
+			}
+		}
+	}
+
+	revealElement(element: HTMLElement): void {
+		if (this.activeTab !== "template") {
+			this.switchTab("template", false);
+		}
+
+		const templateCode = this.templateModel.getValue();
+		const line = findSourceLine(templateCode, element);
+
+		if (line === null) {
+			this.clearInspectHighlight();
+
+			return;
+		}
+
+		if (this.lastRevealedLine === line) {
+			return;
+		}
+
+		this.lastRevealedLine = line;
+
+		this.templateEditor.revealLineInCenterIfOutsideViewport(
+			line,
+			monaco.editor.ScrollType.Smooth,
+		);
+		this.templateEditor.setPosition({ lineNumber: line, column: 1 });
+
+		if (!this.inspectDecorations) {
+			this.inspectDecorations = this.templateEditor.createDecorationsCollection();
+		}
+
+		this.inspectDecorations.set([
+			{
+				range: new monaco.Range(line, 1, line, 1),
+				options: {
+					isWholeLine: true,
+					className: "pm-editor-inspect-highlight",
+				},
+			},
+		]);
+	}
+
+	clearInspectHighlight(): void {
+		if (this.inspectDecorations) {
+			this.inspectDecorations.clear();
+		}
+
+		this.lastRevealedLine = null;
+	}
+
 	destroy(): void {
+		this.clearInspectHighlight();
 		this.resizeObserver.disconnect();
 		this.templateEditor.dispose();
 		this.dataEditor.dispose();
