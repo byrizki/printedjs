@@ -25,6 +25,7 @@
 	"dependencies": {
 		"@printedjs/browser": "workspace:*",
 		"@printedjs/core": "workspace:*",
-		"@printedjs/plugin-preset": "workspace:*"
+		"@printedjs/plugin-preset": "workspace:*",
+		"@printedjs/plugin-views": "workspace:*"
 	}
 }

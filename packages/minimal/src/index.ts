@@ -9,12 +9,20 @@ import type {
 	StylesheetSource,
 } from "@printedjs/core";
 import { standardPreset } from "@printedjs/plugin-preset";
+import {
+	pageViewsPlugin,
+	singlePageViewPlugin,
+	spreadPageViewPlugin,
+} from "@printedjs/plugin-views";
+
+export type MinimalViewMode = "single" | "spread" | "none" | false;
 
 export interface PolyfillOptions extends PagedjsCompatibilityOptions {
 	readonly target?: HTMLElement | undefined;
 	readonly isolation?: "root" | "iframe" | undefined;
 	readonly plugins?: readonly PrintedjsPlugin[] | undefined;
 	readonly auto?: boolean | undefined;
+	readonly viewMode?: MinimalViewMode | undefined;
 }
 
 export interface PagedPageLayoutInfo {
@@ -85,6 +93,7 @@ export interface PagedConfig {
 	renderTo?: string | HTMLElement | undefined;
 	stylesheets?: readonly string[] | undefined;
 	pagedjsCompatible?: boolean | undefined;
+	viewMode?: MinimalViewMode | undefined;
 }
 
 export interface WindowWithPrintedjsMinimal extends Window {
@@ -94,7 +103,12 @@ export interface WindowWithPrintedjsMinimal extends Window {
 	__printedjsOriginalContent?: string | undefined;
 	PRINTEDJS_AUTO?: boolean | undefined;
 	PagedConfig?: PagedConfig | undefined;
-	PrintedjsConfig?: { readonly pagedjsCompatible?: boolean | undefined } | undefined;
+	PrintedjsConfig?:
+		| {
+				readonly pagedjsCompatible?: boolean | undefined;
+				readonly viewMode?: MinimalViewMode | undefined;
+		  }
+		| undefined;
 	Paged?: unknown;
 	PagedPolyfill?: unknown;
 	Printed?: unknown;
@@ -112,6 +126,32 @@ export function registerHandlers(...handlers: PagedHandler[]): void {
 
 function isString(value: unknown): value is string {
 	return Object.prototype.toString.call(value) === "[object String]";
+}
+
+function resolveViewPlugin(
+	viewMode: MinimalViewMode | undefined,
+	existingPlugins: readonly PrintedjsPlugin[],
+): PrintedjsPlugin | null {
+	if (viewMode === "none" || viewMode === false) {
+		return null;
+	}
+
+	const hasViewPlugin = existingPlugins.some(
+		(p) =>
+			p.name === "single-page-view" ||
+			p.name === "spread-page-view" ||
+			p.name === "page-views",
+	);
+
+	if (hasViewPlugin) {
+		return null;
+	}
+
+	if (viewMode === "spread") {
+		return spreadPageViewPlugin();
+	}
+
+	return singlePageViewPlugin();
 }
 
 function createHandlersPlugin(handlers: readonly PagedHandler[]): PrintedjsPlugin {
@@ -242,10 +282,34 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 	const isolation = options?.isolation ?? "root";
 	const basePlugins = options?.plugins ?? standardPreset();
 
+	const scriptViewAttr =
+		typeof document !== "undefined"
+			? (document.currentScript?.getAttribute("data-printedjs-view") ??
+				document.currentScript?.getAttribute("data-view-mode"))
+			: null;
+
+	const resolvedScriptViewMode: MinimalViewMode | undefined =
+		scriptViewAttr === "none" || scriptViewAttr === "false"
+			? "none"
+			: scriptViewAttr === "spread"
+				? "spread"
+				: scriptViewAttr === "single"
+					? "single"
+					: undefined;
+
+	const viewMode: MinimalViewMode | undefined =
+		options?.viewMode ??
+		win.PrintedjsConfig?.viewMode ??
+		win.PagedConfig?.viewMode ??
+		resolvedScriptViewMode;
+
+	const viewPlugin = resolveViewPlugin(viewMode, basePlugins);
+	const pluginsWithViews = viewPlugin ? [...basePlugins, viewPlugin] : basePlugins;
+
 	const plugins =
 		registeredHandlers.length > 0
-			? [...basePlugins, createHandlersPlugin(registeredHandlers)]
-			: basePlugins;
+			? [...pluginsWithViews, createHandlersPlugin(registeredHandlers)]
+			: pluginsWithViews;
 
 	const compatAttr =
 		typeof document !== "undefined"
@@ -308,11 +372,16 @@ export async function polyfill(options?: PolyfillOptions): Promise<RenderResult>
 
 	activeRenderPromise = (async () => {
 		try {
+			const effectiveStyles = styles.length > 0 ? styles : [""];
+
 			const result = await activeRenderer!.render({
 				content: {
 					html: contentHtml,
 				},
-				stylesheets: styles.map((content) => ({ type: "inline" as const, content })),
+				stylesheets: effectiveStyles.map((content) => ({
+					type: "inline" as const,
+					content,
+				})),
 				pagedjsCompatible,
 			});
 
@@ -387,11 +456,13 @@ export class Previewer {
 
 		const container = target ?? document.body;
 		const basePlugins = this.options.plugins ?? standardPreset();
+		const viewPlugin = resolveViewPlugin(this.options.viewMode, basePlugins);
+		const pluginsWithViews = viewPlugin ? [...basePlugins, viewPlugin] : basePlugins;
 
 		const plugins =
 			registeredHandlers.length > 0
-				? [...basePlugins, createHandlersPlugin(registeredHandlers)]
-				: basePlugins;
+				? [...pluginsWithViews, createHandlersPlugin(registeredHandlers)]
+				: pluginsWithViews;
 
 		const renderer = createRenderer({
 			target: container,
@@ -411,7 +482,9 @@ export class Previewer {
 			html = document.body.innerHTML;
 		}
 
-		const normalizedStyles: StylesheetSource[] = (stylesheets ?? []).map((s) => {
+		const rawStyles = stylesheets && stylesheets.length > 0 ? stylesheets : [""];
+
+		const normalizedStyles: StylesheetSource[] = rawStyles.map((s) => {
 			if (isString(s)) {
 				return { type: "inline" as const, content: s };
 			}
@@ -519,6 +592,19 @@ function autoInit(): void {
 					? true
 					: undefined;
 
+		const viewAttr =
+			scriptTag?.getAttribute("data-printedjs-view") ??
+			scriptTag?.getAttribute("data-view-mode");
+
+		const viewMode: MinimalViewMode | undefined =
+			viewAttr === "none" || viewAttr === "false"
+				? "none"
+				: viewAttr === "spread"
+					? "spread"
+					: viewAttr === "single"
+						? "single"
+						: undefined;
+
 		// Only auto-run if document contains @page or pagedjs/printedjs markers
 		const hasPageCss = Array.from(document.querySelectorAll("style")).some((s) =>
 			/@page\b/i.test(s.textContent ?? ""),
@@ -529,6 +615,7 @@ function autoInit(): void {
 				target?: HTMLElement | undefined;
 				isolation?: "root" | "iframe" | undefined;
 				pagedjsCompatible?: boolean | undefined;
+				viewMode?: MinimalViewMode | undefined;
 			}
 
 			const polyfillOpts: MutablePolyfillOptions = {
@@ -538,6 +625,10 @@ function autoInit(): void {
 
 			if (pagedjsCompatible !== undefined) {
 				polyfillOpts.pagedjsCompatible = pagedjsCompatible;
+			}
+
+			if (viewMode !== undefined) {
+				polyfillOpts.viewMode = viewMode;
 			}
 
 			void polyfill(polyfillOpts);
@@ -562,6 +653,9 @@ if (typeof window !== "undefined") {
 		registerHandlers,
 		createRenderer,
 		standardPreset,
+		singlePageViewPlugin,
+		spreadPageViewPlugin,
+		pageViewsPlugin,
 	};
 
 	win.Paged = pagedCompat;
@@ -578,5 +672,14 @@ if (typeof window !== "undefined") {
 export { createRenderer } from "@printedjs/browser";
 
 export { standardPreset } from "@printedjs/plugin-preset";
+
+export {
+	singlePageViewPlugin,
+	spreadPageViewPlugin,
+	pageViewsPlugin,
+	type SinglePageViewOptions,
+	type SpreadPageViewOptions,
+	type ViewMode,
+} from "@printedjs/plugin-views";
 
 export type { PageResult, RenderResult } from "@printedjs/core";

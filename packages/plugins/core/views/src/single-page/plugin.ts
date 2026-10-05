@@ -28,6 +28,7 @@ export function singlePageViewPlugin(
 		margin-left: auto !important;
 		margin-right: auto !important;
 		margin-bottom: 0 !important;
+		background: #ffffff;
 		${
 			showShadow
 				? "box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;"

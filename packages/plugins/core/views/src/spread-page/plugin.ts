@@ -40,6 +40,7 @@ export function spreadPageViewPlugin(
 		margin-right: 0 !important;
 		display: block !important;
 		border-radius: 2px !important;
+		background: #ffffff;
 		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35) !important;
 		flex-shrink: 0 !important;
 		transition: transform 0.15s ease, box-shadow 0.15s ease !important;
