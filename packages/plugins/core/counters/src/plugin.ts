@@ -4,6 +4,7 @@ import {
 	type PrintedjsPlugin,
 	type PluginContext,
 } from "@printedjs/core";
+import { groupPagesIntoSections, withPagesCounterReset } from "./sections.js";
 
 export { formatPageNumber, type PageCounterStyle };
 
@@ -92,24 +93,32 @@ export function countersPlugin(): PrintedjsPlugin {
 				}
 			}
 
-			// Group pages by section (e.g. data-page named page attribute)
-			const sectionPageCounts = new Map<string, number>();
-			pages.forEach((page) => {
-				const pageName = page.getAttribute("data-page") || "default";
-				sectionPageCounts.set(pageName, (sectionPageCounts.get(pageName) ?? 0) + 1);
+			groupPagesIntoSections(Array.from(pages)).forEach((sectionPages) => {
+				const sectionCountStr = String(sectionPages.length);
+
+				sectionPages.forEach((page) => {
+					page.style.setProperty("--printedjs-section-page-count", sectionCountStr);
+					page.setAttribute("data-section-page-count", sectionCountStr);
+
+					if (pagedjsCompatible) {
+						page.style.setProperty("--pagedjs-section-page-count", sectionCountStr);
+					}
+				});
 			});
 
-			pages.forEach((page) => {
-				const pageName = page.getAttribute("data-page") || "default";
-				const sectionCount = sectionPageCounts.get(pageName) ?? totalPages;
-				const sectionCountStr = String(sectionCount);
-				page.style.setProperty("--printedjs-section-page-count", sectionCountStr);
-				page.setAttribute("data-section-page-count", sectionCountStr);
+			// Scope counter(pages) to each numbering sequence (counter resets) so mixed numbering totals correctly
+			const sequences = groupPagesIntoSections(Array.from(pages), false);
 
-				if (pagedjsCompatible) {
-					page.style.setProperty("--pagedjs-section-page-count", sectionCountStr);
-				}
-			});
+			if (sequences.length > 1) {
+				sequences.forEach((sequencePages) => {
+					sequencePages.forEach((page) => {
+						page.style.counterReset = withPagesCounterReset(
+							page.style.counterReset,
+							sequencePages.length,
+						);
+					});
+				});
+			}
 
 			// Resolve target-counter and target-text references
 			const links = doc.querySelectorAll<HTMLElement>("[href]");

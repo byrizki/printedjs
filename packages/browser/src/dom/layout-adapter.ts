@@ -134,11 +134,12 @@ function getCounterReset(
 	node: Node | null,
 	ancestors?: readonly HTMLElement[],
 	doc?: Document,
+	startedElements?: ReadonlySet<Node>,
 ): number | null {
 	let curr: Node | null = node;
 
 	while (curr) {
-		if (isElement(curr)) {
+		if (isElement(curr) && !startedElements?.has(curr)) {
 			const attr =
 				curr.getAttribute("data-page-counter-reset") ||
 				curr.getAttribute("data-counter-reset") ||
@@ -195,7 +196,7 @@ function getCounterReset(
 		for (let i = ancestors.length - 1; i >= 0; i--) {
 			const a = ancestors[i];
 
-			if (!a) continue;
+			if (!a || startedElements?.has(a)) continue;
 
 			const attr =
 				a.getAttribute("data-page-counter-reset") ||
@@ -1094,7 +1095,7 @@ export class DomLayoutAdapter implements PaginatorAdapter {
 			: null;
 
 		const detectedReset = headNode
-			? getCounterReset(headNode.node, headNode.ancestors, doc)
+			? getCounterReset(headNode.node, headNode.ancestors, doc, this.startedAncestors)
 			: null;
 
 		const detectedStyle = headNode

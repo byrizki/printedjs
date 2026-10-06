@@ -406,6 +406,29 @@ describe("@printedjs/minimal (full compact bundle)", () => {
 				expect(result.frontmatterFormatted).toBe("i");
 				expect(result.execTocTarget).toBe("i");
 
+				const footer = await page.evaluate(() => {
+					const decimalPages = Array.from(
+						document.querySelectorAll<HTMLElement>(
+							".printedjs_page[data-page-style='decimal']",
+						),
+					);
+
+					const resetIndex = decimalPages.findIndex((p) =>
+						p.hasAttribute("data-counter-reset"),
+					);
+
+					const bodyPages = decimalPages.slice(resetIndex);
+
+					return {
+						bodyCount: bodyPages.length,
+						lastNumber: bodyPages[bodyPages.length - 1]?.getAttribute("data-page-number"),
+						counterReset: bodyPages[bodyPages.length - 1]?.style.counterReset ?? "",
+					};
+				});
+
+				expect(footer.counterReset).toContain(`pages ${footer.bodyCount}`);
+				expect(footer.lastNumber).toBe(String(footer.bodyCount));
+
 				// Verify clicking TOC link navigates across pages to target section
 				await page.click('a[href="#sec-nested-tables"]');
 
