@@ -21,7 +21,7 @@ describe("@printedjs/cli", () => {
 	test("displays version when called with --version", async () => {
 		const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		await runCli(["--version"]);
-		expect(consoleLogSpy).toHaveBeenCalledWith("printedjs 0.0.0");
+		expect(consoleLogSpy).toHaveBeenCalledWith("printedjs 0.1.0");
 		consoleLogSpy.mockRestore();
 	});
 

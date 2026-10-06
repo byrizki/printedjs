@@ -1,6 +1,6 @@
 {
 	"name": "@printedjs/minimal",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Full bundled Printedjs package compiled to minimal and compact JavaScript",
 	"license": "MIT",
 	"type": "module",

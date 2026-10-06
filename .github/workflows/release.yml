@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to release (e.g. v0.1.0)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  ci-test:
+    name: Full CI Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers (Chromium, Firefox, WebKit)
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Install system fonts
+        run: |
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo add-apt-repository multiverse
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fontconfig \
+            ttf-mscorefonts-installer \
+            fonts-liberation \
+            fonts-freefont-ttf \
+            fonts-dejavu-core
+          sudo fc-cache -f -v
+          fc-match "Georgia"
+          fc-match "Times New Roman"
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run verification (lint, format, typecheck, unit tests)
+        run: pnpm verify
+
+      - name: Check package exports and distribution integrity
+        run: pnpm pack:check
+
+      - name: Run browser test suite (Playwright parity and visual)
+        run: pnpm test:browser
+
+      - name: Upload test results and failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            test-results/
+            output-samples/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Publish to npm & GitHub Release
+    needs: ci-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Check package exports and distribution integrity
+        run: pnpm pack:check
+
+      - name: Pack packages into tarball archives
+        run: pnpm pack:tarballs
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          pnpm exec tsx scripts/extract-release-notes.ts "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release with tarball assets
+        run: |
+          TAG="${{ steps.notes.outputs.tag }}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file dist/release-notes.md \
+            ./dist-tarballs/*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish tarball packages to npm
+        run: |
+          for tarball in ./dist-tarballs/*.tgz; do
+            echo "Publishing $tarball to npm..."
+            pnpm publish "$tarball" --access public --no-git-checks
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

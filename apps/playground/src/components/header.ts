@@ -90,7 +90,7 @@ export class HeaderComponent {
 				<div class="pm-brand-icon">P</div>
 				<h1 class="pm-brand-title">
 					Printedjs Playground
-					<span class="pm-version-badge">v0.0.0</span>
+					<span class="pm-version-badge">v0.1.0</span>
 					<span class="pm-tag-badge">Eta / EJS</span>
 				</h1>
 			</div>

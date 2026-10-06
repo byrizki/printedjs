@@ -1,6 +1,6 @@
 {
 	"name": "@printedjs/cli",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Headless PDF generation and command-line runner for Printedjs",
 	"license": "MIT",
 	"type": "module",

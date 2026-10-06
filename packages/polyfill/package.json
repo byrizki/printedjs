@@ -1,6 +1,6 @@
 {
 	"name": "@printedjs/polyfill",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Older browser polyfill compatibility layer for Printedjs",
 	"license": "MIT",
 	"type": "module",

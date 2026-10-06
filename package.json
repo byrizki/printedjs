@@ -1,6 +1,6 @@
 {
 	"name": "printedjs",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"description": "Browser-native paginated document rendering",
 	"license": "MIT",
@@ -27,6 +27,8 @@
 		"dev:minimal": "pnpm --filter minimal-demo dev",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"pack:check": "tsx scripts/check-public-exports.ts && tsx scripts/check-package-contents.ts",
+		"pack:tarballs": "tsx scripts/pack-packages.ts",
+		"version:bump": "tsx scripts/bump-version.ts",
 		"verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit"
 	},
 	"devDependencies": {
