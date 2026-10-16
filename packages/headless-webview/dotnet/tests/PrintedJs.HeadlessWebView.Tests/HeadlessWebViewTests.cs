@@ -5,6 +5,7 @@ using Xunit;
 
 namespace PrintedJs.HeadlessWebView.Tests;
 
+[Collection("Sequential")]
 public class HeadlessWebViewTests
 {
     [Fact]
@@ -67,4 +68,49 @@ public class HeadlessWebViewTests
         Assert.Equal("Custom error message", ex.Message);
         Assert.Equal(-42, ex.ErrorCode);
     }
+
+    [Fact]
+    public async Task RenderHtmlToPdf_GeneratesValidPdfBytes()
+    {
+        var config = new WebViewConfig
+        {
+            Html = "<html><head><title>Test .NET PDF</title></head><body><h1>Hello from .NET</h1><p>Testing PDF output</p></body></html>"
+        };
+
+        using var webview = await HeadlessWebView.CreateAsync(config);
+        byte[] pdfBytes = await webview.PrintToPdfAsync();
+
+        Assert.NotNull(pdfBytes);
+        Assert.True(pdfBytes.Length > 100);
+        // Verify PDF magic header "%PDF" (0x25, 0x50, 0x44, 0x46)
+        Assert.Equal(0x25, pdfBytes[0]);
+        Assert.Equal(0x50, pdfBytes[1]);
+        Assert.Equal(0x44, pdfBytes[2]);
+        Assert.Equal(0x46, pdfBytes[3]);
+
+        string tempPdfPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"dotnet_test_{Guid.NewGuid()}.pdf");
+        try
+        {
+            System.IO.File.WriteAllBytes(tempPdfPath, pdfBytes);
+            Assert.True(System.IO.File.Exists(tempPdfPath));
+            byte[] fileBytes = System.IO.File.ReadAllBytes(tempPdfPath);
+            Assert.Equal(pdfBytes.Length, fileBytes.Length);
+            Assert.Equal(0x25, fileBytes[0]);
+            Assert.Equal(0x50, fileBytes[1]);
+            Assert.Equal(0x44, fileBytes[2]);
+            Assert.Equal(0x46, fileBytes[3]);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(tempPdfPath))
+            {
+                System.IO.File.Delete(tempPdfPath);
+            }
+        }
+    }
+}
+
+[CollectionDefinition("Sequential", DisableParallelization = true)]
+public class SequentialCollectionDefinition
+{
 }

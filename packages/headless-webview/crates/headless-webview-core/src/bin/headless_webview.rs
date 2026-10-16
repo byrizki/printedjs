@@ -93,8 +93,9 @@ fn main() {
             process::exit(1);
         }
 
+        let content = std::fs::read_to_string(&abs_path).unwrap_or_default();
         let file_url = format!("file://{}", abs_path.to_string_lossy());
-        (Some(file_url), None)
+        (Some(file_url), Some(content))
     };
 
     let config = WebViewConfig {

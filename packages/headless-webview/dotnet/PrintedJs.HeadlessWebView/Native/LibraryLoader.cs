@@ -54,6 +54,13 @@ internal static class LibraryLoader
             return handle;
         }
 
+        // 3. Check development / test relative paths
+        string devRuntimePath = Path.GetFullPath(Path.Combine(baseDirectory, "..", "..", "..", "..", "PrintedJs.HeadlessWebView", "runtimes", rid, "native", fileName));
+        if (File.Exists(devRuntimePath) && NativeLibrary.TryLoad(devRuntimePath, out handle))
+        {
+            return handle;
+        }
+
         return IntPtr.Zero;
     }
 

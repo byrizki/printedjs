@@ -59,11 +59,42 @@ impl HeadlessWebViewCore {
                 builder = builder.with_initialization_script(script);
             }
 
+            let has_content = config.html.is_some() || config.url.is_some();
+            let (load_tx, load_rx) = std::sync::mpsc::channel();
+
+            if has_content {
+                builder = builder.with_on_page_load_handler(move |event, _| {
+                    if event == wry::PageLoadEvent::Finished {
+                        let _ = load_tx.send(());
+                    }
+                });
+            }
+
             let webview = builder
                 .build_headless()
                 .map_err(|e| HeadlessWebViewError::InitializationFailed {
                     message: e.to_string(),
                 })?;
+
+            #[cfg(target_os = "linux")]
+            if has_content {
+                let start = std::time::Instant::now();
+                loop {
+                    match load_rx.try_recv() {
+                        Ok(()) => break,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+                        Err(std::sync::mpsc::TryRecvError::Empty) => {
+                            if start.elapsed() > Duration::from_secs(10) {
+                                break;
+                            }
+                            while gtk::events_pending() {
+                                gtk::main_iteration();
+                            }
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
+                    }
+                }
+            }
 
             Ok(Arc::new(Self {
                 inner: Arc::new(Mutex::new(webview)),
@@ -206,6 +237,13 @@ impl HeadlessWebViewCore {
             let (tx, rx) = std::sync::mpsc::channel();
             let wry_options = options.unwrap_or_default().into();
 
+            #[cfg(target_os = "linux")]
+            {
+                while gtk::events_pending() {
+                    gtk::main_iteration();
+                }
+            }
+
             webview
                 .print_to_pdf(wry_options, move |result| {
                     let _ = tx.send(result);
@@ -216,11 +254,22 @@ impl HeadlessWebViewCore {
 
             #[cfg(target_os = "linux")]
             {
-                while rx.try_recv().is_err() {
-                    while gtk::events_pending() {
-                        gtk::main_iteration();
+                loop {
+                    match rx.try_recv() {
+                        Ok(res) => {
+                            let pdf_bytes = res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
+                                message: e.to_string(),
+                            })?;
+                            return Ok(pdf_bytes);
+                        }
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+                        Err(std::sync::mpsc::TryRecvError::Empty) => {
+                            while gtk::events_pending() {
+                                gtk::main_iteration();
+                            }
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
                     }
-                    std::thread::sleep(Duration::from_millis(5));
                 }
             }
 
@@ -266,6 +315,13 @@ impl HeadlessWebViewCore {
             let wry_options = options.unwrap_or_default().into();
             let path = std::path::PathBuf::from(&output_path);
 
+            #[cfg(target_os = "linux")]
+            {
+                while gtk::events_pending() {
+                    gtk::main_iteration();
+                }
+            }
+
             webview
                 .print_to_pdf_file(&path, wry_options, move |result| {
                     let _ = tx.send(result);
@@ -276,11 +332,22 @@ impl HeadlessWebViewCore {
 
             #[cfg(target_os = "linux")]
             {
-                while rx.try_recv().is_err() {
-                    while gtk::events_pending() {
-                        gtk::main_iteration();
+                loop {
+                    match rx.try_recv() {
+                        Ok(res) => {
+                            res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
+                                message: e.to_string(),
+                            })?;
+                            return Ok(());
+                        }
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+                        Err(std::sync::mpsc::TryRecvError::Empty) => {
+                            while gtk::events_pending() {
+                                gtk::main_iteration();
+                            }
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
                     }
-                    std::thread::sleep(Duration::from_millis(5));
                 }
             }
 

@@ -239,6 +239,15 @@ jobs:
       - name: Verify Linux CLI headless binary execution
         run: ./packages/cli/bin/linux-x64/headless-webview --help
 
+      - name: Test Linux CLI HTML to PDF rendering
+        run: |
+          echo "<html><head><title>CLI Test</title></head><body><h1>PrintedJS CLI Verification</h1><p>Generated PDF test</p></body></html>" > test-sample.html
+          ./packages/cli/bin/linux-x64/headless-webview test-sample.html -o test-sample.pdf
+          test -s test-sample.pdf
+          head -c 4 test-sample.pdf | grep -q "%PDF"
+          echo "✓ Verified Linux CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
+          rm -f test-sample.html test-sample.pdf
+
       - name: Verify Linux .NET native runtime
         run: test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/linux-x64/native/libheadless_webview_core.so
 
@@ -267,6 +276,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -297,12 +313,26 @@ jobs:
             ./packages/cli/bin/darwin-x64/headless-webview --help
           fi
 
+      - name: Test macOS CLI HTML to PDF rendering
+        run: |
+          echo "<html><head><title>macOS Test</title></head><body><h1>macOS CLI PDF</h1></body></html>" > test-sample.html
+          ./packages/cli/bin/darwin-arm64/headless-webview test-sample.html -o test-sample.pdf
+          test -s test-sample.pdf
+          head -c 4 test-sample.pdf | grep -q "%PDF"
+          echo "✓ Verified macOS CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
+          rm -f test-sample.html test-sample.pdf
+
       - name: Verify macOS .NET native runtimes
         run: |
           test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-arm64/native/libheadless_webview_core.dylib
           if [ -d packages/cli/bin/darwin-x64 ]; then
             test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-x64/native/libheadless_webview_core.dylib
           fi
+
+      - name: Verify HeadlessWebView .NET Suite on macOS
+        run: |
+          dotnet build -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
+          dotnet test -c Release packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
 
       - name: Build & Verify iOS Native & Example App
         run: pnpm test:rn:example
@@ -354,6 +384,16 @@ jobs:
       - name: Verify Windows CLI headless binary execution
         shell: bash
         run: ./packages/cli/bin/win32-x64/headless-webview.exe --help
+
+      - name: Test Windows CLI HTML to PDF rendering
+        shell: bash
+        run: |
+          echo "<html><head><title>Windows Test</title></head><body><h1>Windows CLI PDF</h1></body></html>" > test-sample.html
+          ./packages/cli/bin/win32-x64/headless-webview.exe test-sample.html -o test-sample.pdf
+          test -s test-sample.pdf
+          head -c 4 test-sample.pdf | grep -q "%PDF"
+          echo "✓ Verified Windows CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
+          rm -f test-sample.html test-sample.pdf
 
       - name: Verify Windows .NET native runtime
         shell: bash

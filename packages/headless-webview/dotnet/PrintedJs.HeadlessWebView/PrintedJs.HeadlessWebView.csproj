@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <PackageId>PrintedJs.HeadlessWebView</PackageId>
@@ -23,6 +23,7 @@
   <ItemGroup Condition="Exists('runtimes')">
     <Content Include="runtimes\**" Exclude="runtimes\**\.gitkeep;runtimes/**/.gitkeep" Pack="true" PackagePath="runtimes">
       <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
