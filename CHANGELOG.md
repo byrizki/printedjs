@@ -5,6 +5,43 @@ All notable changes to the Printedjs project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-16
+
+### Added
+
+#### Headless WebView for React Native (`@printedjs/headless-webview`)
+
+- **Dual Architecture Support**: Complete support for both React Native New Architecture (TurboModules via `RNHeadlessWebViewSpec`) and Legacy Architecture (Bridge).
+- **Native Android Implementation**: High-performance headless runtime in Kotlin (`HeadlessWebViewModule`) leveraging Android's built-in `android.webkit.WebView` and `android.print.PdfPrintHelper` with package-private `PrintDocumentAdapter` print callbacks.
+- **Native iOS Implementation**: Full Swift implementation (`HeadlessWebviewModule`) leveraging `WebKit.WKWebView`.
+  - Native vector PDF rendering via `WKWebView.createPDF` on iOS 14+.
+  - Fully headless legacy fallback on iOS < 14 (iOS 12+) via UIKit `UIPrintPageRenderer`, `webView.viewPrintFormatter()`, and `UIGraphicsBeginPDFContextToData`.
+- **Packaging & Package Managers**: Dual iOS distribution support with CocoaPods (`react-native-headless-webview.podspec` with `install_modules_dependencies`) and SwiftPM (`Package.swift`).
+- **React Hook**: `useHeadlessWebView` lifecycle hook for headless instance creation, HTML loading, script evaluation, and PDF export.
+- **Example & Test Application (`packages/headless-webview/example`)**: Comprehensive dual-architecture testbed with automated verification script (`scripts/test-both-arch.ts`) testing Android legacy/new architecture compilation, CocoaPods spec parsing, SwiftPM manifests, and clean tarball packaging.
+
+#### Headless WebView for .NET (`PrintedJs.HeadlessWebView`)
+
+- **Cross-Platform NuGet Library**: Native headless webview and vector PDF rendering for .NET (`netstandard2.1`, .NET 8 / 9 / 10).
+- **Multi-OS Runtime Resolution**: Dynamic `LibraryLoader` automatically resolving platform-specific prebuilt runtimes (`win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, `linux-arm64`) from `runtimes/{rid}/native/`.
+- **Asynchronous API**: `HeadlessWebView.CreateAsync()`, `LoadHtmlAsync()`, `LoadUrlAsync()`, `EvaluateJavascriptAsync()`, `PrintToPdfAsync()`, and `PrintToPdfFileAsync()`.
+
+#### Headless WebView Core Rust Engine (`headless-webview-core`)
+
+- **Wry Headless Integration**: Native desktop headless webview core utilizing vendored `wry-headless` engine.
+- **C-ABI & UniFFI Scaffolding**: Exported C FFI interfaces and UniFFI interface definitions (`headless_webview.udl`) powering .NET P/Invoke and standalone desktop CLI prebuilts.
+
+#### CLI & Tooling Updates (`@printedjs/cli`)
+
+- **Native Webview Default**: Made native OS webview the default rendering engine for `printedjs render`, with fallback support for Playwright and Puppeteer.
+- **Prebuilt Desktop Bundler**: Added `scripts/bundle-cli-prebuilts.sh` to package native desktop binaries directly into published `@printedjs/cli` tarballs.
+- **Version Management**: Enhanced `scripts/bump-version.ts` to synchronize versions across workspace npm packages, .NET NuGet `.csproj`, and Rust `Cargo.toml`.
+
+#### CI/CD & Release Pipeline
+
+- **Automated Dual-Architecture Verification**: Added automated React Native packaging and dual-architecture validation (`pnpm test:rn:example`) to CI and Release workflows.
+- **Automated NuGet Publishing**: Added .NET SDK setup, `dotnet pack`, and automated publishing to NuGet.org in release workflow.
+
 ## [0.1.0] - 2026-10-06
 
 Initial public release of **Printedjs**, modern browser-native paginated document rendering engine redesigned from the ground up in TypeScript.

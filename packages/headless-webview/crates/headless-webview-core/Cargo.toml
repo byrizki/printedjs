@@ -1,6 +1,6 @@
 [package]
 name = "headless-webview-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["PrintedJS Contributors"]
 description = "Core headless webview runtime powered by Wry and UniFFI"
