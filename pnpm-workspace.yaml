@@ -3,3 +3,4 @@ packages:
   - "packages/plugins/core/*"
   - "packages/plugins/community/*"
   - "apps/*"
+  - "packages/headless-webview/example"

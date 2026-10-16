@@ -20,7 +20,7 @@ OPTIONS:
   -o, --output <path>     Output PDF file path (default: output.pdf)
   -f, --format <format>   Page format override, e.g. A4, Letter (default: A4)
   -b, --bleed <size>      Bleed box size, e.g. 3mm, 0.125in
-  -e, --engine <engine>   Browser engine: playwright | puppeteer (default: playwright)
+  -e, --engine <engine>   Browser engine: webview | playwright | puppeteer (default: webview)
   --pagedjs-compatible      Enable Paged.js backwards compatibility (default: false)
   --no-pagedjs-compatible   Disable Paged.js backwards compatibility
   -w, --watch               Watch input file for changes and re-render
@@ -30,7 +30,9 @@ OPTIONS:
 EXAMPLES:
   printedjs render document.html -o output.pdf
   printedjs render document.html -o book.pdf --format A4 --bleed 3mm
+  printedjs render document.html -o doc.pdf --engine webview
   printedjs render document.html -o doc.pdf --engine puppeteer
+  printedjs render document.html -o doc.pdf --engine playwright
   printedjs render document.html -o legacy.pdf --pagedjs-compatible
   printedjs render document.html -o live.pdf --watch
 `;
@@ -56,7 +58,7 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 			engine: {
 				type: "string",
 				short: "e",
-				default: "playwright",
+				default: "webview",
 			},
 			"pagedjs-compatible": {
 				type: "boolean",
@@ -109,7 +111,14 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 	const output = values.output ?? "output.pdf";
 	const format = values.format ?? "A4";
 	const bleed = values.bleed;
-	const engine = values.engine === "puppeteer" ? "puppeteer" : "playwright";
+
+	const engine =
+		values.engine === "puppeteer"
+			? "puppeteer"
+			: values.engine === "playwright"
+				? "playwright"
+				: "webview";
+
 	const isWatch = values.watch ?? false;
 
 	const pagedjsCompatible = values["no-pagedjs-compatible"]

@@ -1,0 +1,3 @@
+[submodule "packages/headless-webview/crates/vendor/wry-headless"]
+	path = packages/headless-webview/crates/vendor/wry-headless
+	url = https://github.com/byrizki/wry-headless.git

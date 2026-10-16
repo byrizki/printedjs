@@ -29,6 +29,13 @@
 		"products/**",
 		"pagedjs/**",
 		"StPageFlip/**",
+		"agave/**",
+		"wry/**",
+		"**/crates/**",
+		"**/dotnet/**",
+		"**/target/**",
+		"**/build/**",
+		"**/.gradle/**",
 		"*.pdf"
 	]
 }

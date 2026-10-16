@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
 
@@ -156,11 +156,53 @@ function bumpVersion() {
 		`✓ Updated playground header badge in apps/playground/src/components/header.ts`,
 	);
 
-	// 5. Run pnpm install to update lockfile
+	// 5. Update .NET NuGet package version
+	const dotnetCsprojPath = resolve(
+		rootDir,
+		"packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj",
+	);
+
+	if (existsSync(dotnetCsprojPath)) {
+		const rawCsproj = readFileSync(dotnetCsprojPath, "utf-8");
+
+		const updatedCsproj = rawCsproj.replace(
+			/<Version>[^<]+<\/Version>/,
+			`<Version>${targetVersion}</Version>`,
+		);
+
+		writeFileSync(dotnetCsprojPath, updatedCsproj, "utf-8");
+
+		console.log(
+			`✓ Updated .NET NuGet version in packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj`,
+		);
+	}
+
+	// 6. Update Cargo.toml crate version
+	const cargoTomlPath = resolve(
+		rootDir,
+		"packages/headless-webview/crates/headless-webview-core/Cargo.toml",
+	);
+
+	if (existsSync(cargoTomlPath)) {
+		const rawCargo = readFileSync(cargoTomlPath, "utf-8");
+
+		const updatedCargo = rawCargo.replace(
+			/^version = "[^"]+"/m,
+			`version = "${targetVersion}"`,
+		);
+
+		writeFileSync(cargoTomlPath, updatedCargo, "utf-8");
+
+		console.log(
+			`✓ Updated Rust Cargo version in packages/headless-webview/crates/headless-webview-core/Cargo.toml`,
+		);
+	}
+
+	// 7. Run pnpm install to update lockfile
 	console.log("\nSynchronizing pnpm-lock.yaml...");
 	execSync("pnpm install", { stdio: "inherit", cwd: rootDir });
 
-	// 6. Format modified files
+	// 8. Format modified files
 	console.log("\nRunning oxfmt formatting...");
 	execSync("pnpm format", { stdio: "inherit", cwd: rootDir });
 

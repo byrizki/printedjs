@@ -1,0 +1,54 @@
+namespace headless_webview_core {
+};
+
+dictionary WebViewConfig {
+    string? url;
+    string? html;
+    string? user_agent;
+    boolean devtools;
+    boolean transparent;
+    sequence<string> initialization_scripts;
+};
+
+dictionary PdfPrintOptions {
+    boolean landscape;
+    double? page_width;
+    double? page_height;
+    double margin_top;
+    double margin_bottom;
+    double margin_left;
+    double margin_right;
+    boolean print_background;
+    double scale;
+};
+
+[Error]
+enum HeadlessWebViewError {
+    "InitializationFailed",
+    "NavigationFailed",
+    "PdfGenerationFailed",
+    "ScriptEvaluationFailed",
+    "InvalidState",
+    "IoError",
+    "UnsupportedPlatform"
+};
+
+interface HeadlessWebViewCore {
+    [Throws=HeadlessWebViewError]
+    constructor(WebViewConfig config);
+
+    [Throws=HeadlessWebViewError]
+    void load_html(string html);
+
+    [Throws=HeadlessWebViewError]
+    void load_url(string url);
+
+    [Throws=HeadlessWebViewError]
+    string eval(string script);
+
+    [Throws=HeadlessWebViewError]
+    bytes print_to_pdf(PdfPrintOptions? options);
+
+    [Throws=HeadlessWebViewError]
+    void print_to_pdf_file(string output_path, PdfPrintOptions? options);
+};

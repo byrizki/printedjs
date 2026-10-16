@@ -1,0 +1,22 @@
+platform :ios, '14.0'
+prepare_react_native_project!
+
+new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] == '1'
+
+target 'HeadlessWebviewExample' do
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :fabric_enabled => new_arch_enabled,
+    :hermes_enabled => true
+  )
+
+  pod 'react-native-headless-webview', :path => '../../'
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+  end
+end

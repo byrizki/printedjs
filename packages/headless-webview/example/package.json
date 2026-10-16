@@ -1,0 +1,31 @@
+{
+	"name": "headless-webview-example",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "react-native start",
+		"android": "react-native run-android",
+		"android:legacy": "react-native run-android --mode=debug --extra-params='-PnewArchEnabled=false'",
+		"android:new-arch": "react-native run-android --mode=debug --extra-params='-PnewArchEnabled=true'",
+		"ios": "react-native run-ios",
+		"ios:legacy": "RCT_NEW_ARCH_ENABLED=0 pod install --project-directory=ios && react-native run-ios",
+		"ios:new-arch": "RCT_NEW_ARCH_ENABLED=1 pod install --project-directory=ios && react-native run-ios",
+		"build:android:legacy": "cd android && ./gradlew assembleDebug -PnewArchEnabled=false",
+		"build:android:new-arch": "cd android && ./gradlew assembleDebug -PnewArchEnabled=true",
+		"build:ios:legacy": "cd ios && RCT_NEW_ARCH_ENABLED=0 pod install && xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO",
+		"build:ios:new-arch": "cd ios && RCT_NEW_ARCH_ENABLED=1 pod install && xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO",
+		"test:both-arch": "tsx scripts/test-both-arch.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@printedjs/headless-webview": "workspace:*",
+		"react": "18.3.1",
+		"react-native": "^0.76.0"
+	},
+	"devDependencies": {
+		"@types/react": "^18.3.1",
+		"tsx": "^4.23.15",
+		"typescript": "^5.9.3"
+	}
+}

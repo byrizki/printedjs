@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-pages/
 dist-tarballs/
+dist-nuget/
 coverage/
 playwright-report/
 test-results/
@@ -11,6 +12,28 @@ test-results/
 output-samples/
 *.pdf
 *.tsbuildinfo
+*.nupkg
+target/
+# .NET build output
+**/bin/Debug/
+**/bin/Release/
+obj/
+!**/src/bin/
+*.tgz
+
+# Android & Gradle
+.gradle/
+**/.gradle/
+.kotlin/
+**/.kotlin/
+**/build/
+*.aar
+*.apk
+
+# iOS & CocoaPods
+Pods/
+DerivedData/
+*.xcworkspace
 
 # Local system symlinks and directories
 .pi-subagents/
@@ -20,6 +43,10 @@ pagedjs
 pagedjs/
 StPageFlip
 StPageFlip/
+wry
+wry/
+wry-headless
+wry-headless/
 
 
 # Local scripts with local machine paths or external dependencies

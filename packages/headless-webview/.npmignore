@@ -1,0 +1,14 @@
+crates/
+dotnet/
+target/
+*.nupkg
+.cargo/
+scripts/
+example/
+tsconfig.tsbuildinfo
+android/build/
+android/.gradle/
+android/.kotlin/
+ios/build/
+ios/DerivedData/
+ios/Pods/

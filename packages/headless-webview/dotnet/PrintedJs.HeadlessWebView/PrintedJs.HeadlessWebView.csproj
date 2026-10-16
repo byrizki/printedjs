@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageId>PrintedJs.HeadlessWebView</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>PrintedJS Contributors</Authors>
+    <Company>PrintedJS</Company>
+    <Description>Cross-platform headless webview and vector PDF rendering library for .NET powered by Wry and OS-native web engines.</Description>
+    <PackageTags>headless;webview;pdf;printedjs;pagemill;wry;tauri</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/byrizki/printedjs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PrintedJs.HeadlessWebView.Tests" />
+  </ItemGroup>
+</Project>

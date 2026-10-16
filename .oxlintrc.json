@@ -72,6 +72,12 @@
 		"products/**",
 		"pagedjs/**",
 		"test-results/**",
-		"tests/baseline/**"
+		"tests/baseline/**",
+		"agave/**",
+		"wry/**",
+		"**/crates/**",
+		"**/dotnet/**",
+		"**/build/**",
+		"**/.gradle/**"
 	]
 }

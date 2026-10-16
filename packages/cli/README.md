@@ -9,7 +9,7 @@ Command-line runner and headless PDF generation utility for Printedjs.
 ## Features
 
 - **High-Fidelity PDF Generation** — Renders documents with exact print margins, crop marks, bleed, running headers, and footnotes.
-- **Dual Browser Engines** — Use either **Playwright** (`--engine playwright`) or **Puppeteer** (`--engine puppeteer`).
+- **Multiple Rendering Engines** — Uses **Webview** (`--engine webview`) by default, with optional support for **Playwright** (`--engine playwright`) and **Puppeteer** (`--engine puppeteer`).
 - **Interactive Watch Mode (`--watch`)** — Monitors source HTML and CSS files, automatically recompiling PDFs on every change.
 - **Compatibility Modes** — Toggle legacy Paged.js class names (`--pagedjs-compatible`).
 - **Programmatic Node API** — Seamlessly integrate into backend document rendering pipelines via `renderPdf()`.
@@ -24,14 +24,17 @@ Install globally or as a project dev dependency:
 pnpm add -D @printedjs/cli
 ```
 
-Ensure a browser runtime is installed:
+### Optional Engine Dependencies
+
+The default `webview` engine runs off-screen via native web engines. If you wish to use alternative browser automation drivers, install either:
 
 ```bash
-# If using Playwright:
+# Optional: Playwright engine
+pnpm add -D playwright
 pnpm dlx playwright install chromium
 
-# Or if using Puppeteer:
-pnpm add puppeteer
+# Optional: Puppeteer engine
+pnpm add -D puppeteer
 ```
 
 ---
@@ -41,7 +44,7 @@ pnpm add puppeteer
 ### Basic Rendering
 
 ```bash
-# Render an HTML file to PDF
+# Render an HTML file to PDF using the default webview engine
 pnpm printedjs render document.html -o output.pdf
 
 # Specify page size format and bleed
@@ -51,10 +54,13 @@ pnpm printedjs render document.html -o output.pdf --format A4 --bleed 3mm
 ### Engine Selection
 
 ```bash
-# Render using Playwright (default)
+# Render using default Webview engine
+pnpm printedjs render invoice.html -o invoice.pdf --engine webview
+
+# Render using optional Playwright driver
 pnpm printedjs render invoice.html -o invoice.pdf --engine playwright
 
-# Render using Puppeteer
+# Render using optional Puppeteer driver
 pnpm printedjs render invoice.html -o invoice.pdf --engine puppeteer
 ```
 
@@ -78,7 +84,7 @@ Options:
   -o, --output <file>         Output PDF destination path (default: output.pdf)
   -f, --format <format>       Page format override (e.g. A4, Letter, Legal)
   -b, --bleed <dimension>     Bleed dimension (e.g. 3mm, 0.125in)
-  -e, --engine <engine>       Browser engine: playwright | puppeteer (default: playwright)
+  -e, --engine <engine>       Browser engine: webview | playwright | puppeteer (default: webview)
   -w, --watch                 Watch input file and rebuild on change
   --pagedjs-compatible        Emit dual Printedjs and legacy Paged.js classes
   --no-pagedjs-compatible     Emit only modern Printedjs classes (default)
@@ -101,7 +107,7 @@ const result = await renderPdf({
 	output: "path/to/document.pdf",
 	format: "A4",
 	bleed: "3mm",
-	engine: "playwright",
+	engine: "webview",
 	timeoutMs: 30000,
 });
 

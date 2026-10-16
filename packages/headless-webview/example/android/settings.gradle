@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'HeadlessWebviewExample'
+include ':app'
+include ':printedjs_headless-webview'
+project(':printedjs_headless-webview').projectDir = new File(rootProject.projectDir, '../../android')

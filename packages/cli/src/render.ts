@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import type { PagedjsCompatibilityOptions } from "@printedjs/core";
 import { injectAndPaginate } from "./browser-injection.js";
 import { resolveChromeExecutable } from "./chrome-resolver.js";
+import { executeWebviewBinary, resolveWebviewBinary } from "./headless-bridge.js";
 import { renderPdfWithPuppeteer } from "./puppeteer-bridge.js";
 
 export interface CliRenderOptions extends PagedjsCompatibilityOptions {
@@ -15,7 +16,7 @@ export interface CliRenderOptions extends PagedjsCompatibilityOptions {
 	readonly printBackground?: boolean | undefined;
 	readonly timeoutMs?: number | undefined;
 	readonly signal?: AbortSignal | undefined;
-	readonly engine?: "playwright" | "puppeteer" | undefined;
+	readonly engine?: "webview" | "headless" | "playwright" | "puppeteer" | undefined;
 }
 
 export interface CliRenderResult {
@@ -81,11 +82,9 @@ async function getChromium(): Promise<ChromiumBrowser> {
 	return pw.chromium;
 }
 
-export async function renderPdf(options: CliRenderOptions): Promise<CliRenderResult> {
-	if (options.engine === "puppeteer") {
-		return renderPdfWithPuppeteer(options);
-	}
-
+export async function renderPdfWithPlaywright(
+	options: CliRenderOptions,
+): Promise<CliRenderResult> {
 	const startTime = performance.now();
 	const chromium = await getChromium();
 
@@ -194,4 +193,43 @@ export async function renderPdf(options: CliRenderOptions): Promise<CliRenderRes
 	} finally {
 		await browser.close();
 	}
+}
+
+export async function renderPdfWithWebview(
+	options: CliRenderOptions,
+): Promise<CliRenderResult> {
+	const binaryPath = resolveWebviewBinary();
+
+	if (binaryPath) {
+		return executeWebviewBinary(binaryPath, options);
+	}
+
+	// Automatic graceful fallback to optional driver engines if binary is not yet prebuilt
+	try {
+		return await renderPdfWithPlaywright(options);
+	} catch {
+		try {
+			return await renderPdfWithPuppeteer(options);
+		} catch {
+			throw new Error(
+				"Native webview binary not found and no fallback browser engine (Playwright / Puppeteer) is installed.\n" +
+					"To use native webview, ensure the binary is in bin/ or set PRINTEDJS_WEBVIEW_PATH.\n" +
+					"Alternatively, install an optional engine: 'pnpm add -D playwright' or 'pnpm add -D puppeteer'.",
+			);
+		}
+	}
+}
+
+export const renderPdfWithHeadless = renderPdfWithWebview;
+
+export async function renderPdf(options: CliRenderOptions): Promise<CliRenderResult> {
+	if (options.engine === "puppeteer") {
+		return renderPdfWithPuppeteer(options);
+	}
+
+	if (options.engine === "playwright") {
+		return renderPdfWithPlaywright(options);
+	}
+
+	return renderPdfWithWebview(options);
 }

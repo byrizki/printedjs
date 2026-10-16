@@ -25,6 +25,15 @@ describe("@printedjs/cli", () => {
 		consoleLogSpy.mockRestore();
 	});
 
+	test("help text displays webview as default engine", async () => {
+		const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		await runCli(["--help"]);
+		expect(consoleLogSpy).toHaveBeenCalledWith(
+			expect.stringContaining("webview | playwright | puppeteer (default: webview)"),
+		);
+		consoleLogSpy.mockRestore();
+	});
+
 	test("printedjsPuppeteerBridge interacts with page-like object and generates PDF", async () => {
 		let evaluatedCount = 0;
 		let pdfCalled = false;

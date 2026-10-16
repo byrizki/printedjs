@@ -11,6 +11,7 @@ const workspacePackages = [
 	"packages/polyfill",
 	"packages/minimal",
 	"packages/cli",
+	"packages/headless-webview",
 ];
 
 let failed = false;

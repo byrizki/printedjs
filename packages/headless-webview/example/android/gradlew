@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+##############################################################################
+##
+##  Gradle start up script for UN*X
+##
+##############################################################################
+
+# Attempt to set APP_HOME
+# Resolve links: $0 may be a link
+PRG="$0"
+# Need this for relative symlinks.
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`"/$link"
+    fi
+done
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
+
+APP_NAME="Gradle"
+APP_BASE_NAME=`basename "$0"`
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+else
+    JAVACMD="java"
+fi
+
+CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
+# Fallback: if gradle-wrapper.jar does not exist, check local gradle distributions or system gradle
+if [ ! -f "$CLASSPATH" ]; then
+    for GRADLE_CANDIDATE in \
+        /home/rizki/.gradle/wrapper/dists/gradle-8.8-all/*/gradle-8.8/bin/gradle \
+        /home/rizki/.gradle/wrapper/dists/gradle-8.2-bin/*/gradle-8.2/bin/gradle \
+        /home/rizki/.gradle/wrapper/dists/gradle-8.14.3-bin/*/gradle-8.14.3/bin/gradle \
+        $(which gradle 2>/dev/null); do
+        if [ -x "$GRADLE_CANDIDATE" ]; then
+            exec "$GRADLE_CANDIDATE" "$@"
+        fi
+    done
+fi
+
+exec "$JAVACMD" "-Dorg.gradle.appname=$APP_BASE_NAME" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

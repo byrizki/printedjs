@@ -1,5 +1,10 @@
 # Printedjs
 
+[![npm version](https://img.shields.io/npm/v/@printedjs/core.svg?color=cb3837&label=npm%20%40printedjs)](https://www.npmjs.com/package/@printedjs/core)
+[![nuget version](https://img.shields.io/nuget/v/PrintedJs.HeadlessWebView.svg?color=004880&label=nuget%20PrintedJs.HeadlessWebView)](https://www.nuget.org/packages/PrintedJs.HeadlessWebView)
+[![CI](https://github.com/byrizki/printedjs/actions/workflows/ci.yml/badge.svg)](https://github.com/byrizki/printedjs/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Modern, high-performance browser-native paginated document rendering.
 
 Printedjs is a modular TypeScript redesign of legacy Paged.js, engineered for high reliability, deterministic lifecycle control, zero core DOM dependencies, and resilient edge-case handling.
@@ -19,8 +24,9 @@ Printedjs is maintained as a modular pnpm monorepo with clean architectural boun
 ### Distribution & Tooling Packages
 
 - [`@printedjs/minimal`](packages/minimal/README.md) — Standalone bundle (`printedjs.min.js`) with complete engine, plugins, auto-init, and legacy Paged.js migration shims
+- [`@printedjs/headless-webview`](packages/headless-webview/README.md) — Standalone cross-platform headless webview & vector PDF generator (React Native iOS/Android & .NET NuGet)
 - [`@printedjs/polyfill`](packages/polyfill/README.md) — Compatibility layer for older browsers, providing DOM and observer polyfills
-- [`@printedjs/cli`](packages/cli/README.md) — Headless PDF generation CLI (`printedjs render`) with Playwright and Puppeteer drivers
+- [`@printedjs/cli`](packages/cli/README.md) — Headless PDF generation CLI (`printedjs render`) with bundled native webview, Playwright, and Puppeteer drivers
 - [`@printedjs/devtools`](packages/devtools/README.md) — Diagnostic trace collector and non-layout visual inspector overlay
 
 ### Applications & Demos

@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -23,6 +25,18 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,11 +62,25 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Bundle desktop prebuilts for CLI
+        run: bash scripts/bundle-cli-prebuilts.sh
+
       - name: Run verification (lint, format, typecheck, unit tests)
         run: pnpm verify
 
+      - name: Verify HeadlessWebView Rust Core
+        run: cargo check --manifest-path packages/headless-webview/crates/headless-webview-core/Cargo.toml --target aarch64-linux-android
+
+      - name: Verify HeadlessWebView .NET Suite
+        run: |
+          dotnet build packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
+          dotnet test packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
+
       - name: Check package exports and distributions
         run: pnpm pack:check
+
+      - name: Verify React Native HeadlessWebView Dual-Architecture & Packaging
+        run: pnpm test:rn:example
 
       - name: Run browser test suite (Playwright parity and visual)
         run: pnpm test:browser

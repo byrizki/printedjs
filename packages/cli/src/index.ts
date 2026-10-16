@@ -1,4 +1,20 @@
-export { renderPdf, type CliRenderOptions, type CliRenderResult } from "./render.js";
+export {
+	renderPdf,
+	renderPdfWithHeadless,
+	renderPdfWithPlaywright,
+	renderPdfWithWebview,
+	type CliRenderOptions,
+	type CliRenderResult,
+} from "./render.js";
+
+export {
+	executeHeadlessWebviewBinary,
+	executeWebviewBinary,
+	isHeadlessWebviewAvailable,
+	isWebviewAvailable,
+	resolveHeadlessWebviewBinary,
+	resolveWebviewBinary,
+} from "./headless-bridge.js";
 
 export {
 	printedjsPuppeteerBridge,
