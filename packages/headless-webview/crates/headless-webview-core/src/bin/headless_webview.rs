@@ -126,7 +126,7 @@ fn main() {
         scale,
     };
 
-    if let Err(e) = core.print_to_pdf_file(&output, Some(print_options)) {
+    if let Err(e) = core.print_to_pdf_file(output.clone(), Some(print_options)) {
         eprintln!("Error printing to PDF: {e}");
         process::exit(1);
     }

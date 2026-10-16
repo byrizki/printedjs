@@ -5,7 +5,12 @@
 	"license": "MIT",
 	"type": "module",
 	"bin": {
-		"printedjs": "./dist/cli.js"
+		"printedjs": "./dist/cli.js",
+		"headless-webview": "./bin/headless-webview",
+		"headless-webview-linux-x64": "./bin/linux-x64/headless-webview",
+		"headless-webview-darwin-arm64": "./bin/darwin-arm64/headless-webview",
+		"headless-webview-darwin-x64": "./bin/darwin-x64/headless-webview",
+		"headless-webview-win32-x64": "./bin/win32-x64/headless-webview.exe"
 	},
 	"exports": {
 		".": {

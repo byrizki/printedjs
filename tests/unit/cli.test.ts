@@ -1,9 +1,13 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
+import process from "node:process";
 import { describe, expect, test, vi } from "vitest";
 import {
+	executeWebviewBinary,
+	isWebviewAvailable,
 	printedjsPuppeteerBridge,
 	renderPdf,
+	resolveWebviewBinary,
 	runCli,
 	type PuppeteerPageLike,
 } from "../../packages/cli/src/index.js";
@@ -104,4 +108,54 @@ describe("@printedjs/cli", () => {
 			}
 		}
 	}, 20000);
+
+	test("resolveWebviewBinary respects custom PRINTEDJS_WEBVIEW_PATH env var", () => {
+		const originalEnv = process.env.PRINTEDJS_WEBVIEW_PATH;
+		const mockBinaryPath = resolve(__dirname, "../fixtures/marks/marks.html");
+
+		try {
+			process.env.PRINTEDJS_WEBVIEW_PATH = mockBinaryPath;
+			expect(resolveWebviewBinary()).toBe(mockBinaryPath);
+			expect(isWebviewAvailable()).toBe(true);
+		} finally {
+			if (originalEnv !== undefined) {
+				process.env.PRINTEDJS_WEBVIEW_PATH = originalEnv;
+			} else {
+				delete process.env.PRINTEDJS_WEBVIEW_PATH;
+			}
+		}
+	});
+
+	test("resolveWebviewBinary ignores non-existent PRINTEDJS_WEBVIEW_PATH", () => {
+		const originalEnv = process.env.PRINTEDJS_WEBVIEW_PATH;
+
+		try {
+			process.env.PRINTEDJS_WEBVIEW_PATH = "/non/existent/path/to/binary";
+			expect(resolveWebviewBinary()).not.toBe("/non/existent/path/to/binary");
+		} finally {
+			if (originalEnv !== undefined) {
+				process.env.PRINTEDJS_WEBVIEW_PATH = originalEnv;
+			} else {
+				delete process.env.PRINTEDJS_WEBVIEW_PATH;
+			}
+		}
+	});
+
+	test("executeWebviewBinary fails cleanly when given an invalid binary path", async () => {
+		await expect(
+			executeWebviewBinary("/non/existent/path/to/binary", {
+				input: "test.html",
+				output: "out.pdf",
+			}),
+		).rejects.toThrow();
+	});
+
+	test("resolves bundled native headless webview binary on host", () => {
+		const resolvedBinary = resolveWebviewBinary();
+		expect(resolvedBinary).toBeDefined();
+
+		if (resolvedBinary) {
+			expect(existsSync(resolvedBinary)).toBe(true);
+		}
+	});
 });

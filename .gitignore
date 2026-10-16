@@ -48,6 +48,9 @@ wry/
 wry-headless
 wry-headless/
 
+# CLI compiled desktop binaries
+packages/cli/bin/*
+!packages/cli/bin/.gitkeep
 
 # Local scripts with local machine paths or external dependencies
 scripts/test-uat-zip.ts

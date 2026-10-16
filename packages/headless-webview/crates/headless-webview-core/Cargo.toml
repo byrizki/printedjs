@@ -22,7 +22,7 @@ required-features = ["os-webview"]
 
 [features]
 default = []
-os-webview = ["wry/os-webview", "wry/x11"]
+os-webview = ["wry/os-webview"]
 
 [dependencies]
 wry = { path = "../vendor/wry-headless", default-features = false }
@@ -33,3 +33,7 @@ serde_json = "1.0"
 
 [build-dependencies]
 uniffi = { version = "0.32.2", features = ["build"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { version = "0.18", default-features = false }
+wry = { path = "../vendor/wry-headless", features = ["x11"] }

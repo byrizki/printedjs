@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { chmodSync, existsSync } from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -38,6 +38,14 @@ export function resolveWebviewBinary(): string | undefined {
 
 	for (const candidate of bundledCandidates) {
 		if (existsSync(candidate)) {
+			if (process.platform !== "win32") {
+				try {
+					chmodSync(candidate, 0o755);
+				} catch {
+					// Ignore permission errors if on read-only mount
+				}
+			}
+
 			return candidate;
 		}
 	}

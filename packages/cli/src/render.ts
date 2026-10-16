@@ -201,10 +201,14 @@ export async function renderPdfWithWebview(
 	const binaryPath = resolveWebviewBinary();
 
 	if (binaryPath) {
-		return executeWebviewBinary(binaryPath, options);
+		try {
+			return await executeWebviewBinary(binaryPath, options);
+		} catch {
+			// Gracefully fall back to Playwright / Puppeteer if desktop binary fails (e.g. Headless Linux without display server)
+		}
 	}
 
-	// Automatic graceful fallback to optional driver engines if binary is not yet prebuilt
+	// Automatic graceful fallback to optional driver engines if binary is not yet prebuilt or fails
 	try {
 		return await renderPdfWithPlaywright(options);
 	} catch {
@@ -212,7 +216,7 @@ export async function renderPdfWithWebview(
 			return await renderPdfWithPuppeteer(options);
 		} catch {
 			throw new Error(
-				"Native webview binary not found and no fallback browser engine (Playwright / Puppeteer) is installed.\n" +
+				"Native webview binary execution failed and no fallback browser engine (Playwright / Puppeteer) is installed.\n" +
 					"To use native webview, ensure the binary is in bin/ or set PRINTEDJS_WEBVIEW_PATH.\n" +
 					"Alternatively, install an optional engine: 'pnpm add -D playwright' or 'pnpm add -D puppeteer'.",
 			);

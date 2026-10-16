@@ -58,7 +58,7 @@ jobs:
       - name: Install Playwright browsers (Chromium, Firefox, WebKit)
         run: pnpm exec playwright install --with-deps chromium firefox webkit
 
-      - name: Install system fonts
+      - name: Install system fonts and webview dependencies
         run: |
           echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
           sudo add-apt-repository multiverse
@@ -68,7 +68,9 @@ jobs:
             ttf-mscorefonts-installer \
             fonts-liberation \
             fonts-freefont-ttf \
-            fonts-dejavu-core
+            fonts-dejavu-core \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev
           sudo fc-cache -f -v
           fc-match "Georgia"
           fc-match "Times New Roman"
@@ -110,8 +112,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  ios-build:
-    name: iOS Native & Example App Build
+  macos-build:
+    name: macOS Desktop Prebuilts & iOS Native App Build
     runs-on: macos-14
     steps:
       - name: Checkout repository
@@ -128,18 +130,95 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
         run: pnpm build
 
+      - name: Bundle desktop prebuilts for CLI on macOS
+        run: bash scripts/bundle-cli-prebuilts.sh
+
+      - name: Verify macOS CLI headless binary execution
+        run: |
+          chmod +x packages/cli/bin/darwin-arm64/headless-webview
+          ./packages/cli/bin/darwin-arm64/headless-webview --help
+          if [ -f packages/cli/bin/darwin-x64/headless-webview ]; then
+            chmod +x packages/cli/bin/darwin-x64/headless-webview
+            ./packages/cli/bin/darwin-x64/headless-webview --help
+          fi
+
       - name: Build & Verify iOS Native & Example App
         run: pnpm test:rn:example
 
+      - name: Upload macOS ARM64 CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-darwin-arm64
+          path: packages/cli/bin/darwin-arm64/headless-webview
+
+      - name: Upload macOS x64 CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-darwin-x64
+          path: packages/cli/bin/darwin-x64/headless-webview
+
+  windows-build:
+    name: Windows Desktop Prebuilt & .NET Build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Bundle desktop prebuilt for CLI on Windows
+        shell: bash
+        run: bash scripts/bundle-cli-prebuilts.sh
+
+      - name: Verify Windows CLI headless binary execution
+        shell: bash
+        run: ./packages/cli/bin/win32-x64/headless-webview.exe --help
+
+      - name: Upload Windows CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-win32-x64
+          path: packages/cli/bin/win32-x64/headless-webview.exe
+
   release:
     name: Publish to npm, NuGet & GitHub Release
-    needs: [ci-test, ios-build]
+    needs: [ci-test, macos-build, windows-build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -171,17 +250,54 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Linux WebKit and GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev
+
       - name: Build packages
         run: pnpm build
 
       - name: Bundle desktop prebuilts for CLI
         run: bash scripts/bundle-cli-prebuilts.sh
 
+      - name: Download macOS ARM64 CLI prebuilt
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-bin-darwin-arm64
+          path: packages/cli/bin/darwin-arm64
+
+      - name: Download macOS x64 CLI prebuilt
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-bin-darwin-x64
+          path: packages/cli/bin/darwin-x64
+
+      - name: Download Windows CLI prebuilt
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-bin-win32-x64
+          path: packages/cli/bin/win32-x64
+
+      - name: Ensure executable permissions on bundled binaries
+        run: |
+          chmod +x packages/cli/bin/headless-webview || true
+          chmod +x packages/cli/bin/linux-x64/headless-webview || true
+          chmod +x packages/cli/bin/darwin-*/headless-webview || true
+          ls -lR packages/cli/bin
+
       - name: Check package exports and distribution integrity
         run: pnpm pack:check
 
       - name: Pack packages into tarball archives
         run: pnpm pack:tarballs
+
+      - name: Verify tarball contents and package integrity
+        run: pnpm verify:tarballs
+        env:
+          VERIFY_ALL_CLI_PREBUILTS: "true"
 
       - name: Pack .NET NuGet package
         run: |
