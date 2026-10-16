@@ -4,12 +4,187 @@ on:
   pull_request:
   push:
     branches: [main]
-    tags:
-      - "v*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Full End-to-End Test Suite
+  lint-and-unit:
+    name: Lint, Format, Typecheck & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run verification (lint, format, typecheck, unit tests)
+        run: pnpm verify
+
+  package-integrity:
+    name: Package Exports & Distribution Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Check package exports and distributions
+        run: pnpm pack:check
+
+      - name: Pack packages into tarball archives
+        run: pnpm pack:tarballs
+
+      - name: Verify tarball contents and package integrity
+        run: pnpm verify:tarballs
+
+  browser-tests:
+    name: Browser Tests (Playwright & Visual Parity)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browser binaries
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers & dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium firefox webkit
+
+      - name: Install system fonts
+        run: |
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo add-apt-repository multiverse
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fontconfig \
+            ttf-mscorefonts-installer \
+            fonts-liberation \
+            fonts-freefont-ttf \
+            fonts-dejavu-core
+          sudo fc-cache -f -v
+          fc-match "Georgia"
+          fc-match "Times New Roman"
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run browser test suite (Playwright parity and visual)
+        run: pnpm test:browser
+
+      - name: Upload test results and failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            test-results/
+            output-samples/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  mobile-android:
+    name: Android Dual-Architecture & Rust Core Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Cache Rust dependencies & build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "packages/headless-webview/crates -> packages/headless-webview/crates/target"
+          cache-all-crates: "true"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Verify HeadlessWebView Rust Core Android Target
+        run: cargo check --manifest-path packages/headless-webview/crates/headless-webview-core/Cargo.toml --target aarch64-linux-android
+
+      - name: Verify React Native HeadlessWebView Dual-Architecture & Packaging
+        run: pnpm test:rn:example
+
+  linux-desktop:
+    name: Linux Desktop Prebuilt & .NET Suite
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,37 +210,22 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - name: Cache Rust dependencies & build artifacts
+        uses: Swatinem/rust-cache@v2
         with:
-          distribution: "temurin"
-          java-version: "17"
+          workspaces: "packages/headless-webview/crates -> packages/headless-webview/crates/target"
+          cache-all-crates: "true"
+
+      - name: Install Linux WebKit and GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers (Chromium, Firefox, WebKit)
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
-
-      - name: Install system fonts and webview dependencies
-        run: |
-          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
-          sudo add-apt-repository multiverse
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            fontconfig \
-            ttf-mscorefonts-installer \
-            fonts-liberation \
-            fonts-freefont-ttf \
-            fonts-dejavu-core \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev
-          sudo fc-cache -f -v
-          fc-match "Georgia"
-          fc-match "Times New Roman"
 
       - name: Build packages
         run: pnpm build
@@ -73,49 +233,23 @@ jobs:
       - name: Bundle desktop prebuilts for CLI
         run: bash scripts/bundle-cli-prebuilts.sh
 
-      - name: Run verification (lint, format, typecheck, unit tests)
-        run: pnpm verify
+      - name: Verify Linux CLI headless binary execution
+        run: ./packages/cli/bin/linux-x64/headless-webview --help
 
-      - name: Verify HeadlessWebView Rust Core
-        run: cargo check --manifest-path packages/headless-webview/crates/headless-webview-core/Cargo.toml --target aarch64-linux-android
+      - name: Verify Linux .NET native runtime
+        run: test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/linux-x64/native/libheadless_webview_core.so
 
       - name: Verify HeadlessWebView .NET Suite
         run: |
-          dotnet build packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
-          dotnet test packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
+          dotnet build -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
+          dotnet test -c Release packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
           mkdir -p dist-nuget
           dotnet pack -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj -o dist-nuget
           pnpm verify:nupkg
 
-      - name: Check package exports and distributions
-        run: pnpm pack:check
-
-      - name: Pack packages into tarball archives
-        run: pnpm pack:tarballs
-
-      - name: Verify tarball contents and package integrity
-        run: pnpm verify:tarballs
-
-      - name: Verify React Native HeadlessWebView Dual-Architecture & Packaging
-        run: pnpm test:rn:example
-
-      - name: Run browser test suite (Playwright parity and visual)
-        run: pnpm test:browser
-
-      - name: Upload test results and failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-test-results
-          path: |
-            test-results/
-            output-samples/
-          if-no-files-found: ignore
-          retention-days: 7
-
-  macos-build:
+  macos-desktop:
     name: macOS Desktop Prebuilts & iOS Native App Build
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -135,6 +269,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Cache Rust dependencies & build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "packages/headless-webview/crates -> packages/headless-webview/crates/target"
+          cache-all-crates: "true"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -164,7 +304,7 @@ jobs:
       - name: Build & Verify iOS Native & Example App
         run: pnpm test:rn:example
 
-  windows-build:
+  windows-desktop:
     name: Windows Desktop Prebuilt & .NET Build
     runs-on: windows-latest
     steps:
@@ -184,6 +324,12 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies & build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "packages/headless-webview/crates -> packages/headless-webview/crates/target"
+          cache-all-crates: "true"
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -212,5 +358,5 @@ jobs:
 
       - name: Verify HeadlessWebView .NET Suite on Windows
         run: |
-          dotnet build packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
-          dotnet test packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
+          dotnet build -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
+          dotnet test -c Release packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
