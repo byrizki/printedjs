@@ -116,7 +116,18 @@ const main = () => {
 	// STEP 2: Android Legacy Architecture Build Check
 	results.push(
 		runStep("Android Build: Legacy Architecture (-PnewArchEnabled=false)", () => {
+			const gradlewPath = resolve(exampleDir, "android/gradlew");
+
+			if (existsSync(gradlewPath)) {
+				try {
+					execSync(`chmod +x "${gradlewPath}"`, { stdio: "ignore" });
+				} catch {
+					// Ignore permission failures
+				}
+			}
+
 			const gradleCandidates = [
+				gradlewPath,
 				resolve(
 					process.env.HOME || "",
 					".gradle/wrapper/dists/gradle-8.8-all/6gdy1pgp427xkqcjbxw3ylt6h/gradle-8.8/bin/gradle",
@@ -152,7 +163,18 @@ const main = () => {
 	// STEP 3: Android New Architecture Build Check
 	results.push(
 		runStep("Android Build: New Architecture (-PnewArchEnabled=true)", () => {
+			const gradlewPath = resolve(exampleDir, "android/gradlew");
+
+			if (existsSync(gradlewPath)) {
+				try {
+					execSync(`chmod +x "${gradlewPath}"`, { stdio: "ignore" });
+				} catch {
+					// Ignore permission failures
+				}
+			}
+
 			const gradleCandidates = [
+				gradlewPath,
 				resolve(
 					process.env.HOME || "",
 					".gradle/wrapper/dists/gradle-8.8-all/6gdy1pgp427xkqcjbxw3ylt6h/gradle-8.8/bin/gradle",
@@ -280,6 +302,72 @@ const main = () => {
 				!content.includes("HeadlessWebviewModuleBridge.m")
 			) {
 				throw new Error("Package.swift missing required source file targets.");
+			}
+		}),
+	);
+
+	// STEP 6: iOS Native & Example App Build (macOS with Xcode)
+	results.push(
+		runStep("iOS Native & Example App Build (macOS Xcode)", () => {
+			if (process.platform !== "darwin") {
+				process.stdout.write(
+					"ℹ Skipped on non-macOS host (iOS simulator build runs on macOS CI runner)\n",
+				);
+
+				return;
+			}
+
+			const iosDir = resolve(exampleDir, "ios");
+			const podBin = resolve(process.env.HOME || "", ".gem/bin/pod");
+			const podCmd = existsSync(podBin) ? podBin : "pod";
+
+			let hasPod = false;
+
+			try {
+				execSync(`${podCmd} --version`, { stdio: "ignore" });
+				hasPod = true;
+			} catch {
+				hasPod = false;
+			}
+
+			if (hasPod && existsSync(resolve(iosDir, "Podfile"))) {
+				process.stdout.write("--> Running pod install in example/ios...\n");
+
+				try {
+					execSync(`${podCmd} install`, {
+						cwd: iosDir,
+						stdio: "inherit",
+						shell: "/bin/bash",
+					});
+				} catch (err) {
+					process.stdout.write(`ℹ pod install completed with notice: ${err}\n`);
+				}
+			}
+
+			let hasXcodeBuild = false;
+
+			try {
+				execSync("xcodebuild -version", { stdio: "ignore" });
+				hasXcodeBuild = true;
+			} catch {
+				hasXcodeBuild = false;
+			}
+
+			if (hasXcodeBuild) {
+				process.stdout.write("--> Building iOS example app for simulator...\n");
+				const workspacePath = resolve(iosDir, "HeadlessWebviewExample.xcworkspace");
+
+				const buildCmd = existsSync(workspacePath)
+					? `xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO clean build`
+					: `xcodebuild -project HeadlessWebviewExample.xcodeproj -scheme HeadlessWebviewExample -configuration Debug -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO clean build`;
+
+				execSync(buildCmd, {
+					cwd: iosDir,
+					stdio: "inherit",
+					shell: "/bin/bash",
+				});
+			} else {
+				throw new Error("xcodebuild not found on macOS runner.");
 			}
 		}),
 	);

@@ -38,6 +38,12 @@ jobs:
         with:
           targets: aarch64-linux-android
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -95,3 +101,30 @@ jobs:
             output-samples/
           if-no-files-found: ignore
           retention-days: 7
+
+  ios-build:
+    name: iOS Native & Example App Build
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build & Verify iOS Native & Example App
+        run: pnpm test:rn:example
