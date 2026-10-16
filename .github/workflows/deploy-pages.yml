@@ -3,6 +3,13 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - "packages/browser/**"
+      - "packages/core/**"
+      - "packages/devtools/**"
+      - "packages/minimal/**"
+      - "packages/plugins/**"
+      - "packages/polyfill/**"
   workflow_dispatch:
 
 permissions:
