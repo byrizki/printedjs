@@ -333,15 +333,11 @@ const main = () => {
 			if (hasPod && existsSync(resolve(iosDir, "Podfile"))) {
 				process.stdout.write("--> Running pod install in example/ios...\n");
 
-				try {
-					execSync(`${podCmd} install`, {
-						cwd: iosDir,
-						stdio: "inherit",
-						shell: "/bin/bash",
-					});
-				} catch (err) {
-					process.stdout.write(`ℹ pod install completed with notice: ${err}\n`);
-				}
+				execSync(`${podCmd} install`, {
+					cwd: iosDir,
+					stdio: "inherit",
+					shell: "/bin/bash",
+				});
 			}
 
 			let hasXcodeBuild = false;

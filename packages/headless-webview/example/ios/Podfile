@@ -1,11 +1,27 @@
-platform :ios, '14.0'
+def resolve_node_script(script)
+  if defined?(Pod::Executable)
+    Pod::Executable.execute_command('node', ['-p',
+      "require.resolve('#{script}', {paths: [process.argv[1]]})",
+      __dir__
+    ]).strip
+  else
+    %x[node -p "require.resolve('#{script}', {paths: [process.argv[1]]})" "#{__dir__}"].strip
+  end
+end
+
+react_native_pods_path = resolve_node_script('react-native/scripts/react_native_pods.rb')
+require react_native_pods_path
+
+react_native_path = File.expand_path('..', File.dirname(react_native_pods_path))
+
+platform :ios, (min_supported_versions[:ios] rescue '14.0')
 prepare_react_native_project!
 
 new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] == '1'
 
 target 'HeadlessWebviewExample' do
   use_react_native!(
-    :path => config[:reactNativePath],
+    :path => react_native_path,
     :fabric_enabled => new_arch_enabled,
     :hermes_enabled => true
   )
@@ -15,7 +31,7 @@ target 'HeadlessWebviewExample' do
   post_install do |installer|
     react_native_post_install(
       installer,
-      config[:reactNativePath],
+      react_native_path,
       :mac_catalyst_enabled => false
     )
   end
