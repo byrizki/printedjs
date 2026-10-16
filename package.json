@@ -30,6 +30,7 @@
 		"pack:check": "tsx scripts/check-public-exports.ts && tsx scripts/check-package-contents.ts",
 		"pack:tarballs": "tsx scripts/pack-packages.ts",
 		"verify:tarballs": "tsx scripts/verify-tarballs.ts",
+		"verify:nupkg": "tsx scripts/verify-nupkg.ts",
 		"version:bump": "tsx scripts/bump-version.ts",
 		"verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit"
 	},

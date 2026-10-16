@@ -83,6 +83,9 @@ jobs:
         run: |
           dotnet build packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
           dotnet test packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
+          mkdir -p dist-nuget
+          dotnet pack -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj -o dist-nuget
+          pnpm verify:nupkg
 
       - name: Check package exports and distributions
         run: pnpm pack:check
@@ -151,6 +154,13 @@ jobs:
             ./packages/cli/bin/darwin-x64/headless-webview --help
           fi
 
+      - name: Verify macOS .NET native runtimes
+        run: |
+          test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-arm64/native/libheadless_webview_core.dylib
+          if [ -d packages/cli/bin/darwin-x64 ]; then
+            test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-x64/native/libheadless_webview_core.dylib
+          fi
+
       - name: Build & Verify iOS Native & Example App
         run: pnpm test:rn:example
 
@@ -195,6 +205,10 @@ jobs:
       - name: Verify Windows CLI headless binary execution
         shell: bash
         run: ./packages/cli/bin/win32-x64/headless-webview.exe --help
+
+      - name: Verify Windows .NET native runtime
+        shell: bash
+        run: test -f packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/win-x64/native/headless_webview_core.dll
 
       - name: Verify HeadlessWebView .NET Suite on Windows
         run: |

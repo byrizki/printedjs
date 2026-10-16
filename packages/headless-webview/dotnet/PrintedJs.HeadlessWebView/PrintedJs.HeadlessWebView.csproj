@@ -20,6 +20,12 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('runtimes')">
+    <Content Include="runtimes\**" Exclude="runtimes\**\.gitkeep;runtimes/**/.gitkeep" Pack="true" PackagePath="runtimes">
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="PrintedJs.HeadlessWebView.Tests" />
   </ItemGroup>

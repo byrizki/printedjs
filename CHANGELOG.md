@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### CI/CD & Release Pipeline
 
 - **Automated Dual-Architecture Verification**: Added automated React Native packaging and dual-architecture validation (`pnpm test:rn:example`) to CI and Release workflows.
+- **NuGet Prebuilt Content Verifier**: Added `scripts/verify-nupkg.ts` (`pnpm verify:nupkg`) to inspect `.nupkg` packages, ensuring prebuilt native runtimes (`linux-x64`, `osx-arm64`, `osx-x64`, `win-x64`) are bundled with verified binary sizes and format magic bytes (ELF, Mach-O, PE).
+- **Multi-Platform Desktop Runtime Bundling**: Automated compilation, cross-compilation, and artifact distribution of .NET desktop native runtimes across Linux, macOS (Apple Silicon + Intel), and Windows in GitHub Actions release pipeline.
 - **Automated NuGet Publishing**: Added .NET SDK setup, `dotnet pack`, and automated publishing to NuGet.org in release workflow.
 
 ## [0.1.0] - 2026-10-06

@@ -53,6 +53,10 @@ wry-headless/
 packages/cli/bin/*
 !packages/cli/bin/.gitkeep
 
+# HeadlessWebView .NET compiled desktop runtimes
+packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/*
+!packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/.gitkeep
+
 # Local scripts with local machine paths or external dependencies
 scripts/test-uat-zip.ts
 scripts/compare-realworld-parity.ts
