@@ -94,9 +94,7 @@ impl HeadlessWebViewCore {
 
             if let Some(html) = &config.html {
                 builder = builder.with_html(html);
-            }
-
-            if let Some(url) = &config.url {
+            } else if let Some(url) = &config.url {
                 builder = builder.with_url(url);
             }
 
@@ -129,20 +127,23 @@ impl HeadlessWebViewCore {
                     message: e.to_string(),
                 })?;
 
-            #[cfg(target_os = "linux")]
             if has_content {
                 let start = std::time::Instant::now();
                 loop {
                     match load_rx.try_recv() {
-                        Ok(()) => break,
+                        Ok(()) => {
+                            for _ in 0..10 {
+                                pump_platform_events();
+                                std::thread::sleep(Duration::from_millis(5));
+                            }
+                            break;
+                        }
                         Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
                         Err(std::sync::mpsc::TryRecvError::Empty) => {
-                            if start.elapsed() > Duration::from_secs(10) {
+                            if start.elapsed() > Duration::from_secs(15) {
                                 break;
                             }
-                            while gtk::events_pending() {
-                                gtk::main_iteration();
-                            }
+                            pump_platform_events();
                             std::thread::sleep(Duration::from_millis(5));
                         }
                     }
