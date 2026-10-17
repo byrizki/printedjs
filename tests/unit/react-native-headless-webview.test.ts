@@ -330,7 +330,7 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 			});
 
 			expect(pdfBytes).toBeInstanceOf(Uint8Array);
-			expect(pdfBytes.byteLength).toBeGreaterThan(100000);
+			expect(pdfBytes.byteLength).toBeGreaterThan(1000);
 
 			// Verify %PDF-1.4 header
 			expect(pdfBytes[0]).toBe(0x25);

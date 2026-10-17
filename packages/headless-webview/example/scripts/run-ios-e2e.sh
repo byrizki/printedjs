@@ -69,9 +69,10 @@ else
     BUILD_CMD="${BUILD_CMD} -project HeadlessWebviewExample.xcodeproj"
 fi
 
+CONFIG="${IOS_CONFIGURATION:-Release}"
 ${BUILD_CMD} \
     -scheme HeadlessWebviewExample \
-    -configuration Debug \
+    -configuration "${CONFIG}" \
     -destination "generic/platform=iOS Simulator" \
     -derivedDataPath build \
     CODE_SIGNING_ALLOWED=NO \
@@ -79,7 +80,7 @@ ${BUILD_CMD} \
     CODE_SIGNING_REQUIRED=NO \
     build
 
-APP_PATH="${IOS_DIR}/build/Build/Products/Debug-iphonesimulator/HeadlessWebviewExample.app"
+APP_PATH="${IOS_DIR}/build/Build/Products/${CONFIG}-iphonesimulator/HeadlessWebviewExample.app"
 if [ ! -d "${APP_PATH}" ]; then
     echo "❌ Error: Built .app not found at ${APP_PATH}"
     exit 1

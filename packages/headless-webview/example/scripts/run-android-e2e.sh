@@ -21,12 +21,14 @@ fi
 
 echo "--> Maestro version: $(maestro --version)"
 
-# 2. Build Android Signed Release APK (bundles JS into Hermes bytecode for standalone execution)
-echo "--> Building Android example app signed release APK..."
-cd "${EXAMPLE_DIR}"
-./android/gradlew -p android :app:assembleRelease -PnewArchEnabled=false
-
+# 2. Build Android Signed Release APK (if not already built by previous step)
 APK_PATH="${EXAMPLE_DIR}/android/app/build/outputs/apk/release/app-release.apk"
+if [ ! -f "${APK_PATH}" ]; then
+    echo "--> Building Android example app signed release APK..."
+    cd "${EXAMPLE_DIR}"
+    ./android/gradlew -p android :app:assembleRelease -PnewArchEnabled=false
+fi
+
 if [ ! -f "${APK_PATH}" ]; then
     echo "❌ Error: APK not found at ${APK_PATH}"
     exit 1
@@ -64,6 +66,19 @@ fi
 
 echo "--> Waiting for Android device to be ready..."
 adb wait-for-device
+
+echo "--> Waiting for system boot completion..."
+BOOT_TIMEOUT=120
+BOOT_TIMER=0
+until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] || [ "${BOOT_TIMER}" -ge "${BOOT_TIMEOUT}" ]; do
+    sleep 2
+    BOOT_TIMER=$((BOOT_TIMER + 2))
+done
+
+echo "--> Dismissing keyguard and waking device..."
+adb shell input keyevent 82 || true
+adb shell input keyevent 66 || true
+adb shell wm dismiss-keyguard || true
 
 # 4. Install the release APK
 echo "--> Installing ${APK_PATH} on target device..."
