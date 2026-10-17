@@ -178,7 +178,9 @@ export class DesktopNativeHeadlessWebView implements NativeHeadlessWebViewSpec {
 			}
 		}
 
-		const idMatch = /getElementById\(['"]([^'"]+)['"]\)\.textContent/.exec(script);
+		const idMatch = /getElementById\(['"]([^'"]+)['"]\)(?:\?\.|\.)textContent/.exec(
+			script,
+		);
 
 		if (idMatch?.[1]) {
 			const tagRegex = new RegExp(`<[^>]+id=['"]${idMatch[1]}['"][^>]*>([^<]+)</`, "i");
