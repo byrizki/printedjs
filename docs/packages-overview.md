@@ -6,16 +6,17 @@ Printedjs is maintained as a clean, modular pnpm monorepo. Each package has an i
 
 ## Package Overview
 
-| Package                                                 | Zero-DOM?        | Primary Outputs                    | Entry Point | Purpose                                                           |
-| :------------------------------------------------------ | :--------------- | :--------------------------------- | :---------- | :---------------------------------------------------------------- |
-| [`@printedjs/core`](../packages/core/README.md)         | **Yes**          | ESM + Types                        | `index.ts`  | Paginator contracts, state machine, CSS AST facade, loop guards   |
-| [`@printedjs/browser`](../packages/browser/README.md)   | No               | ESM + IIFE + Types                 | `index.ts`  | Browser renderer, Range measurement, DOM layout adapter, surfaces |
-| [`@printedjs/plugins`](../packages/plugins/README.md)   | **Yes** (Facade) | ESM + IIFE + Types                 | `index.ts`  | Standard paged media plugins, margin boxes, running headers       |
-| [`@printedjs/devtools`](../packages/devtools/README.md) | No               | ESM + Types                        | `index.ts`  | Lifecycle diagnostic tracing, metrics, non-layout overlay widget  |
-| [`@printedjs/polyfill`](../packages/polyfill/README.md) | No               | ESM + IIFE + Types                 | `index.ts`  | Browser polyfills for legacy DOM and observer environments        |
-| [`@printedjs/minimal`](../packages/minimal/README.md)   | No               | Minified IIFE (`printedjs.min.js`) | `index.ts`  | All-in-one drop-in script with auto-init for browser pages        |
-| [`@printedjs/cli`](../packages/cli/README.md)           | No               | Node ESM + Binary                  | `cli.ts`    | Headless PDF generation CLI with Playwright & Puppeteer engines   |
-| `apps/playground`                                       | No               | Web Application                    | `main.ts`   | Interactive browser studio with Monaco editor & live previews     |
+| Package                                                                 | Zero-DOM?        | Primary Outputs                    | Entry Point | Purpose                                                                 |
+| :---------------------------------------------------------------------- | :--------------- | :--------------------------------- | :---------- | :---------------------------------------------------------------------- |
+| [`@printedjs/core`](../packages/core/README.md)                         | **Yes**          | ESM + Types                        | `index.ts`  | Paginator contracts, state machine, CSS AST facade, loop guards         |
+| [`@printedjs/browser`](../packages/browser/README.md)                   | No               | ESM + IIFE + Types                 | `index.ts`  | Browser renderer, Range measurement, DOM layout adapter, surfaces       |
+| [`@printedjs/plugins`](../packages/plugins/README.md)                   | **Yes** (Facade) | ESM + IIFE + Types                 | `index.ts`  | Standard paged media plugins, margin boxes, running headers             |
+| [`@printedjs/devtools`](../packages/devtools/README.md)                 | No               | ESM + Types                        | `index.ts`  | Lifecycle diagnostic tracing, metrics, non-layout overlay widget        |
+| [`@printedjs/polyfill`](../packages/polyfill/README.md)                 | No               | ESM + IIFE + Types                 | `index.ts`  | Browser polyfills for legacy DOM and observer environments              |
+| [`@printedjs/minimal`](../packages/minimal/README.md)                   | No               | Minified IIFE (`printedjs.min.js`) | `index.ts`  | All-in-one drop-in script with auto-init for browser pages              |
+| [`@printedjs/headless-webview`](../packages/headless-webview/README.md) | No               | ESM + Types + Native               | `index.ts`  | Cross-platform headless WebView and vector PDF runtime (RN & .NET)      |
+| [`@printedjs/cli`](../packages/cli/README.md)                           | No               | Node ESM + Binary                  | `cli.ts`    | Headless PDF generation CLI with bundled Webview, Playwright, Puppeteer |
+| `apps/playground`                                                       | No               | Web Application                    | `main.ts`   | Interactive browser studio with Monaco editor & live previews           |
 
 ---
 
@@ -99,7 +100,17 @@ Printedjs is maintained as a clean, modular pnpm monorepo. Each package has an i
   - Commands: `render <input>` to compile HTML documents to production PDF files
   - Bridges: `printedjsPuppeteerBridge`, `renderPdf` for programmatic Node.js workflows
 
-### 8. `apps/playground`
+### 8. `@printedjs/headless-webview`
+
+- **Location:** `packages/headless-webview`
+- **Dependencies:** React Native, Wry, UniFFI
+- **Key Exports:**
+  - Services: `HeadlessWebView` (cross-platform lifecycle management, navigation settlement, `waitForFunction`, vector PDF generation)
+  - React Hooks: `useHeadlessWebView`
+  - Native Desktop: `enableDesktopBridge`, `DesktopNativeHeadlessWebView`, bundled prebuilt `headless-webview` binaries
+  - .NET: `PrintedJs.HeadlessWebView` (cross-platform NuGet package for .NET 8 / MAUI / Unity)
+
+### 9. `apps/playground`
 
 - **Location:** `apps/playground`
 - **Framework:** Vite + TypeScript + Monaco Editor

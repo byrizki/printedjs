@@ -10,7 +10,9 @@ fn print_usage() {
          \x20 -o, --output <path>    Output PDF file path\n\
          \x20 --landscape            Print in landscape orientation\n\
          \x20 --scale <number>       Scale multiplier (default: 1.0)\n\
-         \x20 --format <name>        Paper size format (A4, Letter, etc.)\n"
+         \x20 --format <name>        Paper size format (A4, Letter, etc.)\n\
+         \x20 --wait-for <fn/expr>   Wait for JS function or expression to be truthy\n\
+         \x20 --wait-timeout <ms>    Timeout in milliseconds for wait-for (default: 15000)\n"
     );
 }
 
@@ -27,6 +29,8 @@ fn main() {
     let mut scale = 1.0;
     let mut page_width = Some(8.27);
     let mut page_height = Some(11.69);
+    let mut wait_for: Option<String> = None;
+    let mut wait_timeout_ms = 15000u64;
 
     let mut i = 1;
     while i < args.len() {
@@ -60,6 +64,20 @@ fn main() {
                     } else if fmt == "a3" {
                         page_width = Some(11.69);
                         page_height = Some(16.54);
+                    }
+                    i += 1;
+                }
+            }
+            "--wait-for" => {
+                if i + 1 < args.len() {
+                    wait_for = Some(args[i + 1].clone());
+                    i += 1;
+                }
+            }
+            "--wait-timeout" => {
+                if i + 1 < args.len() {
+                    if let Ok(ms) = args[i + 1].parse::<u64>() {
+                        wait_timeout_ms = ms;
                     }
                     i += 1;
                 }
@@ -113,6 +131,14 @@ fn main() {
             process::exit(1);
         }
     };
+
+    if let Some(expr) = wait_for {
+        let timeout = std::time::Duration::from_millis(wait_timeout_ms);
+        let interval = std::time::Duration::from_millis(50);
+        if let Err(e) = core.wait_for_function(&expr, timeout, interval) {
+            eprintln!("Warning: wait_for_function did not resolve before timeout: {e}");
+        }
+    }
 
     let print_options = PdfPrintOptions {
         landscape,

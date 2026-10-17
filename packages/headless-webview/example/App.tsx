@@ -135,7 +135,6 @@ export const App = (): React.JSX.Element => {
 			appendLog(`HeadlessWebView instance created: ${webview.id}`);
 
 			await webview.loadHtml(htmlPayload);
-			await new Promise((r) => setTimeout(r, 500));
 			updateTestStatus("lifecycle", "success", `Instance ID: ${webview.id}`);
 			appendLog("HTML loaded into headless webview");
 		} catch (err) {
@@ -152,30 +151,9 @@ export const App = (): React.JSX.Element => {
 		updateTestStatus("eval", "running");
 
 		try {
-			let evalResult = "";
-			const start = Date.now();
-
-			while (Date.now() - start < 5000) {
-				try {
-					evalResult = await webview.evaluateJavascript(
-						"document.getElementById('title')?.textContent || ''",
-					);
-
-					if (evalResult && evalResult !== "null") {
-						break;
-					}
-				} catch {
-					// retry while DOM parses
-				}
-
-				await new Promise((r) => setTimeout(r, 100));
-			}
-
-			if (!evalResult || evalResult === "null") {
-				evalResult = await webview.evaluateJavascript(
-					"document.getElementById('title').textContent",
-				);
-			}
+			const evalResult = await webview.evaluateJavascript(
+				"document.getElementById('title').textContent",
+			);
 
 			appendLog(`JS evaluation result: "${evalResult}"`);
 			updateTestStatus("eval", "success", `Result: "${evalResult}"`);

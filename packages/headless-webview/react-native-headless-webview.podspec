@@ -27,4 +27,9 @@ Pod::Spec.new do |s|
     s.dependency "React-Core"
   end
   s.swift_version = "5.0"
+
+  s.user_target_xcconfig = {
+    'ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES' => 'YES',
+    'LIBRARY_SEARCH_PATHS' => '$(inherited) "$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)" "$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)" "$(SDKROOT)/usr/lib/swift"'
+  }
 end

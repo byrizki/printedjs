@@ -6,8 +6,11 @@ import android.os.Looper
 import android.print.PrintAttributes
 import android.util.Base64
 import android.webkit.ValueCallback
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -23,12 +26,45 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val webviews = ConcurrentHashMap<String, WebView>()
+    private val pendingNavigations = ConcurrentHashMap<String, MutableList<(Throwable?) -> Unit>>()
+    private val navigationTimeouts = ConcurrentHashMap<String, Runnable>()
+    private val loadingStates = ConcurrentHashMap<String, Boolean>()
 
     companion object {
         const val NAME = "HeadlessWebviewModule"
     }
 
     override fun getName(): String = NAME
+
+    private fun dispatchNavigation(instanceId: String, error: Throwable? = null) {
+        val timeoutRunnable = navigationTimeouts.remove(instanceId)
+        if (timeoutRunnable != null) {
+            mainHandler.removeCallbacks(timeoutRunnable)
+        }
+        loadingStates[instanceId] = false
+
+        val callbacks = pendingNavigations.remove(instanceId) ?: return
+        synchronized(callbacks) {
+            for (cb in callbacks) {
+                cb(error)
+            }
+        }
+    }
+
+    private fun waitForNavigation(instanceId: String, timeoutMs: Long = 15000L, completion: (Throwable?) -> Unit) {
+        val list = pendingNavigations.getOrPut(instanceId) { mutableListOf() }
+        synchronized(list) {
+            list.add(completion)
+        }
+
+        if (!navigationTimeouts.containsKey(instanceId)) {
+            val runnable = Runnable {
+                dispatchNavigation(instanceId, RuntimeException("Navigation timed out after ${timeoutMs}ms"))
+            }
+            navigationTimeouts[instanceId] = runnable
+            mainHandler.postDelayed(runnable, timeoutMs)
+        }
+    }
 
     @ReactMethod
     fun createInstance(config: ReadableMap, promise: Promise) {
@@ -51,17 +87,63 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                     webView.setBackgroundColor(0)
                 }
 
+                webView.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        dispatchNavigation(instanceId, null)
+                    }
+
+                    override fun onReceivedError(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                        error: WebResourceError?
+                    ) {
+                        super.onReceivedError(view, request, error)
+                        if (request?.isForMainFrame == true) {
+                            val description = error?.description?.toString() ?: "Navigation failed"
+                            dispatchNavigation(instanceId, RuntimeException(description))
+                        }
+                    }
+
+                    @Suppress("DEPRECATION")
+                    override fun onReceivedError(
+                        view: WebView?,
+                        errorCode: Int,
+                        description: String?,
+                        failingUrl: String?
+                    ) {
+                        super.onReceivedError(view, errorCode, description, failingUrl)
+                        dispatchNavigation(instanceId, RuntimeException(description ?: "Navigation failed with code $errorCode"))
+                    }
+                }
+
                 webviews[instanceId] = webView
 
                 if (config.hasKey("html")) {
                     val html = config.getString("html") ?: ""
+                    loadingStates[instanceId] = true
+                    waitForNavigation(instanceId) { error ->
+                        if (error != null) {
+                            promise.reject("CREATE_ERROR", error.message, error)
+                        } else {
+                            promise.resolve(instanceId)
+                        }
+                    }
                     webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
                 } else if (config.hasKey("url")) {
                     val url = config.getString("url") ?: ""
+                    loadingStates[instanceId] = true
+                    waitForNavigation(instanceId) { error ->
+                        if (error != null) {
+                            promise.reject("CREATE_ERROR", error.message, error)
+                        } else {
+                            promise.resolve(instanceId)
+                        }
+                    }
                     webView.loadUrl(url)
+                } else {
+                    promise.resolve(instanceId)
                 }
-
-                promise.resolve(instanceId)
             } catch (e: Exception) {
                 promise.reject("CREATE_ERROR", e.message, e)
             }
@@ -76,8 +158,15 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                 promise.reject("NOT_FOUND", "Headless webview instance not found: $instanceId")
                 return@post
             }
+            loadingStates[instanceId] = true
+            waitForNavigation(instanceId) { error ->
+                if (error != null) {
+                    promise.reject("LOAD_ERROR", error.message, error)
+                } else {
+                    promise.resolve(null)
+                }
+            }
             webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
-            promise.resolve(null)
         }
     }
 
@@ -89,8 +178,15 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                 promise.reject("NOT_FOUND", "Headless webview instance not found: $instanceId")
                 return@post
             }
+            loadingStates[instanceId] = true
+            waitForNavigation(instanceId) { error ->
+                if (error != null) {
+                    promise.reject("LOAD_ERROR", error.message, error)
+                } else {
+                    promise.resolve(null)
+                }
+            }
             webView.loadUrl(url)
-            promise.resolve(null)
         }
     }
 
@@ -102,8 +198,23 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                 promise.reject("NOT_FOUND", "Headless webview instance not found: $instanceId")
                 return@post
             }
-            webView.evaluateJavascript(script) { result ->
-                promise.resolve(result ?: "")
+
+            val executeEval = {
+                webView.evaluateJavascript(script) { result ->
+                    promise.resolve(result ?: "")
+                }
+            }
+
+            if (loadingStates[instanceId] == true) {
+                waitForNavigation(instanceId) { error ->
+                    if (error != null) {
+                        promise.reject("EVAL_ERROR", error.message, error)
+                    } else {
+                        executeEval()
+                    }
+                }
+            } else {
+                executeEval()
             }
         }
     }
@@ -117,35 +228,49 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                 return@post
             }
 
-            try {
-                val printAttributes = buildPrintAttributes(options)
-                val adapter = webView.createPrintDocumentAdapter("headless_pdf")
-                val tempFile = File.createTempFile("headless_pdf_", ".pdf", reactApplicationContext.cacheDir)
-                val helper = android.print.PdfPrintHelper(printAttributes)
+            val executePrint = {
+                try {
+                    val printAttributes = buildPrintAttributes(options)
+                    val adapter = webView.createPrintDocumentAdapter("headless_pdf")
+                    val tempFile = File.createTempFile("headless_pdf_", ".pdf", reactApplicationContext.cacheDir)
+                    val helper = android.print.PdfPrintHelper(printAttributes)
 
-                helper.print(
-                    adapter,
-                    tempFile,
-                    onSuccess = {
-                        Thread {
-                            try {
-                                val bytes = tempFile.readBytes()
-                                tempFile.delete()
-                                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                                promise.resolve(base64)
-                            } catch (e: Exception) {
-                                tempFile.delete()
-                                promise.reject("PDF_READ_ERROR", e.message, e)
-                            }
-                        }.start()
-                    },
-                    onError = { throwable ->
-                        tempFile.delete()
-                        promise.reject("PDF_PRINT_ERROR", throwable.message, throwable)
+                    helper.print(
+                        adapter,
+                        tempFile,
+                        onSuccess = {
+                            Thread {
+                                try {
+                                    val bytes = tempFile.readBytes()
+                                    tempFile.delete()
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                    promise.resolve(base64)
+                                } catch (e: Exception) {
+                                    tempFile.delete()
+                                    promise.reject("PDF_READ_ERROR", e.message, e)
+                                }
+                            }.start()
+                        },
+                        onError = { throwable ->
+                            tempFile.delete()
+                            promise.reject("PDF_PRINT_ERROR", throwable.message, throwable)
+                        }
+                    )
+                } catch (e: Exception) {
+                    promise.reject("PDF_INIT_ERROR", e.message, e)
+                }
+            }
+
+            if (loadingStates[instanceId] == true) {
+                waitForNavigation(instanceId) { error ->
+                    if (error != null) {
+                        promise.reject("PDF_INIT_ERROR", error.message, error)
+                    } else {
+                        executePrint()
                     }
-                )
-            } catch (e: Exception) {
-                promise.reject("PDF_INIT_ERROR", e.message, e)
+                }
+            } else {
+                executePrint()
             }
         }
     }
@@ -159,25 +284,39 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                 return@post
             }
 
-            try {
-                val printAttributes = buildPrintAttributes(options)
-                val adapter = webView.createPrintDocumentAdapter("headless_pdf")
-                val targetFile = File(filePath)
-                targetFile.parentFile?.mkdirs()
-                val helper = android.print.PdfPrintHelper(printAttributes)
+            val executePrintFile = {
+                try {
+                    val printAttributes = buildPrintAttributes(options)
+                    val adapter = webView.createPrintDocumentAdapter("headless_pdf")
+                    val targetFile = File(filePath)
+                    targetFile.parentFile?.mkdirs()
+                    val helper = android.print.PdfPrintHelper(printAttributes)
 
-                helper.print(
-                    adapter,
-                    targetFile,
-                    onSuccess = {
-                        promise.resolve(null)
-                    },
-                    onError = { throwable ->
-                        promise.reject("PDF_FILE_WRITE_ERROR", throwable.message, throwable)
+                    helper.print(
+                        adapter,
+                        targetFile,
+                        onSuccess = {
+                            promise.resolve(null)
+                        },
+                        onError = { throwable ->
+                            promise.reject("PDF_FILE_WRITE_ERROR", throwable.message, throwable)
+                        }
+                    )
+                } catch (e: Exception) {
+                    promise.reject("PDF_INIT_ERROR", e.message, e)
+                }
+            }
+
+            if (loadingStates[instanceId] == true) {
+                waitForNavigation(instanceId) { error ->
+                    if (error != null) {
+                        promise.reject("PDF_INIT_ERROR", error.message, error)
+                    } else {
+                        executePrintFile()
                     }
-                )
-            } catch (e: Exception) {
-                promise.reject("PDF_INIT_ERROR", e.message, e)
+                }
+            } else {
+                executePrintFile()
             }
         }
     }
@@ -185,7 +324,16 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun destroyInstance(instanceId: String, promise: Promise) {
         mainHandler.post {
+            val timeoutRunnable = navigationTimeouts.remove(instanceId)
+            if (timeoutRunnable != null) {
+                mainHandler.removeCallbacks(timeoutRunnable)
+            }
+            pendingNavigations.remove(instanceId)
+            loadingStates.remove(instanceId)
+
             val webView = webviews.remove(instanceId)
+            webView?.stopLoading()
+            webView?.webViewClient = WebViewClient()
             webView?.destroy()
             promise.resolve(null)
         }

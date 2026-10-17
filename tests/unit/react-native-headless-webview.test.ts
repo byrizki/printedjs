@@ -150,6 +150,91 @@ describe("@printedjs/headless-webview React Native Dual Architecture", () => {
 			"Cannot interact with a destroyed HeadlessWebView instance.",
 		);
 	});
+
+	test("HeadlessWebView.waitForFunction polls until condition resolves", async () => {
+		let attempts = 0;
+
+		const mockModule: NativeHeadlessWebViewSpec = {
+			createInstance: vi.fn().mockResolvedValue("session-wait-1"),
+			loadHtml: vi.fn().mockResolvedValue(undefined),
+			loadUrl: vi.fn().mockResolvedValue(undefined),
+			evalScript: vi.fn().mockImplementation(async () => {
+				attempts += 1;
+
+				return attempts >= 3 ? "true" : "false";
+			}),
+			printToPdf: vi.fn().mockResolvedValue("bW9jay1wZGY="),
+			printToPdfFile: vi.fn().mockResolvedValue(undefined),
+			destroyInstance: vi.fn().mockResolvedValue(undefined),
+		};
+
+		(globalThis as Record<string, unknown>).NativeModules = {
+			HeadlessWebviewModule: mockModule,
+		};
+
+		const webview = await HeadlessWebView.create();
+		await webview.waitForFunction(() => (window as unknown as { ready: boolean }).ready, {
+			pollingIntervalMs: 10,
+			timeoutMs: 1000,
+		});
+
+		expect(attempts).toBeGreaterThanOrEqual(3);
+		await webview.dispose();
+	});
+
+	test("HeadlessWebView.waitForFunction times out when condition remains falsy", async () => {
+		const mockModule: NativeHeadlessWebViewSpec = {
+			createInstance: vi.fn().mockResolvedValue("session-wait-timeout"),
+			loadHtml: vi.fn().mockResolvedValue(undefined),
+			loadUrl: vi.fn().mockResolvedValue(undefined),
+			evalScript: vi.fn().mockResolvedValue("false"),
+			printToPdf: vi.fn().mockResolvedValue("bW9jay1wZGY="),
+			printToPdfFile: vi.fn().mockResolvedValue(undefined),
+			destroyInstance: vi.fn().mockResolvedValue(undefined),
+		};
+
+		(globalThis as Record<string, unknown>).NativeModules = {
+			HeadlessWebviewModule: mockModule,
+		};
+
+		const webview = await HeadlessWebView.create();
+		await expect(
+			webview.waitForFunction("window.__never_set === true", {
+				pollingIntervalMs: 10,
+				timeoutMs: 50,
+			}),
+		).rejects.toThrow("waitForFunction timed out after 50ms");
+
+		await webview.dispose();
+	});
+
+	test("HeadlessWebView.waitForFunction evaluates string expression condition", async () => {
+		let evaluatedScript = "";
+
+		const mockModule: NativeHeadlessWebViewSpec = {
+			createInstance: vi.fn().mockResolvedValue("session-rendered"),
+			loadHtml: vi.fn().mockResolvedValue(undefined),
+			loadUrl: vi.fn().mockResolvedValue(undefined),
+			evalScript: vi.fn().mockImplementation(async (_id, script) => {
+				evaluatedScript = script;
+
+				return "true";
+			}),
+			printToPdf: vi.fn().mockResolvedValue("bW9jay1wZGY="),
+			printToPdfFile: vi.fn().mockResolvedValue(undefined),
+			destroyInstance: vi.fn().mockResolvedValue(undefined),
+		};
+
+		(globalThis as Record<string, unknown>).NativeModules = {
+			HeadlessWebviewModule: mockModule,
+		};
+
+		const webview = await HeadlessWebView.create();
+		await webview.waitForFunction("window.isReady === true", { timeoutMs: 500 });
+
+		expect(evaluatedScript).toContain("window.isReady === true");
+		await webview.dispose();
+	});
 });
 
 describe("@printedjs/headless-webview iOS & SwiftPM Configuration", () => {

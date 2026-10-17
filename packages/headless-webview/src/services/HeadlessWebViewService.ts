@@ -1,6 +1,16 @@
 import { NativeHeadlessWebView } from "../native/NativeHeadlessWebView.js";
 import type { HeadlessWebViewConfig } from "../types/config.js";
-import type { PdfPrintOptions } from "../types/options.js";
+import type {
+	PdfPrintOptions,
+	WaitForFunctionOptions,
+	WaitForFunctionPredicate,
+} from "../types/options.js";
+
+function isFunctionPredicate(
+	value: WaitForFunctionPredicate,
+): value is () => boolean | string | number | null | undefined {
+	return value instanceof Function;
+}
 
 const base64ToUint8Array = (base64String: string): Uint8Array => {
 	if (typeof Buffer !== "undefined") {
@@ -58,6 +68,61 @@ export class HeadlessWebView {
 		this.assertActive();
 
 		return await NativeHeadlessWebView.evalScript(this.instanceId, script);
+	}
+
+	public async waitForFunction(
+		fnOrExpression: WaitForFunctionPredicate,
+		options: WaitForFunctionOptions = {},
+	): Promise<void> {
+		this.assertActive();
+
+		const timeoutMs = options.timeoutMs ?? options.timeout ?? 15000;
+		const pollingIntervalMs = options.pollingIntervalMs ?? options.polling ?? 50;
+
+		let scriptExpr: string;
+
+		if (isFunctionPredicate(fnOrExpression)) {
+			scriptExpr = `(${fnOrExpression.toString()})()`;
+		} else {
+			const trimmed = fnOrExpression.trim();
+
+			const isFunctionSyntax =
+				/^(?:async\s+)?(?:function\b|\([^)]*\)\s*=>|[a-zA-Z_$][a-zA-Z0-9_$]*\s*=>)/.test(
+					trimmed,
+				);
+
+			scriptExpr = isFunctionSyntax ? `(${trimmed})()` : `(${trimmed})`;
+		}
+
+		const evalPayload = `(function() {
+			try {
+				var res = ${scriptExpr};
+				return (typeof res === "function" ? Boolean(res()) : Boolean(res)) ? "true" : "false";
+			} catch (e) {
+				return "false";
+			}
+		})()`;
+
+		const startTime = Date.now();
+
+		while (true) {
+			this.assertActive();
+
+			const rawResult = await this.evaluateJavascript(evalPayload);
+			const cleanResult = rawResult.trim().replace(/^["']|["']$/g, "");
+
+			if (cleanResult === "true" || cleanResult === "1") {
+				return;
+			}
+
+			if (Date.now() - startTime >= timeoutMs) {
+				throw new Error(
+					`waitForFunction timed out after ${timeoutMs}ms waiting for condition to be truthy.`,
+				);
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
+		}
 	}
 
 	public async printToPdf(options: PdfPrintOptions = {}): Promise<Uint8Array> {

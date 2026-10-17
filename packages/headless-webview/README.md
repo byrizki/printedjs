@@ -86,12 +86,19 @@ import { View, Button, Text } from "react-native";
 import { useHeadlessWebView } from "@printedjs/headless-webview";
 
 export const PdfExporterComponent = () => {
-	const { isReady, loadHtml, printToPdf } = useHeadlessWebView({
+	const { isReady, loadHtml, waitForFunction, printToPdf } = useHeadlessWebView({
 		html: "<h1>Hello from PrintedJS Headless WebView!</h1>",
 	});
 
 	const handleExport = async () => {
 		if (!isReady) return;
+
+		// Optional: Wait for client-side scripts, fonts, or DOM mutations to settle
+		await waitForFunction(() => document.fonts.status === "loaded", {
+			timeoutMs: 10000,
+			pollingIntervalMs: 50,
+		});
+
 		const pdfBytes = await printToPdf({
 			landscape: false,
 			pageWidth: 8.27, // A4 width (inches)
@@ -119,17 +126,58 @@ const webview = await HeadlessWebView.create({
 	url: "https://example.com",
 });
 
-// Evaluate JavaScript
-const title = await webview.evaluateJavascript("document.title");
+// 1. Navigation Settlement: loadHtml & loadUrl automatically resolve
+// when the native webview finishes loading (WKNavigationDelegate on iOS,
+// onPageFinished on Android, PageLoadEvent::Finished on desktop Wry).
+await webview.loadHtml(`
+	<div id="content">Loading dynamic data...</div>
+	<script>
+		setTimeout(() => {
+			document.getElementById('content').textContent = 'Ready';
+			window.isAppReady = true;
+		}, 300);
+	</script>
+`);
 
-// Print directly to file
+// 2. Client-Side Settlement: Wait for arbitrary JS functions or string expressions
+await webview.waitForFunction(() => window.isAppReady === true, {
+	timeoutMs: 15000,
+	pollingIntervalMs: 50,
+});
+
+// Or with string expressions (Puppeteer/Playwright compatible):
+await webview.waitForFunction(
+	"document.getElementById('content').textContent === 'Ready'",
+);
+
+// 3. Evaluate JavaScript
+const heading = await webview.evaluateJavascript(
+	"document.getElementById('content').textContent",
+);
+
+// 4. Print directly to file or memory
 await webview.printToPdfFile("/path/to/document.pdf", {
 	landscape: false,
 	printBackground: true,
 });
 
-// Cleanup instance
+// 5. Cleanup instance
 await webview.destroy();
+```
+
+### Native Desktop CLI Binary (`headless-webview`)
+
+The bundled standalone desktop binary provides headless rendering from the command line:
+
+```bash
+# Print HTML directly to PDF
+headless-webview input.html -o output.pdf
+
+# Wait for client-side condition before generating PDF
+headless-webview input.html -o output.pdf --wait-for "window.__ready === true" --wait-timeout 10000
+
+# Format and orientation options
+headless-webview input.html -o output.pdf --format A4 --landscape --scale 1.0
 ```
 
 ### Example Application & Test Harness

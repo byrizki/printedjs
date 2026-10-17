@@ -25,6 +25,8 @@ export type {
 	HeadlessWebViewConfig,
 	PageLoadStatus,
 	PdfPrintOptions,
+	WaitForFunctionOptions,
+	WaitForFunctionPredicate,
 } from "./types/index.js";
 
 import { DesktopNativeHeadlessWebView } from "./native/DesktopNativeHeadlessWebView.js";

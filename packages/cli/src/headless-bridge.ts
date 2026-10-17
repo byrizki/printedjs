@@ -94,10 +94,20 @@ export async function executeWebviewBinary(
 	const startTime = performance.now();
 	const outputPath = resolve(process.cwd(), options.output);
 
-	const args = [options.input, "-o", outputPath];
+	const args = [
+		options.input,
+		"-o",
+		outputPath,
+		"--wait-for",
+		"Boolean(window.__printedjsRenderFinished || window.__pagedRenderFinished || document.querySelector('.printedjs_page, .pagedjs_page'))",
+	];
 
 	if (options.format) {
 		args.push("--format", options.format);
+	}
+
+	if (options.timeoutMs) {
+		args.push("--wait-timeout", String(options.timeoutMs));
 	}
 
 	return new Promise((resolveResult, reject) => {

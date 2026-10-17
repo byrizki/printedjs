@@ -1,5 +1,8 @@
 #import <React/RCTBridgeModule.h>
 
+__attribute__((visibility("default"))) void * __swift_FORCE_LOAD_$_swiftCompatibility56_$_react_native_headless_webview = 0;
+__attribute__((visibility("default"))) void * __swift_FORCE_LOAD_$_swiftCompatibility51_$_react_native_headless_webview = 0;
+
 @interface RCT_EXTERN_MODULE(HeadlessWebviewModule, NSObject)
 
 RCT_EXTERN_METHOD(createInstance:(NSDictionary *)config

@@ -5,12 +5,6 @@
     all(target_os = "linux", feature = "os-webview")
 ))]
 use std::sync::Mutex;
-#[cfg(any(
-    target_os = "windows",
-    target_vendor = "apple",
-    target_os = "android",
-    all(target_os = "linux", feature = "os-webview")
-))]
 use std::time::Duration;
 use std::sync::Arc;
 use crate::config::WebViewConfig;
@@ -287,6 +281,70 @@ impl HeadlessWebViewCore {
         )))]
         {
             let _ = script;
+            Err(HeadlessWebViewError::UnsupportedPlatform {
+                message: "Unsupported platform".to_string(),
+            })
+        }
+    }
+
+    pub fn wait_for_function(
+        &self,
+        script: &str,
+        timeout: Duration,
+        interval: Duration,
+    ) -> Result<(), HeadlessWebViewError> {
+        #[cfg(any(
+            target_os = "windows",
+            target_vendor = "apple",
+            target_os = "android",
+            all(target_os = "linux", feature = "os-webview")
+        ))]
+        {
+            let trimmed = script.trim();
+            let is_fn = trimmed.starts_with("function")
+                || trimmed.starts_with("async")
+                || trimmed.contains("=>");
+            let script_expr = if is_fn {
+                format!("({trimmed})()")
+            } else {
+                format!("({trimmed})")
+            };
+
+            let wrapper = format!(
+                "(function() {{ try {{ var res = {script_expr}; return (typeof res === 'function' ? Boolean(res()) : Boolean(res)) ? 'true' : 'false'; }} catch(e) {{ return 'false'; }} }})()"
+            );
+
+            let start = std::time::Instant::now();
+            loop {
+                match self.eval(wrapper.clone()) {
+                    Ok(raw) => {
+                        let cleaned = raw.trim().trim_matches('"');
+                        if cleaned == "true" || cleaned == "1" {
+                            return Ok(());
+                        }
+                    }
+                    Err(_) => {}
+                }
+
+                if start.elapsed() >= timeout {
+                    return Err(HeadlessWebViewError::ScriptEvaluationFailed {
+                        message: format!("wait_for_function timed out after {:?}", timeout),
+                    });
+                }
+
+                pump_platform_events();
+                std::thread::sleep(interval);
+            }
+        }
+
+        #[cfg(not(any(
+            target_os = "windows",
+            target_vendor = "apple",
+            target_os = "android",
+            all(target_os = "linux", feature = "os-webview")
+        )))]
+        {
+            let _ = (script, timeout, interval);
             Err(HeadlessWebViewError::UnsupportedPlatform {
                 message: "Unsupported platform".to_string(),
             })

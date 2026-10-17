@@ -6,11 +6,62 @@ import React
 @objc(HeadlessWebviewModule)
 public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
     private var webviews: [String: WKWebView] = [:]
-    private var navigationResolvers: [String: () -> Void] = [:]
+    private var pendingNavigations: [String: [(Error?) -> Void]] = [:]
+    private var navigationTimeouts: [String: DispatchWorkItem] = [:]
+    private var loadingStates: [String: Bool] = [:]
     
     @objc
     public static func requiresMainQueueSetup() -> Bool {
         return true
+    }
+
+    private func instanceId(for webView: WKWebView) -> String? {
+        return webviews.first(where: { $0.value === webView })?.key
+    }
+
+    private func dispatchNavigation(for instanceId: String, error: Error?) {
+        navigationTimeouts[instanceId]?.cancel()
+        navigationTimeouts.removeValue(forKey: instanceId)
+        loadingStates[instanceId] = false
+
+        guard let callbacks = pendingNavigations.removeValue(forKey: instanceId) else { return }
+        for callback in callbacks {
+            callback(error)
+        }
+    }
+
+    private func waitForNavigation(instanceId: String, timeout: TimeInterval = 15.0, completion: @escaping (Error?) -> Void) {
+        if pendingNavigations[instanceId] != nil {
+            pendingNavigations[instanceId]?.append(completion)
+        } else {
+            pendingNavigations[instanceId] = [completion]
+        }
+
+        if navigationTimeouts[instanceId] == nil {
+            let timeoutWorkItem = DispatchWorkItem { [weak self] in
+                self?.dispatchNavigation(
+                    for: instanceId,
+                    error: NSError(domain: "HeadlessWebviewModule", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Navigation timed out after \(timeout)s"])
+                )
+            }
+            navigationTimeouts[instanceId] = timeoutWorkItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: timeoutWorkItem)
+        }
+    }
+
+    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard let id = instanceId(for: webView) else { return }
+        dispatchNavigation(for: id, error: nil)
+    }
+
+    public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        guard let id = instanceId(for: webView) else { return }
+        dispatchNavigation(for: id, error: error)
+    }
+
+    public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        guard let id = instanceId(for: webView) else { return }
+        dispatchNavigation(for: id, error: error)
     }
 
     @objc(createInstance:resolver:rejecter:)
@@ -52,12 +103,28 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
             self.webviews[instanceId] = webview
 
             if let html = config["html"] as? String {
+                self.loadingStates[instanceId] = true
+                self.waitForNavigation(instanceId: instanceId) { error in
+                    if let error = error {
+                        rejecter("LOAD_ERROR", error.localizedDescription, error)
+                    } else {
+                        resolver(instanceId)
+                    }
+                }
                 webview.loadHTMLString(html, baseURL: nil)
             } else if let urlString = config["url"] as? String, let url = URL(string: urlString) {
+                self.loadingStates[instanceId] = true
+                self.waitForNavigation(instanceId: instanceId) { error in
+                    if let error = error {
+                        rejecter("LOAD_ERROR", error.localizedDescription, error)
+                    } else {
+                        resolver(instanceId)
+                    }
+                }
                 webview.load(URLRequest(url: url))
+            } else {
+                resolver(instanceId)
             }
-
-            resolver(instanceId)
         }
     }
 
@@ -69,12 +136,19 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            guard let webview = self?.webviews[instanceId] else {
+            guard let self = self, let webview = self.webviews[instanceId] else {
                 rejecter("NOT_FOUND", "Headless webview instance not found: \(instanceId)", nil)
                 return
             }
+            self.loadingStates[instanceId] = true
+            self.waitForNavigation(instanceId: instanceId) { error in
+                if let error = error {
+                    rejecter("LOAD_ERROR", error.localizedDescription, error)
+                } else {
+                    resolver(nil)
+                }
+            }
             webview.loadHTMLString(html, baseURL: nil)
-            resolver(nil)
         }
     }
 
@@ -86,7 +160,7 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            guard let webview = self?.webviews[instanceId] else {
+            guard let self = self, let webview = self.webviews[instanceId] else {
                 rejecter("NOT_FOUND", "Headless webview instance not found: \(instanceId)", nil)
                 return
             }
@@ -94,8 +168,15 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
                 rejecter("INVALID_URL", "Invalid URL: \(url)", nil)
                 return
             }
+            self.loadingStates[instanceId] = true
+            self.waitForNavigation(instanceId: instanceId) { error in
+                if let error = error {
+                    rejecter("LOAD_ERROR", error.localizedDescription, error)
+                } else {
+                    resolver(nil)
+                }
+            }
             webview.load(URLRequest(url: requestUrl))
-            resolver(nil)
         }
     }
 
@@ -107,16 +188,31 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            guard let webview = self?.webviews[instanceId] else {
+            guard let self = self, let webview = self.webviews[instanceId] else {
                 rejecter("NOT_FOUND", "Headless webview instance not found: \(instanceId)", nil)
                 return
             }
-            webview.evaluateJavaScript(script) { result, error in
-                if let error = error {
-                    rejecter("EVAL_ERROR", error.localizedDescription, error)
-                } else {
-                    resolver(String(describing: result ?? ""))
+
+            let executeEval = {
+                webview.evaluateJavaScript(script) { result, error in
+                    if let error = error {
+                        rejecter("EVAL_ERROR", error.localizedDescription, error)
+                    } else {
+                        resolver(String(describing: result ?? ""))
+                    }
                 }
+            }
+
+            if self.loadingStates[instanceId] == true || webview.isLoading {
+                self.waitForNavigation(instanceId: instanceId) { error in
+                    if let error = error {
+                        rejecter("EVAL_ERROR", error.localizedDescription, error)
+                    } else {
+                        executeEval()
+                    }
+                }
+            } else {
+                executeEval()
             }
         }
     }
@@ -129,38 +225,52 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            guard let webview = self?.webviews[instanceId] else {
+            guard let self = self, let webview = self.webviews[instanceId] else {
                 rejecter("NOT_FOUND", "Headless webview instance not found: \(instanceId)", nil)
                 return
             }
 
-            if #available(iOS 14.0, *) {
-                let pdfConfig = WKPDFConfiguration()
-                // A4 dimensions in points: 595.28 x 841.89
-                let width = (options["pageWidth"] as? Double ?? 8.27) * 72.0
-                let height = (options["pageHeight"] as? Double ?? 11.69) * 72.0
-                let landscape = options["landscape"] as? Bool ?? false
-                
-                pdfConfig.rect = CGRect(
-                    x: 0,
-                    y: 0,
-                    width: landscape ? height : width,
-                    height: landscape ? width : height
-                )
+            let executePrint = {
+                if #available(iOS 14.0, *) {
+                    let pdfConfig = WKPDFConfiguration()
+                    // A4 dimensions in points: 595.28 x 841.89
+                    let width = (options["pageWidth"] as? Double ?? 8.27) * 72.0
+                    let height = (options["pageHeight"] as? Double ?? 11.69) * 72.0
+                    let landscape = options["landscape"] as? Bool ?? false
+                    
+                    pdfConfig.rect = CGRect(
+                        x: 0,
+                        y: 0,
+                        width: landscape ? height : width,
+                        height: landscape ? width : height
+                    )
 
-                webview.createPDF(configuration: pdfConfig) { result in
-                    switch result {
-                    case .success(let data):
-                        let base64String = data.base64EncodedString()
-                        resolver(base64String)
-                    case .failure(let error):
+                    webview.createPDF(configuration: pdfConfig) { result in
+                        switch result {
+                        case .success(let data):
+                            let base64String = data.base64EncodedString()
+                            resolver(base64String)
+                        case .failure(let error):
+                            rejecter("PDF_ERROR", error.localizedDescription, error)
+                        }
+                    }
+                } else {
+                    let data = self.renderPdfLegacy(webview: webview, options: options)
+                    let base64String = data.base64EncodedString()
+                    resolver(base64String)
+                }
+            }
+
+            if self.loadingStates[instanceId] == true || webview.isLoading {
+                self.waitForNavigation(instanceId: instanceId) { error in
+                    if let error = error {
                         rejecter("PDF_ERROR", error.localizedDescription, error)
+                    } else {
+                        executePrint()
                     }
                 }
-            } else if let self = self {
-                let data = self.renderPdfLegacy(webview: webview, options: options)
-                let base64String = data.base64EncodedString()
-                resolver(base64String)
+            } else {
+                executePrint()
             }
         }
     }
@@ -174,51 +284,65 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            guard let webview = self?.webviews[instanceId] else {
+            guard let self = self, let webview = self.webviews[instanceId] else {
                 rejecter("NOT_FOUND", "Headless webview instance not found: \(instanceId)", nil)
                 return
             }
 
-            if #available(iOS 14.0, *) {
-                let pdfConfig = WKPDFConfiguration()
-                let width = (options["pageWidth"] as? Double ?? 8.27) * 72.0
-                let height = (options["pageHeight"] as? Double ?? 11.69) * 72.0
-                let landscape = options["landscape"] as? Bool ?? false
+            let executePrintFile = {
+                if #available(iOS 14.0, *) {
+                    let pdfConfig = WKPDFConfiguration()
+                    let width = (options["pageWidth"] as? Double ?? 8.27) * 72.0
+                    let height = (options["pageHeight"] as? Double ?? 11.69) * 72.0
+                    let landscape = options["landscape"] as? Bool ?? false
 
-                pdfConfig.rect = CGRect(
-                    x: 0,
-                    y: 0,
-                    width: landscape ? height : width,
-                    height: landscape ? width : height
-                )
+                    pdfConfig.rect = CGRect(
+                        x: 0,
+                        y: 0,
+                        width: landscape ? height : width,
+                        height: landscape ? width : height
+                    )
 
-                webview.createPDF(configuration: pdfConfig) { result in
-                    switch result {
-                    case .success(let data):
-                        do {
-                            let fileUrl = URL(fileURLWithPath: filePath)
-                            let parentDir = fileUrl.deletingLastPathComponent()
-                            try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
-                            try data.write(to: fileUrl)
-                            resolver(nil)
-                        } catch {
-                            rejecter("IO_ERROR", error.localizedDescription, error)
+                    webview.createPDF(configuration: pdfConfig) { result in
+                        switch result {
+                        case .success(let data):
+                            do {
+                                let fileUrl = URL(fileURLWithPath: filePath)
+                                let parentDir = fileUrl.deletingLastPathComponent()
+                                try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+                                try data.write(to: fileUrl)
+                                resolver(nil)
+                            } catch {
+                                rejecter("IO_ERROR", error.localizedDescription, error)
+                            }
+                        case .failure(let error):
+                            rejecter("PDF_ERROR", error.localizedDescription, error)
                         }
-                    case .failure(let error):
-                        rejecter("PDF_ERROR", error.localizedDescription, error)
+                    }
+                } else {
+                    let data = self.renderPdfLegacy(webview: webview, options: options)
+                    do {
+                        let fileUrl = URL(fileURLWithPath: filePath)
+                        let parentDir = fileUrl.deletingLastPathComponent()
+                        try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+                        try data.write(to: fileUrl)
+                        resolver(nil)
+                    } catch {
+                        rejecter("IO_ERROR", error.localizedDescription, error)
                     }
                 }
-            } else if let self = self {
-                let data = self.renderPdfLegacy(webview: webview, options: options)
-                do {
-                    let fileUrl = URL(fileURLWithPath: filePath)
-                    let parentDir = fileUrl.deletingLastPathComponent()
-                    try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
-                    try data.write(to: fileUrl)
-                    resolver(nil)
-                } catch {
-                    rejecter("IO_ERROR", error.localizedDescription, error)
+            }
+
+            if self.loadingStates[instanceId] == true || webview.isLoading {
+                self.waitForNavigation(instanceId: instanceId) { error in
+                    if let error = error {
+                        rejecter("PDF_ERROR", error.localizedDescription, error)
+                    } else {
+                        executePrintFile()
+                    }
                 }
+            } else {
+                executePrintFile()
             }
         }
     }
@@ -261,7 +385,14 @@ public class HeadlessWebviewModule: NSObject, WKNavigationDelegate {
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
         DispatchQueue.main.async { [weak self] in
-            self?.webviews.removeValue(forKey: instanceId)
+            guard let self = self else { return }
+            self.navigationTimeouts[instanceId]?.cancel()
+            self.navigationTimeouts.removeValue(forKey: instanceId)
+            self.pendingNavigations.removeValue(forKey: instanceId)
+            self.loadingStates.removeValue(forKey: instanceId)
+            let webview = self.webviews.removeValue(forKey: instanceId)
+            webview?.stopLoading()
+            webview?.navigationDelegate = nil
             resolver(nil)
         }
     }

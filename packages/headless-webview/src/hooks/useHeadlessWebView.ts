@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HeadlessWebView } from "../services/HeadlessWebViewService.js";
 import type { HeadlessWebViewConfig } from "../types/config.js";
-import type { PdfPrintOptions } from "../types/options.js";
+import type {
+	PdfPrintOptions,
+	WaitForFunctionOptions,
+	WaitForFunctionPredicate,
+} from "../types/options.js";
 
 export interface UseHeadlessWebViewResult {
 	isReady: boolean;
@@ -9,6 +13,10 @@ export interface UseHeadlessWebViewResult {
 	loadHtml: (html: string) => Promise<void>;
 	loadUrl: (url: string) => Promise<void>;
 	evaluateJavascript: (script: string) => Promise<string>;
+	waitForFunction: (
+		fnOrExpression: WaitForFunctionPredicate,
+		options?: WaitForFunctionOptions,
+	) => Promise<void>;
 	printToPdf: (options?: PdfPrintOptions) => Promise<Uint8Array>;
 	printToPdfFile: (filePath: string, options?: PdfPrintOptions) => Promise<void>;
 }
@@ -80,6 +88,20 @@ export const useHeadlessWebView = (
 		return await webviewRef.current.evaluateJavascript(script);
 	}, []);
 
+	const waitForFunction = useCallback(
+		async (
+			fnOrExpression: WaitForFunctionPredicate,
+			options: WaitForFunctionOptions = {},
+		) => {
+			if (!webviewRef.current) {
+				throw new Error("HeadlessWebView is not initialized");
+			}
+
+			await webviewRef.current.waitForFunction(fnOrExpression, options);
+		},
+		[],
+	);
+
 	const printToPdf = useCallback(async (options: PdfPrintOptions = {}) => {
 		if (!webviewRef.current) {
 			throw new Error("HeadlessWebView is not initialized");
@@ -105,6 +127,7 @@ export const useHeadlessWebView = (
 		loadHtml,
 		loadUrl,
 		evaluateJavascript,
+		waitForFunction,
 		printToPdf,
 		printToPdfFile,
 	};
