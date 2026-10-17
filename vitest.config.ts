@@ -51,10 +51,17 @@ export default defineConfig({
 			"@printedjs/plugin-widows-orphans": fromRoot(
 				"./packages/plugins/core/widows-orphans/src/index.ts",
 			),
+			react: fromRoot("./node_modules/react"),
+			"react/jsx-runtime": fromRoot("./node_modules/react/jsx-runtime"),
+			"react/jsx-dev-runtime": fromRoot("./node_modules/react/jsx-dev-runtime"),
+			"react-test-renderer": fromRoot("./node_modules/react-test-renderer"),
+			"react-native": fromRoot(
+				"./packages/headless-webview/example/test-utils/react-native.ts",
+			),
 		},
 	},
 	test: {
-		include: ["packages/**/*.test.ts", "tests/unit/**/*.test.ts"],
+		include: ["packages/**/*.test.{ts,tsx}", "tests/unit/**/*.test.{ts,tsx}"],
 		environment: "node",
 	},
 });

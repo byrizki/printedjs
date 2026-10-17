@@ -2,8 +2,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
+	DesktopNativeHeadlessWebView,
+	enableDesktopBridge,
 	getNativeModule,
 	HeadlessWebView,
+	isDesktopSupported,
+	registerNativeModule,
+	resolveDesktopBinary,
 	type NativeHeadlessWebViewSpec,
 } from "../../packages/headless-webview/src/index.js";
 
@@ -263,5 +268,79 @@ describe("@printedjs/headless-webview Packaging Integrity", () => {
 		expect(pkg.files).not.toContain("crates");
 		expect(pkg.files).not.toContain("dotnet");
 		expect(pkg.files).not.toContain("target");
+	});
+});
+
+describe("@printedjs/headless-webview Desktop Binding & Harness Integration", () => {
+	afterEach(() => {
+		registerNativeModule(null);
+	});
+
+	test("resolves native desktop binary and detects desktop support", () => {
+		expect(isDesktopSupported()).toBe(true);
+
+		const binaryPath = resolveDesktopBinary();
+
+		expect(existsSync(binaryPath)).toBe(true);
+	});
+
+	test("registers desktop native module and executes real HTML to PDF pipeline with options", async () => {
+		const desktopBridge = enableDesktopBridge();
+
+		expect(desktopBridge).toBeInstanceOf(DesktopNativeHeadlessWebView);
+
+		const html = `
+			<!DOCTYPE html>
+			<html>
+			<head><title>Desktop Harness Test</title></head>
+			<body>
+				<h1 id="title">PrintedJS Desktop Headless Webview</h1>
+				<p id="desc">React Native Desktop Binding Test</p>
+			</body>
+			</html>
+		`;
+
+		const webview = await HeadlessWebView.create({ html });
+
+		expect(webview.id.length).toBeGreaterThan(0);
+		expect(desktopBridge.callStats.createInstanceCount).toBe(1);
+
+		// Test script evaluation: document.title
+		const title = await webview.evaluateJavascript("document.title");
+
+		expect(title).toBe("Desktop Harness Test");
+
+		// Test script evaluation: getElementById
+		const heading = await webview.evaluateJavascript(
+			"document.getElementById('title').textContent",
+		);
+
+		expect(heading).toBe("PrintedJS Desktop Headless Webview");
+
+		// Test real PDF conversion with options forwarding (landscape, scale)
+		const pdfBytes = await webview.printToPdf({
+			landscape: true,
+			scale: 1.0,
+			pageWidth: 8.27,
+			pageHeight: 11.69,
+			printBackground: true,
+		});
+
+		expect(pdfBytes).toBeInstanceOf(Uint8Array);
+		expect(pdfBytes.byteLength).toBeGreaterThan(100000);
+
+		// Verify %PDF-1.4 header
+		expect(pdfBytes[0]).toBe(0x25);
+		expect(pdfBytes[1]).toBe(0x50);
+		expect(pdfBytes[2]).toBe(0x44);
+		expect(pdfBytes[3]).toBe(0x46);
+
+		expect(desktopBridge.callStats.printToPdfCount).toBe(1);
+		expect(desktopBridge.callStats.lastOptions?.landscape).toBe(true);
+
+		// Test cleanup
+		await webview.dispose();
+		expect(desktopBridge.callStats.destroyInstanceCount).toBe(1);
+		expect(desktopBridge.activeSessionCount).toBe(0);
 	});
 });

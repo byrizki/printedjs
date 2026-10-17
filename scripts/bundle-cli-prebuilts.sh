@@ -5,12 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CRATES_DIR="${ROOT_DIR}/packages/headless-webview/crates/headless-webview-core"
 CLI_BIN_DIR="${ROOT_DIR}/packages/cli/bin"
+HEADLESS_BIN_DIR="${ROOT_DIR}/packages/headless-webview/bin"
 DOTNET_RUNTIMES_DIR="${ROOT_DIR}/packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes"
 
 echo "=== Bundling desktop prebuilt headless webview binaries & .NET native runtimes ==="
 echo "Note: Desktop platforms only (Linux, macOS, Windows). Mobile (Android, iOS) is excluded."
 
 mkdir -p "${CLI_BIN_DIR}"
+mkdir -p "${HEADLESS_BIN_DIR}"
 mkdir -p "${DOTNET_RUNTIMES_DIR}"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -57,7 +59,9 @@ esac
 
 PLATFORM_TAG="${PLATFORM}-${TARGET_ARCH}"
 PLATFORM_DIR="${CLI_BIN_DIR}/${PLATFORM_TAG}"
+HEADLESS_PLATFORM_DIR="${HEADLESS_BIN_DIR}/${PLATFORM_TAG}"
 mkdir -p "${PLATFORM_DIR}"
+mkdir -p "${HEADLESS_PLATFORM_DIR}"
 
 echo "--> Detected host platform: ${PLATFORM_TAG} (.NET RID: ${DOTNET_RID})"
 
@@ -78,9 +82,13 @@ if cargo --version >/dev/null 2>&1; then
         if [ -f "${TARGET_BIN}" ]; then
             cp "${TARGET_BIN}" "${PLATFORM_DIR}/${BINARY_NAME}"
             cp "${TARGET_BIN}" "${CLI_BIN_DIR}/${BINARY_NAME}"
-            chmod +x "${PLATFORM_DIR}/${BINARY_NAME}" "${CLI_BIN_DIR}/${BINARY_NAME}" || true
+            cp "${TARGET_BIN}" "${HEADLESS_PLATFORM_DIR}/${BINARY_NAME}"
+            cp "${TARGET_BIN}" "${HEADLESS_BIN_DIR}/${BINARY_NAME}"
+            chmod +x "${PLATFORM_DIR}/${BINARY_NAME}" "${CLI_BIN_DIR}/${BINARY_NAME}" "${HEADLESS_PLATFORM_DIR}/${BINARY_NAME}" "${HEADLESS_BIN_DIR}/${BINARY_NAME}" || true
             echo "✓ Bundled desktop binary to ${PLATFORM_DIR}/${BINARY_NAME}"
             echo "✓ Bundled desktop binary to ${CLI_BIN_DIR}/${BINARY_NAME}"
+            echo "✓ Bundled desktop binary to ${HEADLESS_PLATFORM_DIR}/${BINARY_NAME}"
+            echo "✓ Bundled desktop binary to ${HEADLESS_BIN_DIR}/${BINARY_NAME}"
         fi
 
         if [ -f "${TARGET_CDYLIB}" ]; then
@@ -109,9 +117,12 @@ if cargo --version >/dev/null 2>&1; then
 
                 if [ -f "${X64_BIN}" ]; then
                     mkdir -p "${CLI_BIN_DIR}/darwin-x64"
+                    mkdir -p "${HEADLESS_BIN_DIR}/darwin-x64"
                     cp "${X64_BIN}" "${CLI_BIN_DIR}/darwin-x64/${BINARY_NAME}"
-                    chmod +x "${CLI_BIN_DIR}/darwin-x64/${BINARY_NAME}" || true
+                    cp "${X64_BIN}" "${HEADLESS_BIN_DIR}/darwin-x64/${BINARY_NAME}"
+                    chmod +x "${CLI_BIN_DIR}/darwin-x64/${BINARY_NAME}" "${HEADLESS_BIN_DIR}/darwin-x64/${BINARY_NAME}" || true
                     echo "✓ Bundled desktop binary to ${CLI_BIN_DIR}/darwin-x64/${BINARY_NAME}"
+                    echo "✓ Bundled desktop binary to ${HEADLESS_BIN_DIR}/darwin-x64/${BINARY_NAME}"
                 fi
 
                 if [ -f "${X64_CDYLIB}" ]; then
@@ -127,6 +138,8 @@ fi
 # Summary of bundled binaries and runtimes
 echo "Current bundled desktop binaries in @printedjs/cli:"
 find "${CLI_BIN_DIR}" -type f || true
+echo "Current bundled desktop binaries in @printedjs/headless-webview:"
+find "${HEADLESS_BIN_DIR}" -type f || true
 echo "Current bundled .NET desktop runtimes:"
 find "${DOTNET_RUNTIMES_DIR}" -type f || true
 echo "=== Bundling completed ==="

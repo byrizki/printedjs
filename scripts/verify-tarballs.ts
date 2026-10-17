@@ -50,20 +50,17 @@ const globalForbiddenPatterns = [
 	/(^|\/)\.DS_Store$/,
 ];
 
-function verifyCliTarball(fullPath: string, files: string[]): boolean {
+function verifyDesktopPrebuilts(
+	packageName: string,
+	fullPath: string,
+	files: string[],
+): boolean {
 	let hasError = false;
-
-	const hasCliEntry = files.includes("package/dist/cli.js");
-
-	if (!hasCliEntry) {
-		console.error("[FAIL] CLI tarball missing package/dist/cli.js");
-		hasError = true;
-	}
 
 	const hasBinDir = files.some((f) => f.startsWith("package/bin/"));
 
 	if (!hasBinDir) {
-		console.error("[FAIL] CLI tarball missing package/bin/ directory");
+		console.error(`[FAIL] ${packageName} tarball missing package/bin/ directory`);
 		hasError = true;
 	}
 
@@ -83,7 +80,16 @@ function verifyCliTarball(fullPath: string, files: string[]): boolean {
 			: [],
 	);
 
-	console.log(`    Bundled CLI bin targets: ${bundledBinaries.join(", ") || "none"}`);
+	console.log(
+		`    Bundled ${packageName} bin targets: ${bundledBinaries.join(", ") || "none"}`,
+	);
+
+	if (bundledBinaries.length === 0) {
+		console.error(
+			`[FAIL] ${packageName} tarball missing prebuilt binaries in package/bin/`,
+		);
+		hasError = true;
+	}
 
 	if (process.env.VERIFY_ALL_CLI_PREBUILTS === "true") {
 		const requiredPlatforms = [
@@ -95,13 +101,17 @@ function verifyCliTarball(fullPath: string, files: string[]): boolean {
 
 		for (const req of requiredPlatforms) {
 			if (!files.includes(`package/bin/${req}`)) {
-				console.error(`[FAIL] CLI tarball missing prebuilt binary for: ${req}`);
+				console.error(
+					`[FAIL] ${packageName} tarball missing prebuilt binary for: ${req}`,
+				);
 				hasError = true;
 			}
 		}
 	}
 
-	const tempExtractDir = mkdtempSync(join(tmpdir(), "printedjs-cli-verify-"));
+	const tempExtractDir = mkdtempSync(
+		join(tmpdir(), `printedjs-${packageName.toLowerCase()}-verify-`),
+	);
 
 	try {
 		execSync(`tar -zxf "${fullPath}" -C "${tempExtractDir}"`);
@@ -116,7 +126,7 @@ function verifyCliTarball(fullPath: string, files: string[]): boolean {
 					accessSync(extractedBinary, constants.X_OK);
 				} catch {
 					console.error(
-						`[FAIL] Bundled CLI binary is not executable: ${extractedBinary}`,
+						`[FAIL] Bundled ${packageName} binary is not executable: ${extractedBinary}`,
 					);
 					hasError = true;
 				}
@@ -129,18 +139,18 @@ function verifyCliTarball(fullPath: string, files: string[]): boolean {
 
 				if (!helpOutput.includes("Usage: headless-webview")) {
 					console.error(
-						`[FAIL] CLI binary --help output missing expected usage text:\n${helpOutput}`,
+						`[FAIL] ${packageName} binary --help output missing expected usage text:\n${helpOutput}`,
 					);
 					hasError = true;
 				} else {
 					console.log(
-						`    ✓ Successfully verified CLI headless binary execution for ${platformArch}`,
+						`    ✓ Successfully verified ${packageName} headless binary execution for ${platformArch}`,
 					);
 				}
 			} catch (err: unknown) {
 				const message = err instanceof Error ? err.message : String(err);
 				console.error(
-					`[FAIL] Failed to execute bundled CLI binary (${expectedHostBinary}): ${message}`,
+					`[FAIL] Failed to execute bundled ${packageName} binary (${expectedHostBinary}): ${message}`,
 				);
 				hasError = true;
 			}
@@ -281,11 +291,24 @@ function verifyTarballs(): void {
 					}
 				}
 			}
+
+			const headlessBinValid = verifyDesktopPrebuilts("HeadlessWebView", fullPath, files);
+
+			if (!headlessBinValid) {
+				hasError = true;
+			}
 		}
 
 		// Package-specific checks for CLI
 		if (tarball.startsWith("printedjs-cli-")) {
-			const cliValid = verifyCliTarball(fullPath, files);
+			const hasCliEntry = files.includes("package/dist/cli.js");
+
+			if (!hasCliEntry) {
+				console.error("[FAIL] CLI tarball missing package/dist/cli.js");
+				hasError = true;
+			}
+
+			const cliValid = verifyDesktopPrebuilts("CLI", fullPath, files);
 
 			if (!cliValid) {
 				hasError = true;

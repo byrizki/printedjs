@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 interface StepResult {
 	name: string;
@@ -94,6 +95,38 @@ const main = () => {
 				}
 			}
 
+			// Prebuilt binary verification
+			const binaryName =
+				process.platform === "win32" ? "headless-webview.exe" : "headless-webview";
+
+			const platformArch = `${process.platform}-${process.arch}`;
+			const expectedHostBinary = `bin/${platformArch}/${binaryName}`;
+			const fallbackHostBinary = `bin/${binaryName}`;
+
+			const hasBinaryInTarball =
+				tarballFiles.some(
+					(f) => f === expectedHostBinary || f.endsWith(expectedHostBinary),
+				) ||
+				tarballFiles.some(
+					(f) => f === fallbackHostBinary || f.endsWith(fallbackHostBinary),
+				);
+
+			if (!hasBinaryInTarball) {
+				throw new Error(
+					`Required desktop prebuilt binary missing from packaged tarball: expected ${expectedHostBinary} or ${fallbackHostBinary}`,
+				);
+			}
+
+			const binEntries = tarballFiles.filter(
+				(f) => f.startsWith("bin/") && !f.endsWith(".gitkeep"),
+			);
+
+			if (binEntries.length === 0) {
+				throw new Error(
+					"Tarball must include at least one prebuilt native desktop binary under bin/",
+				);
+			}
+
 			// Prohibited exclusions
 			const prohibitedPrefixes = ["crates/", "dotnet/", "example/"];
 
@@ -105,6 +138,33 @@ const main = () => {
 						`Prohibited asset found in packaged tarball (${prefix}): ${match}`,
 					);
 				}
+			}
+
+			// Verify extracted prebuilt binary execution
+			const tempExtractDir = mkdtempSync(join(tmpdir(), "rn-tarball-verify-"));
+
+			try {
+				execSync(`tar -zxf "${tarballPath}" -C "${tempExtractDir}"`);
+
+				const extractedBin = existsSync(
+					resolve(tempExtractDir, "package", expectedHostBinary),
+				)
+					? resolve(tempExtractDir, "package", expectedHostBinary)
+					: resolve(tempExtractDir, "package", fallbackHostBinary);
+
+				if (existsSync(extractedBin)) {
+					const helpOut = execSync(`"${extractedBin}" --help 2>&1`, {
+						encoding: "utf-8",
+					});
+
+					if (!helpOut.includes("Usage: headless-webview")) {
+						throw new Error(
+							`Extracted prebuilt binary failed execution test: ${helpOut}`,
+						);
+					}
+				}
+			} finally {
+				rmSync(tempExtractDir, { recursive: true, force: true });
 			}
 
 			if (existsSync(tarballPath)) {
@@ -145,7 +205,7 @@ const main = () => {
 			}
 
 			const output = execSync(
-				`${gradleBin} -p "${exampleDir}/android" :printedjs_headless-webview:assembleDebug -PnewArchEnabled=false`,
+				`${gradleBin} -p "${exampleDir}/android" :printedjs_headless-webview:assembleDebug :app:assembleDebug -PnewArchEnabled=false`,
 				{
 					cwd: repoRoot,
 					encoding: "utf-8",
@@ -192,7 +252,7 @@ const main = () => {
 			}
 
 			const output = execSync(
-				`${gradleBin} -p "${exampleDir}/android" :printedjs_headless-webview:assembleDebug -PnewArchEnabled=true`,
+				`${gradleBin} -p "${exampleDir}/android" :printedjs_headless-webview:assembleDebug :app:assembleDebug -PnewArchEnabled=true`,
 				{
 					cwd: repoRoot,
 					encoding: "utf-8",
@@ -306,7 +366,32 @@ const main = () => {
 		}),
 	);
 
-	// STEP 6: iOS Native & Example App Build (macOS with Xcode)
+	// STEP 6: React Native Example App UI Test: HTML-to-PDF Conversion (Fabric & Legacy)
+	results.push(
+		runStep(
+			"React Native Example App UI: HTML-to-PDF Verification (Fabric, Legacy & Desktop)",
+			() => {
+				execSync("pnpm vitest run packages/headless-webview/example/App.test.tsx", {
+					cwd: repoRoot,
+					stdio: "inherit",
+					shell: "/bin/bash",
+				});
+			},
+		),
+	);
+
+	// STEP 7: React Native Desktop: Wry Bridge Pipeline Execution
+	results.push(
+		runStep("React Native Desktop: Wry Bridge Pipeline Execution", () => {
+			execSync("pnpm --filter headless-webview-example desktop", {
+				cwd: repoRoot,
+				stdio: "inherit",
+				shell: "/bin/bash",
+			});
+		}),
+	);
+
+	// STEP 8: iOS Native & Example App Build (macOS with Xcode)
 	results.push(
 		runStep("iOS Native & Example App Build (macOS Xcode)", () => {
 			if (process.platform !== "darwin") {

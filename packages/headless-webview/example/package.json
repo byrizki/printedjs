@@ -2,7 +2,6 @@
 	"name": "headless-webview-example",
 	"version": "0.2.0",
 	"private": true,
-	"type": "module",
 	"scripts": {
 		"start": "react-native start",
 		"android": "react-native run-android",
@@ -16,6 +15,11 @@
 		"build:ios:legacy": "cd ios && RCT_NEW_ARCH_ENABLED=0 pod install && xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO",
 		"build:ios:new-arch": "cd ios && RCT_NEW_ARCH_ENABLED=1 pod install && xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO",
 		"test:both-arch": "tsx scripts/test-both-arch.ts",
+		"desktop": "tsx scripts/run-desktop.ts",
+		"test:desktop": "tsx scripts/run-desktop.ts",
+		"test:e2e:maestro": "maestro test .maestro/html-to-pdf-flow.yaml",
+		"test:e2e:android": "bash scripts/run-android-e2e.sh",
+		"test:e2e:ios": "bash scripts/run-ios-e2e.sh",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -24,7 +28,11 @@
 		"react-native": "^0.76.0"
 	},
 	"devDependencies": {
+		"@react-native-community/cli": "^20.2.0",
+		"@react-native/metro-config": "^0.88.0",
 		"@types/react": "^18.3.1",
+		"@types/react-test-renderer": "18.3.0",
+		"react-test-renderer": "18.3.1",
 		"tsx": "^4.23.15",
 		"typescript": "^5.9.3"
 	}

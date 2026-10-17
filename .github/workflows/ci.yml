@@ -183,8 +183,29 @@ jobs:
       - name: Verify HeadlessWebView Rust Core Android Target
         run: cargo check --manifest-path packages/headless-webview/crates/headless-webview-core/Cargo.toml --target aarch64-linux-android
 
+      - name: Install Linux WebKit and GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev
+
+      - name: Bundle desktop prebuilts
+        run: bash scripts/bundle-cli-prebuilts.sh
+
       - name: Verify React Native HeadlessWebView Dual-Architecture & Packaging
         run: pnpm test:rn:example
+
+      - name: Run Android Emulator Maestro HTML-to-PDF Test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash packages/headless-webview/example/scripts/run-android-e2e.sh
 
   linux-desktop:
     name: Linux Desktop Prebuilt & .NET Suite
@@ -336,6 +357,9 @@ jobs:
 
       - name: Build & Verify iOS Native & Example App
         run: pnpm test:rn:example
+
+      - name: Run iOS Simulator Maestro HTML-to-PDF Test
+        run: bash packages/headless-webview/example/scripts/run-ios-e2e.sh
 
   windows-desktop:
     name: Windows Desktop Prebuilt & .NET Build

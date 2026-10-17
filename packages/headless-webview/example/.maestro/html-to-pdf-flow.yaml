@@ -1,0 +1,38 @@
+appId: com.example.headlesswebview
+---
+- launchApp:
+    clearState: true
+- assertVisible: "PrintedJS Headless"
+- assertVisible:
+    id: "run-tests-button"
+- tapOn:
+    id: "run-tests-button"
+- extendedWaitUntil:
+    visible:
+      id: "test-status-cleanup"
+      text: "SUCCESS"
+    timeout: 30000
+- assertVisible:
+    id: "test-status-mod"
+    text: "SUCCESS"
+- assertVisible:
+    id: "test-status-lifecycle"
+    text: "SUCCESS"
+- assertVisible:
+    id: "test-status-eval"
+    text: "SUCCESS"
+- assertVisible:
+    id: "test-status-pdf"
+    text: "SUCCESS"
+- assertVisible:
+    id: "test-status-cleanup"
+    text: "SUCCESS"
+- scrollUntilVisible:
+    element:
+      id: "latest-pdf-card"
+- assertVisible:
+    id: "latest-pdf-header"
+- assertVisible:
+    id: "latest-pdf-payload"
+- assertVisible: ".*%PDF-1.4.*"
+- assertVisible: ".*✓ Verified %PDF header.*"

@@ -162,7 +162,7 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 		console.log(
 			`[printedjs] Watching for changes on "${input}" (press Ctrl+C to exit)...`,
 		);
-		let timeoutId: NodeJS.Timeout | null = null;
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
 		watch(input, () => {
 			if (timeoutId) {
 				clearTimeout(timeoutId);

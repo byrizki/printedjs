@@ -1,12 +1,6 @@
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'HeadlessWebviewExample'
 include ':app'
-include ':printedjs_headless-webview'
-project(':printedjs_headless-webview').projectDir = new File(rootProject.projectDir, '../../android')
+includeBuild('../node_modules/@react-native/gradle-plugin')

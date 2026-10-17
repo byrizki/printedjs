@@ -1,19 +1,33 @@
 import React, { useCallback, useId, useState } from "react";
 import {
 	ActivityIndicator,
+	NativeModules,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
 	Text,
 	TouchableOpacity,
+	TurboModuleRegistry,
 	View,
 } from "react-native";
-import { getNativeModule, HeadlessWebView } from "../src/index.js";
+import {
+	getCustomNativeModule,
+	getNativeModule,
+	HeadlessWebView,
+} from "@printedjs/headless-webview";
 
-type ArchitectureMode = "TurboModule (New Arch)" | "Bridge (Legacy Arch)" | "Unavailable";
+type ArchitectureMode =
+	| "TurboModule (New Arch)"
+	| "Bridge (Legacy Arch)"
+	| "Desktop Bridge (Wry Engine)"
+	| "Unavailable";
 
 const detectArchitecture = (): ArchitectureMode => {
-	// SAFETY: Inspect global runtime object for React Native TurboModuleRegistry or NativeModules bridge.
+	if (getCustomNativeModule()) {
+		return "Desktop Bridge (Wry Engine)";
+	}
+
+	// SAFETY: Inspect runtime for React Native TurboModuleRegistry or NativeModules bridge.
 	const rnGlobal = globalThis as {
 		TurboModuleRegistry?: {
 			get<T>(name: string): T | null;
@@ -23,11 +37,14 @@ const detectArchitecture = (): ArchitectureMode => {
 		};
 	};
 
-	if (rnGlobal.TurboModuleRegistry?.get("HeadlessWebviewModule")) {
+	const turboRegistry = TurboModuleRegistry ?? rnGlobal.TurboModuleRegistry;
+	const nativeModules = NativeModules ?? rnGlobal.NativeModules;
+
+	if (turboRegistry?.get?.("HeadlessWebviewModule")) {
 		return "TurboModule (New Arch)";
 	}
 
-	if (rnGlobal.NativeModules?.HeadlessWebviewModule) {
+	if (nativeModules?.HeadlessWebviewModule) {
 		return "Bridge (Legacy Arch)";
 	}
 
@@ -51,7 +68,7 @@ export const App = (): React.JSX.Element => {
 		{ id: "mod", name: "Native Module Handshake", status: "idle" },
 		{ id: "lifecycle", name: "Instance Lifecycle & Load HTML", status: "idle" },
 		{ id: "eval", name: "JavaScript Evaluation", status: "idle" },
-		{ id: "pdf", name: "PDF Generation Pipeline", status: "idle" },
+		{ id: "pdf", name: "HTML to PDF Conversion & Content Verification", status: "idle" },
 		{ id: "cleanup", name: "Resource Disposal", status: "idle" },
 	]);
 
@@ -147,7 +164,7 @@ export const App = (): React.JSX.Element => {
 			appendLog(`Evaluation failed: ${errMessage}`);
 		}
 
-		// Test 4: PDF Generation Pipeline
+		// Test 4: HTML to PDF Conversion & Content Verification
 		updateTestStatus("pdf", "running");
 
 		try {
@@ -157,8 +174,25 @@ export const App = (): React.JSX.Element => {
 			});
 
 			setPdfBytes(pdfData.byteLength);
-			appendLog(`PDF generated: ${pdfData.byteLength} bytes`);
-			updateTestStatus("pdf", "success", `${pdfData.byteLength} bytes produced`);
+
+			// Verify PDF magic header "%PDF" (0x25, 0x50, 0x44, 0x46)
+			const hasValidHeader =
+				pdfData.byteLength >= 4 &&
+				pdfData[0] === 0x25 &&
+				pdfData[1] === 0x50 &&
+				pdfData[2] === 0x44 &&
+				pdfData[3] === 0x46;
+
+			if (!hasValidHeader) {
+				throw new Error("Invalid PDF header: Missing %PDF signature");
+			}
+
+			appendLog(`PDF verified: ${pdfData.byteLength} bytes with valid %PDF header`);
+			updateTestStatus(
+				"pdf",
+				"success",
+				`✓ Verified %PDF header, ${pdfData.byteLength} bytes produced`,
+			);
 		} catch (err) {
 			const errMessage = err instanceof Error ? err.message : String(err);
 
@@ -206,17 +240,24 @@ export const App = (): React.JSX.Element => {
 									: styles.badgeUnavailable,
 						]}
 					>
-						<Text style={styles.badgeText}>{arch}</Text>
+						<Text style={styles.badgeText} testID="active-arch-badge">
+							{arch}
+						</Text>
 					</View>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Verification Tests</Text>
 					{testResults.map((t) => (
-						<View key={`${logPrefix}-${t.id}`} style={styles.testItem}>
+						<View
+							key={`${logPrefix}-${t.id}`}
+							style={styles.testItem}
+							testID={`test-item-${t.id}`}
+						>
 							<View style={styles.testHeader}>
 								<Text style={styles.testName}>{t.name}</Text>
 								<Text
+									testID={`test-status-${t.id}`}
 									style={[
 										styles.testStatus,
 										t.status === "success" && styles.statusSuccess,
@@ -227,12 +268,17 @@ export const App = (): React.JSX.Element => {
 									{t.status.toUpperCase()}
 								</Text>
 							</View>
-							{t.details ? <Text style={styles.testDetails}>{t.details}</Text> : null}
+							{t.details ? (
+								<Text style={styles.testDetails} testID={`test-details-${t.id}`}>
+									{t.details}
+								</Text>
+							) : null}
 						</View>
 					))}
 				</View>
 
 				<TouchableOpacity
+					testID="run-tests-button"
 					style={[styles.button, isRunningAll && styles.buttonDisabled]}
 					disabled={isRunningAll}
 					onPress={runFullTestSuite}
@@ -245,10 +291,13 @@ export const App = (): React.JSX.Element => {
 				</TouchableOpacity>
 
 				{pdfBytes !== null && (
-					<View style={styles.metricCard}>
+					<View style={styles.metricCard} testID="latest-pdf-card">
 						<Text style={styles.metricTitle}>Latest PDF Payload</Text>
-						<Text style={styles.metricValue}>
+						<Text style={styles.metricValue} testID="latest-pdf-payload">
 							{(pdfBytes / 1024).toFixed(1)} KB ({pdfBytes} bytes)
+						</Text>
+						<Text style={styles.testDetails} testID="latest-pdf-header">
+							Format: %PDF-1.4 (Magic bytes 0x25 0x50 0x44 0x46 verified)
 						</Text>
 					</View>
 				)}

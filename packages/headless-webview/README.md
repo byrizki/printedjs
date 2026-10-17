@@ -27,7 +27,19 @@ packages/headless-webview/
 
 ---
 
-## 1. React Native (iOS & Android)
+## 1. React Native (iOS, Android & Desktop)
+
+### Platform Support Matrix
+
+`@printedjs/headless-webview` provides unified headless WebView execution and vector PDF generation across mobile and desktop React Native targets without needing browser daemons or emulators:
+
+| Target Platform           | Underlying Web Engine                        | RN Architecture Support                  | PDF Output Format       | Headless Execution | Prebuilt Binary Bundled              |
+| :------------------------ | :------------------------------------------- | :--------------------------------------- | :---------------------- | :----------------- | :----------------------------------- |
+| **iOS** (`>= 12.0`)       | `WKWebView` (`createPDF`)                    | TurboModule (New Arch) & Bridge (Legacy) | Vector PDF (`%PDF-1.4`) | Offscreen View     | Built into iOS WebKit                |
+| **Android** (`>= API 24`) | `android.webkit.WebView` (`PrintAttributes`) | TurboModule (New Arch) & Bridge (Legacy) | Vector PDF (`%PDF-1.4`) | Offscreen View     | Built into Android WebView           |
+| **macOS Desktop**         | Wry (`WebKit`)                               | Desktop Native Bridge                    | Vector PDF (`%PDF-1.4`) | Native Headless    | `bin/darwin-arm64`, `bin/darwin-x64` |
+| **Windows Desktop**       | Wry (`WebView2`)                             | Desktop Native Bridge                    | Vector PDF (`%PDF-1.4`) | Native Headless    | `bin/win32-x64`                      |
+| **Linux Desktop**         | Wry (`WebKitGTK`)                            | Desktop Native Bridge                    | Vector PDF (`%PDF-1.4`) | Native Headless    | `bin/linux-x64`                      |
 
 ### Installation
 
@@ -37,10 +49,33 @@ pnpm add @printedjs/headless-webview
 npm install @printedjs/headless-webview
 ```
 
-For iOS:
+#### iOS Setup
+
+For CocoaPods:
 
 ```bash
 cd ios && pod install
+```
+
+Swift Package Manager (`Package.swift`) is also supported out of the box with zero manual configuration.
+
+#### Android Setup
+
+Autolinking automatically registers `HeadlessWebViewPackage`. Ensure your `android/build.gradle` defines `minSdkVersion = 24`.
+
+#### React Native Desktop (macOS, Windows, Linux)
+
+Prebuilt native binaries are bundled directly under `bin/` inside the npm package. Call `enableDesktopBridge()` to activate the native Wry engine:
+
+```ts
+import { enableDesktopBridge, HeadlessWebView } from "@printedjs/headless-webview";
+
+// Automatically binds HeadlessWebView to the bundled prebuilt native desktop binary
+enableDesktopBridge();
+
+const webview = await HeadlessWebView.create({
+	html: "<h1>Desktop Vector PDF</h1>",
+});
 ```
 
 ### React Hook Usage
@@ -90,11 +125,23 @@ const title = await webview.evaluateJavascript("document.title");
 // Print directly to file
 await webview.printToPdfFile("/path/to/document.pdf", {
 	landscape: false,
+	printBackground: true,
 });
 
 // Cleanup instance
 await webview.destroy();
 ```
+
+### Example Application & Test Harness
+
+A complete React Native example application is located in [`example/`](example/):
+
+- **Run on Desktop**: `pnpm --filter headless-webview-example desktop`
+- **Run on Android (Legacy)**: `pnpm --filter headless-webview-example android:legacy`
+- **Run on Android (New Arch)**: `pnpm --filter headless-webview-example android:new-arch`
+- **Run on iOS (Legacy)**: `pnpm --filter headless-webview-example ios:legacy`
+- **Run on iOS (New Arch)**: `pnpm --filter headless-webview-example ios:new-arch`
+- **Run Packaging & Architecture Suite**: `pnpm --filter headless-webview-example test:both-arch`
 
 ---
 

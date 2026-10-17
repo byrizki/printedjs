@@ -24,7 +24,7 @@ Printedjs is maintained as a modular pnpm monorepo with clean architectural boun
 ### Distribution & Tooling Packages
 
 - [`@printedjs/minimal`](packages/minimal/README.md) — Standalone bundle (`printedjs.min.js`) with complete engine, plugins, auto-init, and legacy Paged.js migration shims
-- [`@printedjs/headless-webview`](packages/headless-webview/README.md) — Standalone cross-platform headless webview & vector PDF generator (React Native iOS/Android & .NET NuGet)
+- [`@printedjs/headless-webview`](packages/headless-webview/README.md) — Standalone cross-platform headless webview & vector PDF generator (React Native iOS/Android/Desktop & .NET NuGet)
 - [`@printedjs/polyfill`](packages/polyfill/README.md) — Compatibility layer for older browsers, providing DOM and observer polyfills
 - [`@printedjs/cli`](packages/cli/README.md) — Headless PDF generation CLI (`printedjs render`) with bundled native webview, Playwright, and Puppeteer drivers
 - [`@printedjs/devtools`](packages/devtools/README.md) — Diagnostic trace collector and non-layout visual inspector overlay

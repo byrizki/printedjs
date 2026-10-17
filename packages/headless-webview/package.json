@@ -6,17 +6,26 @@
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"react-native": "./dist/index.js",
+	"react-native": "./dist/index.native.js",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
+			"react-native": "./dist/index.native.js",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		}
 	},
+	"bin": {
+		"headless-webview": "./bin/headless-webview",
+		"headless-webview-linux-x64": "./bin/linux-x64/headless-webview",
+		"headless-webview-darwin-arm64": "./bin/darwin-arm64/headless-webview",
+		"headless-webview-darwin-x64": "./bin/darwin-x64/headless-webview",
+		"headless-webview-win32-x64": "./bin/win32-x64/headless-webview.exe"
+	},
 	"files": [
 		"dist",
 		"src",
+		"bin",
 		"ios",
 		"android",
 		"!android/build",

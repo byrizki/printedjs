@@ -26,6 +26,8 @@ obj/
 **/.gradle/
 .kotlin/
 **/.kotlin/
+.cxx/
+**/.cxx/
 **/build/
 *.aar
 *.apk
@@ -52,6 +54,10 @@ wry-headless/
 # CLI compiled desktop binaries
 packages/cli/bin/*
 !packages/cli/bin/.gitkeep
+
+# HeadlessWebView compiled desktop binaries
+packages/headless-webview/bin/*
+!packages/headless-webview/bin/.gitkeep
 
 # HeadlessWebView .NET compiled desktop runtimes
 packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/*

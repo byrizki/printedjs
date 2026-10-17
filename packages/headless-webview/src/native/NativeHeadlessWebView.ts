@@ -1,10 +1,12 @@
+import type { TurboModule } from "react-native";
 import type { HeadlessWebViewConfig } from "../types/config.js";
 import type { PdfPrintOptions } from "../types/options.js";
+import { getCustomNativeModule, registerNativeModule } from "./customModule.js";
 
 /**
  * TurboModule Spec interface conforming to React Native Codegen specification for New Architecture.
  */
-export interface Spec {
+export interface Spec extends TurboModule {
 	createInstance(config: HeadlessWebViewConfig): Promise<string>;
 	loadHtml(instanceId: string, html: string): Promise<void>;
 	loadUrl(instanceId: string, url: string): Promise<void>;
@@ -20,11 +22,19 @@ export interface Spec {
 
 export type NativeHeadlessWebViewSpec = Spec;
 
+export { getCustomNativeModule, registerNativeModule };
+
 /**
- * Resolves the native module across New Architecture (TurboModuleRegistry) and Legacy Architecture (NativeModules).
+ * Resolves the native module in universal / desktop / test environments.
  */
 export const getNativeModule = (): NativeHeadlessWebViewSpec => {
-	// SAFETY: Inspect global object for React Native runtime TurboModuleRegistry or NativeModules bridge.
+	const custom = getCustomNativeModule();
+
+	if (custom) {
+		return custom;
+	}
+
+	// SAFETY: Inspect global namespace in desktop or testing environment for React Native runtime globals.
 	const rnGlobal = globalThis as {
 		TurboModuleRegistry?: {
 			get<T>(name: string): T | null;
@@ -34,18 +44,16 @@ export const getNativeModule = (): NativeHeadlessWebViewSpec => {
 		};
 	};
 
-	// 1. New Architecture (TurboModule)
-	if (rnGlobal.TurboModuleRegistry) {
-		const turboModule = rnGlobal.TurboModuleRegistry.get<NativeHeadlessWebViewSpec>(
-			"HeadlessWebviewModule",
-		);
+	// 1. New Architecture (TurboModule) via global registry if present
+	if (rnGlobal.TurboModuleRegistry?.get) {
+		const turboModule = rnGlobal.TurboModuleRegistry.get<Spec>("HeadlessWebviewModule");
 
 		if (turboModule) {
 			return turboModule;
 		}
 	}
 
-	// 2. Legacy Architecture (Bridge NativeModules)
+	// 2. Legacy Architecture (Bridge NativeModules) via global if present
 	const bridgeModule = rnGlobal.NativeModules?.HeadlessWebviewModule;
 
 	if (bridgeModule) {
@@ -91,7 +99,10 @@ export const NativeHeadlessWebView: NativeHeadlessWebViewSpec = new Proxy(
 		get(_target, prop: keyof NativeHeadlessWebViewSpec) {
 			const mod = getNativeModule();
 
-			return mod[prop];
+			// SAFETY: NativeHeadlessWebViewSpec methods must preserve this context bound to the resolved native module instance.
+			const method = mod[prop] as (...callArgs: readonly never[]) => never;
+
+			return method.bind(mod);
 		},
 	},
 );
