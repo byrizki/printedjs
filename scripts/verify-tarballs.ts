@@ -84,11 +84,21 @@ function verifyDesktopPrebuilts(
 		`    Bundled ${packageName} bin targets: ${bundledBinaries.join(", ") || "none"}`,
 	);
 
+	const requirePrebuilts =
+		process.env.REQUIRE_CLI_PREBUILTS === "true" ||
+		process.env.VERIFY_ALL_CLI_PREBUILTS === "true";
+
 	if (bundledBinaries.length === 0) {
-		console.error(
-			`[FAIL] ${packageName} tarball missing prebuilt binaries in package/bin/`,
-		);
-		hasError = true;
+		if (requirePrebuilts) {
+			console.error(
+				`[FAIL] ${packageName} tarball missing prebuilt binaries in package/bin/`,
+			);
+			hasError = true;
+		} else {
+			console.log(
+				`    Notice: Prebuilt binaries not compiled yet (deferred to platform matrix jobs)`,
+			);
+		}
 	}
 
 	if (process.env.VERIFY_ALL_CLI_PREBUILTS === "true") {

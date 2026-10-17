@@ -16,6 +16,7 @@ end
 
 target 'HeadlessWebviewExample' do
   config = use_native_modules!
+  pod 'react-native-headless-webview', :path => '../..'
 
   use_react_native!(
     :path => config[:reactNativePath],

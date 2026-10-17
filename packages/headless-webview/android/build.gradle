@@ -17,6 +17,10 @@ def isNewArchitectureEnabled() {
     return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
 
+if (isNewArchitectureEnabled()) {
+    apply plugin: 'com.facebook.react'
+}
+
 android {
     namespace "com.printedjs.headlesswebview"
     compileSdkVersion 34

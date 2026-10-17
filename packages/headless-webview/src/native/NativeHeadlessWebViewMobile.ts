@@ -1,4 +1,4 @@
-import { NativeModules, TurboModuleRegistry, type TurboModule } from "react-native";
+import { NativeModules, TurboModuleRegistry } from "react-native";
 import { getCustomNativeModule, registerNativeModule } from "./customModule.js";
 import type { NativeHeadlessWebViewSpec, Spec } from "./NativeHeadlessWebView.js";
 

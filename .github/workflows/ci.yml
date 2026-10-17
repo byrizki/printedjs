@@ -188,7 +188,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
-            libgtk-3-dev
+            libgtk-3-dev \
+            xvfb
 
       - name: Bundle desktop prebuilts
         run: bash scripts/bundle-cli-prebuilts.sh
@@ -246,7 +247,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
-            libgtk-3-dev
+            libgtk-3-dev \
+            xvfb
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -263,7 +265,7 @@ jobs:
       - name: Test Linux CLI HTML to PDF rendering
         run: |
           echo "<html><head><title>CLI Test</title></head><body><h1>PrintedJS CLI Verification</h1><p>Generated PDF test</p></body></html>" > test-sample.html
-          ./packages/cli/bin/linux-x64/headless-webview test-sample.html -o test-sample.pdf
+          xvfb-run -a ./packages/cli/bin/linux-x64/headless-webview test-sample.html -o test-sample.pdf
           test -s test-sample.pdf
           head -c 4 test-sample.pdf | grep -q "%PDF"
           echo "✓ Verified Linux CLI HTML to PDF rendering (valid %PDF header and non-empty file)"

@@ -37,3 +37,10 @@ uniffi = { version = "0.32.2", features = ["build"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18", default-features = false }
 wry = { path = "../vendor/wry-headless", features = ["x11"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = "0.6.4"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSRunLoop", "NSDate", "NSString"] }

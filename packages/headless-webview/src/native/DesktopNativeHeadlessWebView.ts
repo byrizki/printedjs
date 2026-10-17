@@ -302,8 +302,26 @@ export class DesktopNativeHeadlessWebView implements NativeHeadlessWebViewSpec {
 			}
 		}
 
+		let cmd = binaryPath;
+		let finalArgs = args;
+
+		if (
+			process.platform === "linux" &&
+			!process.env.DISPLAY &&
+			!process.env.WAYLAND_DISPLAY
+		) {
+			const hasXvfb = (process.env.PATH ?? "")
+				.split(delimiter)
+				.some((dir) => existsSync(join(dir, "xvfb-run")));
+
+			if (hasXvfb) {
+				cmd = "xvfb-run";
+				finalArgs = ["-a", binaryPath, ...args];
+			}
+		}
+
 		return new Promise((resolvePromise, reject) => {
-			const child = spawn(binaryPath, args, {
+			const child = spawn(cmd, finalArgs, {
 				stdio: ["ignore", "pipe", "pipe"],
 			});
 

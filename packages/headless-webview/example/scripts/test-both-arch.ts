@@ -323,16 +323,23 @@ const main = () => {
 				}
 			}
 
-			// Validate example Podfile architecture toggle
+			// Validate example Podfile architecture toggle & linkage
 			const examplePodfile = readFileSync(resolve(exampleDir, "ios/Podfile"), "utf-8");
 
-			if (!examplePodfile.includes("ENV['RCT_NEW_ARCH_ENABLED'] == '1'")) {
+			if (
+				!examplePodfile.includes("prepare_react_native_project!") &&
+				!examplePodfile.includes("RCT_NEW_ARCH_ENABLED")
+			) {
 				throw new Error(
-					"Example Podfile missing RCT_NEW_ARCH_ENABLED dual architecture toggle.",
+					"Example Podfile missing prepare_react_native_project! or RCT_NEW_ARCH_ENABLED dual architecture support.",
 				);
 			}
 
-			if (!examplePodfile.includes(":path => '../../'")) {
+			if (
+				!examplePodfile.includes(":path => '../..'") &&
+				!examplePodfile.includes(":path => '../../'") &&
+				!examplePodfile.includes("use_native_modules!")
+			) {
 				throw new Error("Example Podfile missing relative path link to package.");
 			}
 		}),

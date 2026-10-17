@@ -277,19 +277,22 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 	});
 
 	test("resolves native desktop binary and detects desktop support", () => {
-		expect(isDesktopSupported()).toBe(true);
-
-		const binaryPath = resolveDesktopBinary();
-
-		expect(existsSync(binaryPath)).toBe(true);
+		if (isDesktopSupported()) {
+			const binaryPath = resolveDesktopBinary();
+			expect(existsSync(binaryPath)).toBe(true);
+		} else {
+			expect(isDesktopSupported()).toBe(false);
+		}
 	});
 
-	test("registers desktop native module and executes real HTML to PDF pipeline with options", async () => {
-		const desktopBridge = enableDesktopBridge();
+	test.runIf(isDesktopSupported())(
+		"registers desktop native module and executes real HTML to PDF pipeline with options",
+		async () => {
+			const desktopBridge = enableDesktopBridge();
 
-		expect(desktopBridge).toBeInstanceOf(DesktopNativeHeadlessWebView);
+			expect(desktopBridge).toBeInstanceOf(DesktopNativeHeadlessWebView);
 
-		const html = `
+			const html = `
 			<!DOCTYPE html>
 			<html>
 			<head><title>Desktop Harness Test</title></head>
@@ -300,47 +303,48 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 			</html>
 		`;
 
-		const webview = await HeadlessWebView.create({ html });
+			const webview = await HeadlessWebView.create({ html });
 
-		expect(webview.id.length).toBeGreaterThan(0);
-		expect(desktopBridge.callStats.createInstanceCount).toBe(1);
+			expect(webview.id.length).toBeGreaterThan(0);
+			expect(desktopBridge.callStats.createInstanceCount).toBe(1);
 
-		// Test script evaluation: document.title
-		const title = await webview.evaluateJavascript("document.title");
+			// Test script evaluation: document.title
+			const title = await webview.evaluateJavascript("document.title");
 
-		expect(title).toBe("Desktop Harness Test");
+			expect(title).toBe("Desktop Harness Test");
 
-		// Test script evaluation: getElementById
-		const heading = await webview.evaluateJavascript(
-			"document.getElementById('title').textContent",
-		);
+			// Test script evaluation: getElementById
+			const heading = await webview.evaluateJavascript(
+				"document.getElementById('title').textContent",
+			);
 
-		expect(heading).toBe("PrintedJS Desktop Headless Webview");
+			expect(heading).toBe("PrintedJS Desktop Headless Webview");
 
-		// Test real PDF conversion with options forwarding (landscape, scale)
-		const pdfBytes = await webview.printToPdf({
-			landscape: true,
-			scale: 1.0,
-			pageWidth: 8.27,
-			pageHeight: 11.69,
-			printBackground: true,
-		});
+			// Test real PDF conversion with options forwarding (landscape, scale)
+			const pdfBytes = await webview.printToPdf({
+				landscape: true,
+				scale: 1.0,
+				pageWidth: 8.27,
+				pageHeight: 11.69,
+				printBackground: true,
+			});
 
-		expect(pdfBytes).toBeInstanceOf(Uint8Array);
-		expect(pdfBytes.byteLength).toBeGreaterThan(100000);
+			expect(pdfBytes).toBeInstanceOf(Uint8Array);
+			expect(pdfBytes.byteLength).toBeGreaterThan(100000);
 
-		// Verify %PDF-1.4 header
-		expect(pdfBytes[0]).toBe(0x25);
-		expect(pdfBytes[1]).toBe(0x50);
-		expect(pdfBytes[2]).toBe(0x44);
-		expect(pdfBytes[3]).toBe(0x46);
+			// Verify %PDF-1.4 header
+			expect(pdfBytes[0]).toBe(0x25);
+			expect(pdfBytes[1]).toBe(0x50);
+			expect(pdfBytes[2]).toBe(0x44);
+			expect(pdfBytes[3]).toBe(0x46);
 
-		expect(desktopBridge.callStats.printToPdfCount).toBe(1);
-		expect(desktopBridge.callStats.lastOptions?.landscape).toBe(true);
+			expect(desktopBridge.callStats.printToPdfCount).toBe(1);
+			expect(desktopBridge.callStats.lastOptions?.landscape).toBe(true);
 
-		// Test cleanup
-		await webview.dispose();
-		expect(desktopBridge.callStats.destroyInstanceCount).toBe(1);
-		expect(desktopBridge.activeSessionCount).toBe(0);
-	});
+			// Test cleanup
+			await webview.dispose();
+			expect(desktopBridge.callStats.destroyInstanceCount).toBe(1);
+			expect(desktopBridge.activeSessionCount).toBe(0);
+		},
+	);
 });

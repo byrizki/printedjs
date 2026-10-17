@@ -1,8 +1,61 @@
-use std::sync::{Arc, Mutex};
+#[cfg(any(
+    target_os = "windows",
+    target_vendor = "apple",
+    target_os = "android",
+    all(target_os = "linux", feature = "os-webview")
+))]
+use std::sync::Mutex;
+#[cfg(any(
+    target_os = "windows",
+    target_vendor = "apple",
+    target_os = "android",
+    all(target_os = "linux", feature = "os-webview")
+))]
 use std::time::Duration;
+use std::sync::Arc;
 use crate::config::WebViewConfig;
 use crate::error::HeadlessWebViewError;
 use crate::options::PdfPrintOptions;
+
+#[cfg(any(
+    target_os = "windows",
+    target_vendor = "apple",
+    target_os = "android",
+    all(target_os = "linux", feature = "os-webview")
+))]
+fn pump_platform_events() {
+    #[cfg(target_os = "linux")]
+    {
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    unsafe {
+        use windows::Win32::UI::WindowsAndMessaging::{
+            DispatchMessageW, MsgWaitForMultipleObjectsEx, PM_REMOVE, PeekMessageW, QS_ALLINPUT,
+        };
+        let mut msg = std::mem::zeroed();
+        while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
+            DispatchMessageW(&msg);
+        }
+        let _ = MsgWaitForMultipleObjectsEx(
+            None,
+            5,
+            QS_ALLINPUT,
+            windows::Win32::UI::WindowsAndMessaging::MWMO_INPUTAVAILABLE,
+        );
+    }
+
+    #[cfg(target_vendor = "apple")]
+    unsafe {
+        let rl = objc2_foundation::NSRunLoop::mainRunLoop();
+        let limit_date = objc2_foundation::NSDate::dateWithTimeIntervalSinceNow(0.005);
+        let mode = objc2_foundation::ns_string!("NSDefaultRunLoopMode");
+        rl.acceptInputForMode_beforeDate(mode, &limit_date);
+    }
+}
 
 #[derive(uniffi::Object)]
 pub struct HeadlessWebViewCore {
@@ -202,10 +255,27 @@ impl HeadlessWebViewCore {
                     message: e.to_string(),
                 })?;
 
-            rx.recv_timeout(Duration::from_secs(15))
-                .map_err(|e| HeadlessWebViewError::ScriptEvaluationFailed {
-                    message: format!("Script evaluation timed out: {e}"),
-                })
+            let start = std::time::Instant::now();
+            let timeout = Duration::from_secs(15);
+            loop {
+                match rx.try_recv() {
+                    Ok(res) => return Ok(res),
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        return Err(HeadlessWebViewError::ScriptEvaluationFailed {
+                            message: "Script evaluation channel disconnected unexpectedly".to_string(),
+                        });
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        if start.elapsed() >= timeout {
+                            return Err(HeadlessWebViewError::ScriptEvaluationFailed {
+                                message: "Script evaluation timed out after 15 seconds".to_string(),
+                            });
+                        }
+                        pump_platform_events();
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                }
+            }
         }
 
         #[cfg(not(any(
@@ -237,12 +307,7 @@ impl HeadlessWebViewCore {
             let (tx, rx) = std::sync::mpsc::channel();
             let wry_options = options.unwrap_or_default().into();
 
-            #[cfg(target_os = "linux")]
-            {
-                while gtk::events_pending() {
-                    gtk::main_iteration();
-                }
-            }
+            pump_platform_events();
 
             webview
                 .print_to_pdf(wry_options, move |result| {
@@ -252,37 +317,31 @@ impl HeadlessWebViewCore {
                     message: e.to_string(),
                 })?;
 
-            #[cfg(target_os = "linux")]
-            {
-                loop {
-                    match rx.try_recv() {
-                        Ok(res) => {
-                            let pdf_bytes = res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                                message: e.to_string(),
-                            })?;
-                            return Ok(pdf_bytes);
+            let start = std::time::Instant::now();
+            let timeout = Duration::from_secs(30);
+            loop {
+                match rx.try_recv() {
+                    Ok(res) => {
+                        return res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
+                            message: e.to_string(),
+                        });
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        return Err(HeadlessWebViewError::PdfGenerationFailed {
+                            message: "PDF generation channel disconnected unexpectedly".to_string(),
+                        });
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        if start.elapsed() >= timeout {
+                            return Err(HeadlessWebViewError::PdfGenerationFailed {
+                                message: "PDF generation timed out after 30 seconds".to_string(),
+                            });
                         }
-                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
-                        Err(std::sync::mpsc::TryRecvError::Empty) => {
-                            while gtk::events_pending() {
-                                gtk::main_iteration();
-                            }
-                            std::thread::sleep(Duration::from_millis(5));
-                        }
+                        pump_platform_events();
+                        std::thread::sleep(Duration::from_millis(5));
                     }
                 }
             }
-
-            let pdf_bytes = rx
-                .recv_timeout(Duration::from_secs(30))
-                .map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                    message: format!("PDF generation timed out: {e}"),
-                })?
-                .map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                    message: e.to_string(),
-                })?;
-
-            Ok(pdf_bytes)
         }
 
         #[cfg(not(any(
@@ -315,12 +374,7 @@ impl HeadlessWebViewCore {
             let wry_options = options.unwrap_or_default().into();
             let path = std::path::PathBuf::from(&output_path);
 
-            #[cfg(target_os = "linux")]
-            {
-                while gtk::events_pending() {
-                    gtk::main_iteration();
-                }
-            }
+            pump_platform_events();
 
             webview
                 .print_to_pdf_file(&path, wry_options, move |result| {
@@ -330,36 +384,31 @@ impl HeadlessWebViewCore {
                     message: e.to_string(),
                 })?;
 
-            #[cfg(target_os = "linux")]
-            {
-                loop {
-                    match rx.try_recv() {
-                        Ok(res) => {
-                            res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                                message: e.to_string(),
-                            })?;
-                            return Ok(());
+            let start = std::time::Instant::now();
+            let timeout = Duration::from_secs(30);
+            loop {
+                match rx.try_recv() {
+                    Ok(res) => {
+                        return res.map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
+                            message: e.to_string(),
+                        });
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        return Err(HeadlessWebViewError::PdfGenerationFailed {
+                            message: "PDF file generation channel disconnected unexpectedly".to_string(),
+                        });
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        if start.elapsed() >= timeout {
+                            return Err(HeadlessWebViewError::PdfGenerationFailed {
+                                message: "PDF file generation timed out after 30 seconds".to_string(),
+                            });
                         }
-                        Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
-                        Err(std::sync::mpsc::TryRecvError::Empty) => {
-                            while gtk::events_pending() {
-                                gtk::main_iteration();
-                            }
-                            std::thread::sleep(Duration::from_millis(5));
-                        }
+                        pump_platform_events();
+                        std::thread::sleep(Duration::from_millis(5));
                     }
                 }
             }
-
-            rx.recv_timeout(Duration::from_secs(30))
-                .map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                    message: format!("PDF file generation timed out: {e}"),
-                })?
-                .map_err(|e| HeadlessWebViewError::PdfGenerationFailed {
-                    message: e.to_string(),
-                })?;
-
-            Ok(())
         }
 
         #[cfg(not(any(

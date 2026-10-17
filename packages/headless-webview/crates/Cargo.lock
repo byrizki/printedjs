@@ -902,10 +902,13 @@ name = "headless-webview-core"
 version = "0.2.0"
 dependencies = [
  "gtk",
+ "objc2",
+ "objc2-foundation",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
  "uniffi",
+ "windows",
  "wry",
 ]
 

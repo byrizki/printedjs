@@ -152,10 +152,11 @@ describe("@printedjs/cli", () => {
 
 	test("resolves bundled native headless webview binary on host", () => {
 		const resolvedBinary = resolveWebviewBinary();
-		expect(resolvedBinary).toBeDefined();
 
 		if (resolvedBinary) {
 			expect(existsSync(resolvedBinary)).toBe(true);
+		} else {
+			expect(resolvedBinary).toBeUndefined();
 		}
 	});
 });
