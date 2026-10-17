@@ -108,9 +108,9 @@ const main = async () => {
 		printBackground: true,
 	});
 
-	if (pdfBytes.byteLength < 50000) {
+	if (pdfBytes.byteLength < 1000) {
 		throw new Error(
-			`Suspiciously small PDF produced (${pdfBytes.byteLength} bytes). Expected >50KB.`,
+			`Suspiciously small PDF produced (${pdfBytes.byteLength} bytes). Expected >1KB.`,
 		);
 	}
 

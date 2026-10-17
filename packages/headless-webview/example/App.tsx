@@ -297,7 +297,7 @@ export const App = (): React.JSX.Element => {
 							{(pdfBytes / 1024).toFixed(1)} KB ({pdfBytes} bytes)
 						</Text>
 						<Text style={styles.testDetails} testID="latest-pdf-header">
-							Format: %PDF-1.4 (Magic bytes 0x25 0x50 0x44 0x46 verified)
+							Format: %PDF (Magic bytes 0x25 0x50 0x44 0x46 verified)
 						</Text>
 					</View>
 				)}

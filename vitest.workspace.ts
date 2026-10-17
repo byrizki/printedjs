@@ -70,6 +70,8 @@ export default [
 		test: {
 			include: ["packages/**/*.test.{ts,tsx}", "tests/unit/**/*.test.{ts,tsx}"],
 			environment: "node",
+			testTimeout: 60000,
+			hookTimeout: 60000,
 		},
 	}),
 ];

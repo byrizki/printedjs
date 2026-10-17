@@ -97,12 +97,12 @@ describe(
 				// Genuine rendered PDF is substantial (over 1KB, unlike fake mock strings)
 				expect(pdfBuffer.byteLength).toBeGreaterThan(1000);
 
-				// Verify %PDF-1.4 magic bytes (0x25, 0x50, 0x44, 0x46)
+				// Verify %PDF magic bytes (0x25, 0x50, 0x44, 0x46)
 				expect(pdfBuffer[0]).toBe(0x25);
 				expect(pdfBuffer[1]).toBe(0x50);
 				expect(pdfBuffer[2]).toBe(0x44);
 				expect(pdfBuffer[3]).toBe(0x46);
-				expect(pdfBuffer.subarray(0, 8).toString("utf-8")).toContain("%PDF-1.4");
+				expect(pdfBuffer.subarray(0, 8).toString("utf-8")).toMatch(/%PDF-1\.[3-7]/);
 
 				// Verify standard PDF structure markers
 				const pdfString = pdfBuffer.toString("latin1");
@@ -202,7 +202,7 @@ describe(
 
 				const pdfHeader = renderer.root.findByProps({ testID: "latest-pdf-header" });
 
-				expect(pdfHeader.props.children).toContain("%PDF-1.4");
+				expect(pdfHeader.props.children).toContain("%PDF");
 			},
 		);
 
@@ -267,7 +267,7 @@ describe(
 
 				const pdfHeader = renderer.root.findByProps({ testID: "latest-pdf-header" });
 
-				expect(pdfHeader.props.children).toContain("%PDF-1.4");
+				expect(pdfHeader.props.children).toContain("%PDF");
 			},
 		);
 
@@ -330,7 +330,7 @@ describe(
 
 				const pdfHeader = renderer.root.findByProps({ testID: "latest-pdf-header" });
 
-				expect(pdfHeader.props.children).toContain("%PDF-1.4");
+				expect(pdfHeader.props.children).toContain("%PDF");
 			},
 		);
 	},

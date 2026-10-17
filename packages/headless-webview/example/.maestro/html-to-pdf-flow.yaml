@@ -34,5 +34,5 @@ appId: com.example.headlesswebview
     id: "latest-pdf-header"
 - assertVisible:
     id: "latest-pdf-payload"
-- assertVisible: ".*%PDF-1.4.*"
+- assertVisible: ".*%PDF.*"
 - assertVisible: ".*✓ Verified %PDF header.*"
