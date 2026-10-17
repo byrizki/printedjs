@@ -277,7 +277,7 @@ jobs:
       - name: Verify HeadlessWebView .NET Suite
         run: |
           dotnet build -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj
-          dotnet test -c Release packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
+          xvfb-run -a dotnet test -c Release packages/headless-webview/dotnet/tests/PrintedJs.HeadlessWebView.Tests/PrintedJs.HeadlessWebView.Tests.csproj
           mkdir -p dist-nuget
           dotnet pack -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj -o dist-nuget
           pnpm verify:nupkg

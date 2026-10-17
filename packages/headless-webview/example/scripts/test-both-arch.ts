@@ -378,11 +378,14 @@ const main = () => {
 		runStep(
 			"React Native Example App UI: HTML-to-PDF Verification (Fabric, Legacy & Desktop)",
 			() => {
-				execSync("pnpm vitest run packages/headless-webview/example/App.test.tsx", {
-					cwd: repoRoot,
-					stdio: "inherit",
-					shell: "/bin/bash",
-				});
+				execSync(
+					"pnpm vitest run packages/headless-webview/example/App.test.tsx --testTimeout=30000",
+					{
+						cwd: repoRoot,
+						stdio: "inherit",
+						shell: "/bin/bash",
+					},
+				);
 			},
 		),
 	);

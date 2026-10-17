@@ -33,7 +33,8 @@ if [ ! -f "${APK_PATH}" ]; then
 fi
 
 # Optional APK signature verification
-APKSIGNER=$(find "${ANDROID_HOME:-/mnt/development/Android/Sdk}"/build-tools -name apksigner 2>/dev/null | sort -V | tail -n 1 || true)
+ANDROID_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/mnt/development/Android/Sdk}}"
+APKSIGNER=$(find "${ANDROID_ROOT}"/build-tools -name apksigner 2>/dev/null | sort -V | tail -n 1 || true)
 if [ -n "${APKSIGNER}" ] && [ -x "${APKSIGNER}" ]; then
     echo "--> Verifying APK signature using ${APKSIGNER}..."
     "${APKSIGNER}" verify --verbose "${APK_PATH}" || {
@@ -43,6 +44,10 @@ if [ -n "${APKSIGNER}" ] && [ -x "${APKSIGNER}" ]; then
 fi
 
 # 3. Verify Android device / emulator connectivity
+if ! command -v adb &> /dev/null && [ -d "${ANDROID_ROOT}/platform-tools" ]; then
+    export PATH="${PATH}:${ANDROID_ROOT}/platform-tools"
+fi
+
 if ! command -v adb &> /dev/null; then
     echo "❌ Error: adb not found in PATH."
     exit 1

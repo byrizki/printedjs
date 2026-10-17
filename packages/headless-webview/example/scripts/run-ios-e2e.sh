@@ -29,12 +29,19 @@ echo "--> Maestro version: $(maestro --version)"
 
 # 2. Boot iOS Simulator
 echo "--> Booting iOS Simulator..."
-DEVICE_NAME="${IOS_SIMULATOR_NAME:-iPhone 15}"
 BOOTED_DEVICE=$(xcrun simctl list devices | grep -E "Booted" | head -n 1 || true)
 
 if [ -z "${BOOTED_DEVICE}" ]; then
-    echo "--> Booting ${DEVICE_NAME}..."
-    xcrun simctl boot "${DEVICE_NAME}" || true
+    TARGET_DEVICE="${IOS_SIMULATOR_NAME:-}"
+    if [ -z "${TARGET_DEVICE}" ]; then
+        if xcrun simctl list devices available | grep -q "iPhone 15"; then
+            TARGET_DEVICE="iPhone 15"
+        else
+            TARGET_DEVICE=$(xcrun simctl list devices available | grep -E "iPhone" | head -n 1 | sed -E 's/^[[:space:]]*([^(]+)[[:space:]]*\(.*/\1/' | xargs || true)
+        fi
+    fi
+    echo "--> Booting ${TARGET_DEVICE:-iPhone 15}..."
+    xcrun simctl boot "${TARGET_DEVICE:-iPhone 15}" || true
 else
     echo "--> Found already booted simulator: ${BOOTED_DEVICE}"
 fi
