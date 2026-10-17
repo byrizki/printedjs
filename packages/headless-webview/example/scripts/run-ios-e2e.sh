@@ -70,17 +70,19 @@ else
 fi
 
 CONFIG="${IOS_CONFIGURATION:-Release}"
-${BUILD_CMD} \
-    -scheme HeadlessWebviewExample \
-    -configuration "${CONFIG}" \
-    -destination "generic/platform=iOS Simulator" \
-    -derivedDataPath build \
-    CODE_SIGNING_ALLOWED=NO \
-    CODE_SIGN_IDENTITY="" \
-    CODE_SIGNING_REQUIRED=NO \
-    build
-
 APP_PATH="${IOS_DIR}/build/Build/Products/${CONFIG}-iphonesimulator/HeadlessWebviewExample.app"
+
+if [ ! -d "${APP_PATH}" ]; then
+    ${BUILD_CMD} \
+        -scheme HeadlessWebviewExample \
+        -configuration "${CONFIG}" \
+        -destination "generic/platform=iOS Simulator" \
+        -derivedDataPath build \
+        CODE_SIGNING_ALLOWED=NO \
+        CODE_SIGN_IDENTITY="" \
+        CODE_SIGNING_REQUIRED=NO \
+        build
+fi
 if [ ! -d "${APP_PATH}" ]; then
     echo "❌ Error: Built .app not found at ${APP_PATH}"
     exit 1

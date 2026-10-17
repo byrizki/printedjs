@@ -447,10 +447,11 @@ const main = () => {
 			if (hasXcodeBuild) {
 				process.stdout.write("--> Building iOS example app for simulator...\n");
 				const workspacePath = resolve(iosDir, "HeadlessWebviewExample.xcworkspace");
+				const iosConfig = process.env.IOS_CONFIGURATION || "Release";
 
 				const buildCmd = existsSync(workspacePath)
-					? `xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration Debug -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO clean build`
-					: `xcodebuild -project HeadlessWebviewExample.xcodeproj -scheme HeadlessWebviewExample -configuration Debug -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO clean build`;
+					? `xcodebuild -workspace HeadlessWebviewExample.xcworkspace -scheme HeadlessWebviewExample -configuration ${iosConfig} -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build`
+					: `xcodebuild -project HeadlessWebviewExample.xcodeproj -scheme HeadlessWebviewExample -configuration ${iosConfig} -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build`;
 
 				execSync(buildCmd, {
 					cwd: iosDir,
