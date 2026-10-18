@@ -248,8 +248,7 @@ describe("@printedjs/headless-webview iOS & SwiftPM Configuration", () => {
 		expect(content).toContain("// swift-tools-version: 5.9");
 		expect(content).toContain('name: "react-native-headless-webview"');
 		expect(content).toContain(".iOS(.v12)");
-		expect(content).toContain("HeadlessWebviewModule.swift");
-		expect(content).toContain("HeadlessWebviewModuleBridge.m");
+		expect(content).toContain("HeadlessWebviewModule.m");
 	});
 
 	test("react-native-headless-webview.podspec supports both New and Legacy Architecture", () => {
@@ -265,17 +264,17 @@ describe("@printedjs/headless-webview iOS & SwiftPM Configuration", () => {
 	});
 
 	test("iOS native module source files exist", () => {
-		const swiftPath = resolve(packageRoot, "ios/HeadlessWebviewModule.swift");
-		const bridgePath = resolve(packageRoot, "ios/HeadlessWebviewModuleBridge.m");
+		const headerPath = resolve(packageRoot, "ios/HeadlessWebviewModule.h");
+		const implPath = resolve(packageRoot, "ios/HeadlessWebviewModule.m");
 
-		expect(existsSync(swiftPath)).toBe(true);
-		expect(existsSync(bridgePath)).toBe(true);
+		expect(existsSync(headerPath)).toBe(true);
+		expect(existsSync(implPath)).toBe(true);
 
-		const swiftContent = readFileSync(swiftPath, "utf-8");
-		expect(swiftContent).toContain("@objc(HeadlessWebviewModule)");
-		expect(swiftContent).toContain("WKWebView");
-		expect(swiftContent).toContain("createPDF");
-		expect(swiftContent).toContain("UIPrintPageRenderer");
+		const implContent = readFileSync(implPath, "utf-8");
+		expect(implContent).toContain("HeadlessWebviewModule");
+		expect(implContent).toContain("WKWebView");
+		expect(implContent).toContain("createPDFWithConfiguration");
+		expect(implContent).toContain("UIPrintPageRenderer");
 	});
 });
 

@@ -268,8 +268,8 @@ function verifyTarballs(): void {
 				"package/android/src/main/java/android/print/PdfPrintHelper.kt",
 				"package/android/src/main/java/com/printedjs/headlesswebview/HeadlessWebViewModule.kt",
 				"package/android/src/main/java/com/printedjs/headlesswebview/HeadlessWebViewPackage.kt",
-				"package/ios/HeadlessWebviewModule.swift",
-				"package/ios/HeadlessWebviewModuleBridge.m",
+				"package/ios/HeadlessWebviewModule.h",
+				"package/ios/HeadlessWebviewModule.m",
 			];
 
 			for (const req of requiredHeadlessFiles) {

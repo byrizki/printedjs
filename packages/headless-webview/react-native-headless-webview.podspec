@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "12.0" }
   s.source       = { :git => "https://github.com/byrizki/printedjs.git", :tag => "v#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm,swift}"
+  s.source_files = "ios/**/*.{h,m,mm}"
   s.frameworks   = "WebKit", "PDFKit", "UIKit"
 
   # Bundled prebuilt native static library / XCFramework support (no on-the-fly compilation)
@@ -26,10 +26,4 @@ Pod::Spec.new do |s|
   else
     s.dependency "React-Core"
   end
-  s.swift_version = "5.0"
-
-  s.user_target_xcconfig = {
-    'ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES' => 'YES',
-    'LIBRARY_SEARCH_PATHS' => '$(inherited) "$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)" "$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)" "$(SDKROOT)/usr/lib/swift"'
-  }
 end

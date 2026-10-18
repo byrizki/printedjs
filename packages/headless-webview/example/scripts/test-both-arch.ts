@@ -80,8 +80,8 @@ const main = () => {
 				"package.json",
 				"react-native-headless-webview.podspec",
 				"Package.swift",
-				"ios/HeadlessWebviewModule.swift",
-				"ios/HeadlessWebviewModuleBridge.m",
+				"ios/HeadlessWebviewModule.h",
+				"ios/HeadlessWebviewModule.m",
 				"android/build.gradle",
 				"android/src/main/java/com/printedjs/headlesswebview/HeadlessWebViewModule.kt",
 				"android/src/main/java/com/printedjs/headlesswebview/HeadlessWebViewPackage.kt",
@@ -364,10 +364,7 @@ const main = () => {
 				throw new Error("Package.swift missing .iOS(.v12) platform target.");
 			}
 
-			if (
-				!content.includes("HeadlessWebviewModule.swift") ||
-				!content.includes("HeadlessWebviewModuleBridge.m")
-			) {
+			if (!content.includes("HeadlessWebviewModule.m")) {
 				throw new Error("Package.swift missing required source file targets.");
 			}
 		}),

@@ -20,8 +20,7 @@ let package = Package(
       dependencies: [],
       path: "ios",
       sources: [
-        "HeadlessWebviewModule.swift",
-        "HeadlessWebviewModuleBridge.m"
+        "HeadlessWebviewModule.m"
       ],
       publicHeadersPath: "."
     )
