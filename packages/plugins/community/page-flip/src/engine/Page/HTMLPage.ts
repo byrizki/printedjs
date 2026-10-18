@@ -82,6 +82,8 @@ export class HTMLPage extends Page {
 		s.pointerEvents = "";
 		s.left = "0px";
 		s.top = "0px";
+		s.backgroundColor = "#ffffff";
+		s.setProperty("background-color", "#ffffff", "important");
 		s.setProperty("width", `${pageWidth}px`, "important");
 		s.setProperty("height", `${pageHeight}px`, "important");
 	}

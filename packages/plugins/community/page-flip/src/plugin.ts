@@ -46,7 +46,8 @@ const pageFlipCss = `
 	transform-style: preserve-3d !important;
 	box-sizing: border-box !important;
 	overflow: hidden !important;
-	background-color: #ffffff;
+	background-color: #ffffff !important;
+	background: #ffffff !important;
 	transition: none !important;
 	animation: none !important;
 }
@@ -55,12 +56,21 @@ const pageFlipCss = `
 .stf__item *,
 .stf__parent :is(.printedjs_page, .pagedjs_page),
 .stf__parent :is(.printedjs_page, .pagedjs_page) * {
+	margin: 0 !important;
 	box-shadow: none !important;
 	border-radius: 0 !important;
 	border: none !important;
 	transition: none !important;
 	backface-visibility: hidden !important;
 	-webkit-backface-visibility: hidden !important;
+}
+
+.stf__parent :is(.printedjs_page, .pagedjs_page),
+.stf__parent :is(.printedjs_sheet, .pagedjs_sheet),
+.stf__parent :is(.printedjs_pagebox, .pagedjs_pagebox),
+.stf__parent :is(.printedjs_area, .pagedjs_area) {
+	background-color: #ffffff !important;
+	background: #ffffff !important;
 }
 
 .stf__item.--left {

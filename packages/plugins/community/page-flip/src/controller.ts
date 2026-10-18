@@ -12,6 +12,7 @@ export interface PageFlipOptions {
 	usePortrait?: boolean | undefined;
 	keyboardNavigation?: boolean | undefined;
 	startPage?: number | undefined;
+	density?: "soft" | "hard" | undefined;
 }
 
 export interface FlipBookRange {
@@ -412,7 +413,9 @@ export class PageFlipController implements FlipBookController {
 
 		const isPortrait =
 			this.pageFlip?.getOrientation() === "portrait" ||
-			(typeof window !== "undefined" && window.innerWidth <= 768);
+			(this.options.usePortrait !== false &&
+				typeof window !== "undefined" &&
+				window.innerWidth <= 768);
 
 		if (isPortrait) return total;
 
@@ -487,7 +490,9 @@ export class PageFlipController implements FlipBookController {
 
 		const isPortrait =
 			this.pageFlip?.getOrientation() === "portrait" ||
-			("innerWidth" in globalThis && globalThis.innerWidth <= 768);
+			(this.options.usePortrait !== false &&
+				"innerWidth" in globalThis &&
+				globalThis.innerWidth <= 768);
 
 		if (isPortrait) {
 			const idx = Math.max(
@@ -655,7 +660,9 @@ export class PageFlipController implements FlipBookController {
 
 		const isMobile =
 			this.options.usePortrait === true ||
-			("innerWidth" in globalThis && globalThis.innerWidth <= 768);
+			(this.options.usePortrait !== false &&
+				"innerWidth" in globalThis &&
+				globalThis.innerWidth <= 768);
 
 		const bookWidth = isMobile ? pageWidth : pageWidth * 2;
 		this.container.style.width = `${bookWidth}px`;
@@ -694,8 +701,15 @@ export class PageFlipController implements FlipBookController {
 				page.setAttribute?.("data-natural-height", String(naturalHeight));
 			}
 
+			if (this.options.density) {
+				page.setAttribute("data-density", this.options.density);
+				page.dataset["density"] = this.options.density;
+			}
+
 			setPageProp(page, "width", `${pageWidth}px`, "important");
 			setPageProp(page, "height", `${pageHeight}px`, "important");
+			setPageProp(page, "margin", "0", "important");
+			setPageProp(page, "background-color", "#ffffff", "important");
 			setPageProp(page, "overflow", "hidden", "important");
 			setPageProp(page, "transition", "none", "important");
 
@@ -906,6 +920,10 @@ export class PageFlipController implements FlipBookController {
 		}
 	}
 
+	async flipNext(): Promise<void> {
+		return this.next();
+	}
+
 	async prev(): Promise<void> {
 		if (this.pageFlip) {
 			this.pageFlip.flipPrev();
@@ -925,6 +943,10 @@ export class PageFlipController implements FlipBookController {
 		}
 	}
 
+	async flipPrev(): Promise<void> {
+		return this.prev();
+	}
+
 	async flipTo(pageNumber: number): Promise<void> {
 		if (this.pageFlip) {
 			this.pageFlip.flip(Math.max(0, pageNumber - 1));
@@ -934,7 +956,9 @@ export class PageFlipController implements FlipBookController {
 
 		const isMobile =
 			this.options.usePortrait === true ||
-			(typeof window !== "undefined" && window.innerWidth <= 768);
+			(this.options.usePortrait !== false &&
+				typeof window !== "undefined" &&
+				window.innerWidth <= 768);
 
 		const targetSpread = isMobile
 			? Math.max(0, Math.min(pageNumber - 1, this.totalSpreads - 1))

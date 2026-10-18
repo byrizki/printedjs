@@ -144,6 +144,8 @@ export const PAGE_SHELL_CSS = `
 
 :is(.printedjs_page, .pagedjs_page) {
 	box-sizing: border-box;
+	background: #ffffff;
+	background-color: #ffffff;
 	counter-increment: page var(--printedjs-page-counter-increment, var(--pagedjs-page-counter-increment, 1));
 	width: var(--printedjs-width, var(--pagedjs-width));
 	height: var(--printedjs-height, var(--pagedjs-height));
