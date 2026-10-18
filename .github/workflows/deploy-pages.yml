@@ -4,12 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - "packages/browser/**"
-      - "packages/core/**"
-      - "packages/devtools/**"
-      - "packages/minimal/**"
-      - "packages/plugins/**"
-      - "packages/polyfill/**"
+      - "packages/**"
+      - "apps/**"
+      - "docs/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -38,8 +39,14 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install monorepo dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install documentation dependencies
+        run: cd docs && yarn install --immutable
 
       - name: Build packages and assemble GitHub Pages
         run: pnpm build:pages

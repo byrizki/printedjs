@@ -1,42 +1,48 @@
-# Printedjs Documentation
+# Printedjs Documentation Site
 
-Welcome to the documentation for **Printedjs**, the modern browser-native paginated document rendering engine.
+> Official documentation site for [Printedjs](https://github.com/byrizki/printedjs) — modern, high-performance browser-native paginated document rendering engine.
 
-Printedjs is designed as a modular, high-performance, and resilient successor to legacy monolithic Paged.js. It transforms standard HTML and CSS into print-ready paginated pages with full support for CSS Paged Media specifications.
+Built with [Nuxt](https://nuxt.com), [Docus](https://docus.dev), and [Nuxt Content](https://content.nuxt.com/), deployed to [GitHub Pages](https://byrizki.github.io/printedjs/).
 
----
+## 🚀 Quick Start
 
-## Documentation Index
+```bash
+# Install dependencies
+yarn install
 
-| Guide                                                  | Description                                                                              |
-| :----------------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| [Architecture Overview](./architecture.md)             | Multi-package architecture, pure core design, lifecycle pipeline, and surface isolation. |
-| [Package Catalog](./packages-overview.md)              | Comprehensive catalog of all `@printedjs/*` packages, their boundaries, and exports.     |
-| [Migrating from Paged.js](./migrating-from-pagedjs.md) | Guide for transitioning from legacy Paged.js, API comparisons, and compatibility shims.  |
-| [Plugin Authoring Guide](./plugin-authoring.md)        | Step-by-step guide to writing custom plugins, lifecycle hooks, and ordering rules.       |
-| [Headless PDF CLI](./cli.md)                           | Command-line interface and programmatic bridge for headless PDF rendering.               |
-| [Release Readiness](./release-readiness.md)            | Verification pipeline, package distribution checks, and release criteria.                |
-| [Project Roadmap](./roadmap.md)                        | Comprehensive milestone tracker covering completed phases and future horizons.           |
-| [Implementation Plan](./roadmap-plan.md)               | Technical plan for Phase 17 (Counters), Phase 18 (View Plugins), and Future Horizons.    |
+# Start development server
+yarn dev
+```
 
----
+The documentation site will be running at `http://localhost:3000`.
 
-## Quick Navigation by Role
+## 📁 Project Structure
 
-### Document Designers & Template Authors
+```text
+docs/
+├── content/
+│   ├── en/                     # English documentation
+│   │   ├── index.md            # Landing hero page
+│   │   ├── 01.getting-started/ # Getting started & installation
+│   │   ├── 02.how-to/          # Implementation & migration guides
+│   │   ├── 03.architecture/    # System design, contracts & roadmap
+│   │   ├── 04.paged-media/     # CSS Paged Media specifications
+│   │   └── 05.demos/           # Interactive Live Demo & Minimal Demo
+│   └── id/                     # Bahasa Indonesia documentation
+├── components/                 # Custom Vue & Docus components
+├── public/                     # Static assets & mounted demos
+├── nuxt.config.ts              # Nuxt configuration
+├── app.config.ts               # Docus theme configuration
+└── package.json
+```
 
-- Review [Migrating from Paged.js](./migrating-from-pagedjs.md) to understand CSS margin box formatting (`@top-left`, `@bottom-right`), page counters, and break controls.
-- Launch the interactive playground (`pnpm dev`) to experiment with live templates, dynamic EJS/Eta data binding, and print previews.
+## ⚡ Built With
 
-### Application Developers
+- [Nuxt 4](https://nuxt.com) — Modern Vue framework
+- [Docus](https://docus.dev) — Documentation theme
+- [Nuxt Content](https://content.nuxt.com/) — Markdown CMS
+- [Nuxt i18n](https://i18n.nuxt.com/) — English & Bahasa Indonesia localization
 
-- Consult [Architecture Overview](./architecture.md) for embedding `BrowserRenderer` inside web applications using `root` or `iframe` isolation.
-- Check [Headless PDF CLI](./cli.md) for generating PDFs server-side or in CI pipelines.
+## 📄 License
 
-### Plugin Authors
-
-- Follow [Plugin Authoring Guide](./plugin-authoring.md) to build custom hooks for document styling, headers, watermarks, and metadata extraction.
-
-### Core Contributors
-
-- See [Release Readiness](./release-readiness.md) and [Project Roadmap](./roadmap.md) for testing standards, build validation, and project milestones.
+[MIT License](https://opensource.org/licenses/MIT)

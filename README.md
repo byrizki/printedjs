@@ -19,7 +19,7 @@ Printedjs is maintained as a modular pnpm monorepo with clean architectural boun
 
 - [`@printedjs/core`](packages/core/README.md) — Zero DOM/CSSOM pagination runtime, pure contracts, CSS AST facade, and progress-guarded state machines
 - [`@printedjs/browser`](packages/browser/README.md) — Browser renderer supporting `root` container and `iframe` surfaces, layout measurement, and page virtualization
-- [`@printedjs/plugins`](packages/plugins/README.md) — Standard preset, core layout plugins, and community extensions ([see available plugins](#available-plugins))
+- [`@printedjs/plugin-preset`](packages/plugins/core/preset/README.md) — Standard preset bundle, core layout plugins, and community extensions ([see available plugins](#available-plugins))
 
 ### Distribution & Tooling Packages
 
@@ -42,38 +42,42 @@ All core plugins can be loaded together via [`@printedjs/plugin-preset`](package
 
 ### Core Plugins
 
-- [`@printedjs/plugin-page-rules`](packages/plugins/core/page-rules/README.md) — `@page` size, margins, orientation, bleeds, and crop marks
-- [`@printedjs/plugin-breaks`](packages/plugins/core/breaks/README.md) — CSS `break-before`, `break-after`, `break-inside`, and avoid rules
-- [`@printedjs/plugin-strings`](packages/plugins/core/strings/README.md) — Named strings (`string-set`, `string()`) for running headers and footers
-- [`@printedjs/plugin-generated-content`](packages/plugins/core/generated-content/README.md) — 16 W3C margin boxes, track distribution, and running elements
-- [`@printedjs/plugin-counters`](packages/plugins/core/counters/README.md) — Page numbering (`counter(page)`, `counter(pages)`), Roman/alpha styles, and `target-counter`
-- [`@printedjs/plugin-footnotes`](packages/plugins/core/footnotes/README.md) — W3C GCPM `float: footnote`, `@footnote` area, and continuation slicing
-- [`@printedjs/plugin-columns`](packages/plugins/core/columns/README.md) — Multi-column layout (`column-count`, `column-gap`, `column-span: all`, balancing)
-- [`@printedjs/plugin-widows-orphans`](packages/plugins/core/widows-orphans/README.md) — Typography constraints at page boundaries (`widows`, `orphans`)
-- [`@printedjs/plugin-math`](packages/plugins/core/math/README.md) — Formula break protection for KaTeX, MathJax, and MathML
-- [`@printedjs/plugin-hyphenation`](packages/plugins/core/hyphenation/README.md) — Soft hyphen preservation and hyphenation normalization
-- [`@printedjs/plugin-bookmarks`](packages/plugins/core/bookmarks/README.md) — Document heading hierarchy extraction and PDF bookmark outline
-- [`@printedjs/plugin-lists`](packages/plugins/core/lists/README.md) — Ordered list numbering and sequence continuity across page splits
-- [`@printedjs/plugin-running-headers`](packages/plugins/core/running-headers/README.md) — Dynamic running headers and footers utility alias
-- [`@printedjs/plugin-views`](packages/plugins/core/views/README.md) — Presentation view modes (single page, spread)
-- [`@printedjs/plugin-preset`](packages/plugins/core/preset/README.md) — Standard bundle combining all core layout plugins
+| Package                                                                                    | Version                                                                                                                                                                  | Purpose                                                                                      |
+| :----------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------- |
+| [`@printedjs/plugin-preset`](packages/plugins/core/preset/README.md)                       | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-preset.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-preset)                       | Standard bundle combining all core layout plugins                                            |
+| [`@printedjs/plugin-page-rules`](packages/plugins/core/page-rules/README.md)               | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-page-rules.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-page-rules)               | `@page` size, margins, orientation, bleeds, and crop marks                                   |
+| [`@printedjs/plugin-breaks`](packages/plugins/core/breaks/README.md)                       | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-breaks.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-breaks)                       | CSS `break-before`, `break-after`, `break-inside`, and avoid rules                           |
+| [`@printedjs/plugin-strings`](packages/plugins/core/strings/README.md)                     | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-strings.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-strings)                     | Named strings (`string-set`, `string()`) for running headers and footers                     |
+| [`@printedjs/plugin-generated-content`](packages/plugins/core/generated-content/README.md) | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-generated-content.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-generated-content) | 16 W3C margin boxes, track distribution, and running elements                                |
+| [`@printedjs/plugin-counters`](packages/plugins/core/counters/README.md)                   | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-counters.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-counters)                   | Page numbering (`counter(page)`, `counter(pages)`), Roman/alpha styles, and `target-counter` |
+| [`@printedjs/plugin-footnotes`](packages/plugins/core/footnotes/README.md)                 | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-footnotes.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-footnotes)                 | W3C GCPM `float: footnote`, `@footnote` area, and continuation slicing                       |
+| [`@printedjs/plugin-columns`](packages/plugins/core/columns/README.md)                     | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-columns.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-columns)                     | Multi-column layout (`column-count`, `column-gap`, `column-span: all`, balancing)            |
+| [`@printedjs/plugin-widows-orphans`](packages/plugins/core/widows-orphans/README.md)       | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-widows-orphans.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-widows-orphans)       | Typography constraints at page boundaries (`widows`, `orphans`)                              |
+| [`@printedjs/plugin-math`](packages/plugins/core/math/README.md)                           | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-math.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-math)                           | Formula break protection for KaTeX, MathJax, and MathML                                      |
+| [`@printedjs/plugin-hyphenation`](packages/plugins/core/hyphenation/README.md)             | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-hyphenation.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-hyphenation)             | Soft hyphen preservation and hyphenation normalization                                       |
+| [`@printedjs/plugin-bookmarks`](packages/plugins/core/bookmarks/README.md)                 | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-bookmarks.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-bookmarks)                 | Document heading hierarchy extraction and PDF bookmark outline                               |
+| [`@printedjs/plugin-lists`](packages/plugins/core/lists/README.md)                         | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-lists.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-lists)                         | Ordered list numbering and sequence continuity across page splits                            |
+| [`@printedjs/plugin-running-headers`](packages/plugins/core/running-headers/README.md)     | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-running-headers.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-running-headers)     | Dynamic running headers and footers utility alias                                            |
+| [`@printedjs/plugin-views`](packages/plugins/core/views/README.md)                         | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-views.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-views)                         | Presentation view modes (single page, spread)                                                |
 
 ### Community Plugins
 
-- [`@printedjs/plugin-page-flip`](packages/plugins/community/page-flip/README.md) — Interactive 3D flipbook page-turning presentation engine
-- [`@printedjs/plugin-eta`](packages/plugins/community/eta/README.md) — Dynamic pre-pagination document templating powered by Eta
+| Package                                                                         | Version                                                                                                                                                  | Purpose                                                   |
+| :------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
+| [`@printedjs/plugin-page-flip`](packages/plugins/community/page-flip/README.md) | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-page-flip.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-page-flip) | Interactive 3D flipbook page-turning presentation engine  |
+| [`@printedjs/plugin-eta`](packages/plugins/community/eta/README.md)             | [![npm](https://img.shields.io/npm/v/@printedjs/plugin-eta.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/@printedjs/plugin-eta)             | Dynamic pre-pagination document templating powered by Eta |
 
 ---
 
 ## Quick Start
 
 ```bash
-pnpm add @printedjs/browser @printedjs/plugins
+pnpm add @printedjs/browser @printedjs/plugin-preset
 ```
 
 ```typescript
 import { createRenderer } from "@printedjs/browser";
-import { standardPreset } from "@printedjs/plugins";
+import { standardPreset } from "@printedjs/plugin-preset";
 
 const target = document.querySelector("#output")!;
 
@@ -202,3 +206,5 @@ Printedjs is rigorously validated against the 122-fixture legacy Paged.js corpus
 ## Credits & Acknowledgments
 
 Printedjs is inspired by and builds upon the pioneering work of [Paged.js](https://github.com/pagedjs/pagedjs) by the Cabbage Tree Labs community. We are deeply grateful to the Paged.js authors and contributors for championing CSS Paged Media standards in browsers and providing the foundational groundwork that made this project possible.
+
+Special thanks to the [Tauri Apps](https://tauri.app/) team for [Wry](https://github.com/tauri-apps/wry), the cross-platform WebView rendering engine in Rust that powers native headless WebView rendering and vector PDF generation on desktop platforms and CLI.
