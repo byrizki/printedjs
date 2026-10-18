@@ -178,6 +178,9 @@ headless-webview input.html -o output.pdf --wait-for "window.__ready === true" -
 
 # Format and orientation options
 headless-webview input.html -o output.pdf --format A4 --landscape --scale 1.0
+
+# On headless Linux / Docker / CI without an active X11 display:
+xvfb-run -a headless-webview input.html -o output.pdf
 ```
 
 ### Example Application & Test Harness
@@ -239,6 +242,20 @@ class Program
     }
 }
 ```
+
+### Linux & Docker Deployment (.NET & Desktop)
+
+On Linux, the native WebKitGTK runtime requires an active display connection during GTK initialization. In headless environments (such as Docker containers or CI runners), run via **Xvfb**:
+
+```bash
+# Wrap command execution with virtual framebuffer
+xvfb-run -a dotnet YourApp.dll
+
+# Recommended in containers to disable hardware GPU acceleration probes
+export WEBKIT_DISABLE_COMPOSITING_MODE=1
+```
+
+Required runtime packages on Debian/Ubuntu: `libwebkit2gtk-4.1-0`, `libgtk-3-0`, `xvfb`, `fontconfig`, and `fonts-liberation`.
 
 ---
 

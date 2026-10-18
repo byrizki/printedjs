@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -308,6 +309,18 @@ jobs:
           dotnet pack -c Release packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/PrintedJs.HeadlessWebView.csproj -o dist-nuget
           pnpm verify:nupkg
 
+      - name: Upload Linux CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-linux-x64
+          path: packages/cli/bin/linux-x64/headless-webview
+
+      - name: Upload Linux x64 .NET native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-runtime-linux-x64
+          path: packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/linux-x64/native/libheadless_webview_core.so
+
   macos-desktop:
     name: macOS Desktop Prebuilts & iOS Native App Build
     runs-on: macos-latest
@@ -400,6 +413,30 @@ jobs:
             packages/headless-webview/example/output-samples/*.pdf
           if-no-files-found: ignore
 
+      - name: Upload macOS ARM64 CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-darwin-arm64
+          path: packages/cli/bin/darwin-arm64/headless-webview
+
+      - name: Upload macOS x64 CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-darwin-x64
+          path: packages/cli/bin/darwin-x64/headless-webview
+
+      - name: Upload macOS ARM64 .NET native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-runtime-osx-arm64
+          path: packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-arm64/native/libheadless_webview_core.dylib
+
+      - name: Upload macOS x64 .NET native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-runtime-osx-x64
+          path: packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/osx-x64/native/libheadless_webview_core.dylib
+
   windows-desktop:
     name: Windows Desktop Prebuilt & .NET Build
     runs-on: windows-latest
@@ -477,3 +514,15 @@ jobs:
             output-artifacts/*.pdf
             packages/headless-webview/example/output-samples/*.pdf
           if-no-files-found: ignore
+
+      - name: Upload Windows CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-win32-x64
+          path: packages/cli/bin/win32-x64/headless-webview.exe
+
+      - name: Upload Windows x64 .NET native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-runtime-win-x64
+          path: packages/headless-webview/dotnet/PrintedJs.HeadlessWebView/runtimes/win-x64/native/headless_webview_core.dll

@@ -55,6 +55,14 @@ pnpm printedjs render doc.html -o doc.pdf --engine playwright
 pnpm printedjs render doc.html -o doc.pdf --engine puppeteer
 ```
 
+### Headless Linux & Docker
+
+The native `webview` engine uses WebKitGTK and GTK 3 on Linux, which requires an active display connection. In headless environments (such as Docker, CI runners, or cloud VMs), run via `xvfb-run`:
+
+```bash
+xvfb-run -a pnpm printedjs render doc.html -o doc.pdf
+```
+
 ### Options Reference
 
 ```text

@@ -64,6 +64,14 @@ pnpm printedjs render invoice.html -o invoice.pdf --engine playwright
 pnpm printedjs render invoice.html -o invoice.pdf --engine puppeteer
 ```
 
+### Headless Linux & Docker
+
+The native `webview` engine uses WebKitGTK and GTK 3 on Linux, which requires an active display connection. In headless environments (such as Docker, CI runners, or cloud VMs), run via `xvfb-run`:
+
+```bash
+xvfb-run -a pnpm printedjs render invoice.html -o invoice.pdf
+```
+
 ### Watch Mode
 
 Ideal for developing and styling printable documents:
