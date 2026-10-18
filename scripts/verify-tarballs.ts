@@ -143,7 +143,13 @@ function verifyDesktopPrebuilts(
 			}
 
 			try {
-				const helpOutput = execSync(`"${extractedBinary}" --help 2>&1`, {
+				let cmd = `"${extractedBinary}" --help 2>&1`;
+
+				if (process.platform === "linux" && !process.env.DISPLAY) {
+					cmd = `command -v xvfb-run >/dev/null 2>&1 && xvfb-run -a "${extractedBinary}" --help 2>&1 || "${extractedBinary}" --help 2>&1`;
+				}
+
+				const helpOutput = execSync(cmd, {
 					encoding: "utf-8",
 				});
 
@@ -158,9 +164,18 @@ function verifyDesktopPrebuilts(
 					);
 				}
 			} catch (err: unknown) {
+				const errorDetails =
+					err && typeof err === "object"
+						? String(
+								(err as { stderr?: Buffer | string }).stderr ||
+									(err as { stdout?: Buffer | string }).stdout ||
+									"",
+							).trim()
+						: "";
+
 				const message = err instanceof Error ? err.message : String(err);
 				console.error(
-					`[FAIL] Failed to execute bundled ${packageName} binary (${expectedHostBinary}): ${message}`,
+					`[FAIL] Failed to execute bundled ${packageName} binary (${expectedHostBinary}): ${message}${errorDetails ? `\n    ${errorDetails}` : ""}`,
 				);
 				hasError = true;
 			}
