@@ -5,6 +5,41 @@ All notable changes to the Printedjs project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-10-18
+
+### Added
+
+#### Comprehensive Documentation Site (`docs/`)
+
+- **Bilingual Documentation**: Complete Nuxt Content documentation portal in English (`docs/content/en/`) and Indonesian (`docs/content/id/`) covering Getting Started, How-to Guides, Core Architecture, and GCPM Feature deep-dives.
+- **Interactive Live Feature Previews**: Built-in interactive demo component (`FeaturePreview.vue`) with tabbed live preview and editable HTML/CSS source code for all W3C GCPM features.
+- **Architecture Diagrams & Visuals**: Native Mermaid diagram component (`MermaidDiagram.vue`) and interactive minimal demo runner (`MinimalDemoPreview.vue`).
+- **GitHub Pages Deployment Workflow**: Automated CI/CD pipeline (`.github/workflows/deploy-pages.yml`) for continuous deployment to GitHub Pages.
+
+#### CLI & Automation Drivers (`@printedjs/cli`)
+
+- **Framework-Aware Wait Flags**: Added `--wait-printedjs` and `--wait-pagedjs` flags to automatically wait for document pagination completion without requiring manual JavaScript expressions.
+- **Optional Wait Expressions**: Made `--wait-for` optional, allowing instant PDF export upon native DOM settling.
+
+#### Performance Benchmarks Suite
+
+- **End-to-End PDF Export Benchmark**: Added multi-engine PDF generation benchmark runner (`scripts/benchmark-pdf.ts` / `pnpm benchmark:pdf`) measuring execution latency, peak RSS memory, and binary file size across Typst (`v0.14.2`), Printedjs Headless WebView, Printedjs Playwright, Printedjs Puppeteer, and Paged.js.
+- **10-Page Standard Fixture**: Added realistic 10-page enterprise financial report test fixtures in HTML and Typst (`benchmarks/fixtures/`).
+- **Persisted Metric Baselines**: Persisted verified benchmark results in `benchmarks/benchmark-results.json`.
+
+#### 3D Page Flip Plugin (`@printedjs/plugin-page-flip`)
+
+- **Standalone Global Bundle**: Added browser IIFE bundle target (`dist/page-flip.min.global.js`) for direct CDN script tag usage.
+- **Page Density Configuration**: Added `density` option (`"soft" | "hard"`) and `data-density` attribute support.
+- **Navigation APIs**: Added `flipNext()` and `flipPrev()` helper methods on `PageFlipController`.
+
+### Fixed
+
+- **CLI Webview Execution Speed**: Resolved an issue where native headless webview rendering delayed up to 15 seconds waiting for an empty wait expression.
+- **Table Rowspan Slicing & Header Restamping**: Fixed broken table column alignments across page breaks by properly configuring `class="repeat-header repeat-rowspan" data-repeat="true"` and `data-repeat-content="true"` in demo templates and documentation.
+- **3D Flipbook Backgrounds**: Fixed page transparency and margin leakage in `@printedjs/plugin-page-flip` by enforcing opaque background fills and zero margin overrides on book sheets.
+- **Native iOS Headless WebView Linker**: Resolved Swift toolchain linker requirements and build friction in React Native iOS applications through library-side encapsulation.
+
 ## [0.2.0] - 2026-10-16
 
 ### Added
