@@ -53,4 +53,15 @@ export default defineNuxtConfig({
 			}
 		},
 	},
+	vite: {
+		build: {
+			rollupOptions: {
+				external: ["@tiptap/y-tiptap"],
+			},
+			// @ts-expect-error Rolldown bundler option in Vite
+			rolldownOptions: {
+				external: ["@tiptap/y-tiptap"],
+			},
+		},
+	},
 });
