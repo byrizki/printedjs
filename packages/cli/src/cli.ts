@@ -5,6 +5,9 @@ import { renderPdf, type CliRenderOptions } from "./render.js";
 
 interface MutableCliRenderOptions extends Omit<CliRenderOptions, "bleed"> {
 	bleed?: string;
+	waitFor?: string;
+	waitPrintedjs?: boolean;
+	waitPagedjs?: boolean;
 }
 
 const HELP_TEXT = `
@@ -21,19 +24,22 @@ OPTIONS:
   -f, --format <format>   Page format override, e.g. A4, Letter (default: A4)
   -b, --bleed <size>      Bleed box size, e.g. 3mm, 0.125in
   -e, --engine <engine>   Browser engine: webview | playwright | puppeteer (default: webview)
-  --pagedjs-compatible      Enable Paged.js backwards compatibility (default: false)
-  --no-pagedjs-compatible   Disable Paged.js backwards compatibility
-  -w, --watch               Watch input file for changes and re-render
-  -h, --help                Show this help message
-  -v, --version             Show version
+  --wait-for <expr>       Wait for custom JS expression to be truthy before rendering PDF
+  --wait-printedjs        Wait for Printed.js pagination to finish before rendering PDF
+  --wait-pagedjs          Wait for Paged.js pagination to finish before rendering PDF
+  --pagedjs-compatible    Enable Paged.js backwards compatibility (default: false)
+  --no-pagedjs-compatible Disable Paged.js backwards compatibility
+  -w, --watch             Watch input file for changes and re-render
+  -h, --help              Show this help message
+  -v, --version           Show version
 
 EXAMPLES:
   printedjs render document.html -o output.pdf
   printedjs render document.html -o book.pdf --format A4 --bleed 3mm
   printedjs render document.html -o doc.pdf --engine webview
-  printedjs render document.html -o doc.pdf --engine puppeteer
-  printedjs render document.html -o doc.pdf --engine playwright
-  printedjs render document.html -o legacy.pdf --pagedjs-compatible
+  printedjs render document.html -o doc.pdf --wait-printedjs
+  printedjs render document.html -o doc.pdf --wait-for "window.isReady === true"
+  printedjs render document.html -o legacy.pdf --wait-pagedjs --pagedjs-compatible
   printedjs render document.html -o live.pdf --watch
 `;
 
@@ -59,6 +65,17 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 				type: "string",
 				short: "e",
 				default: "webview",
+			},
+			"wait-for": {
+				type: "string",
+			},
+			"wait-printedjs": {
+				type: "boolean",
+				default: false,
+			},
+			"wait-pagedjs": {
+				type: "boolean",
+				default: false,
 			},
 			"pagedjs-compatible": {
 				type: "boolean",
@@ -112,6 +129,9 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 	const format = values.format ?? "A4";
 	const bleed = values.bleed;
 
+	// SAFETY: "wait-for" CLI argument is configured as string type in parseArgs options schema above
+	const waitFor = values["wait-for"] as string | undefined;
+
 	const engine =
 		values.engine === "puppeteer"
 			? "puppeteer"
@@ -141,6 +161,18 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 
 			if (bleed) {
 				renderOptions.bleed = bleed;
+			}
+
+			if (waitFor) {
+				renderOptions.waitFor = waitFor;
+			}
+
+			if (values["wait-printedjs"]) {
+				renderOptions.waitPrintedjs = true;
+			}
+
+			if (values["wait-pagedjs"]) {
+				renderOptions.waitPagedjs = true;
 			}
 
 			const result = await renderPdf(renderOptions);

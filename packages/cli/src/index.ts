@@ -3,6 +3,7 @@ export {
 	renderPdfWithHeadless,
 	renderPdfWithPlaywright,
 	renderPdfWithWebview,
+	resolveWaitExpression,
 	type CliRenderOptions,
 	type CliRenderResult,
 } from "./render.js";

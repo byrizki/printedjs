@@ -3,7 +3,11 @@ import { chmodSync, existsSync } from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import type { CliRenderOptions, CliRenderResult } from "./render.js";
+import {
+	resolveWaitExpression,
+	type CliRenderOptions,
+	type CliRenderResult,
+} from "./render.js";
 
 /**
  * Resolves an available desktop headless webview binary bundled into the CLI,
@@ -93,14 +97,13 @@ export async function executeWebviewBinary(
 ): Promise<CliRenderResult> {
 	const startTime = performance.now();
 	const outputPath = resolve(process.cwd(), options.output);
+	const waitExpr = resolveWaitExpression(options);
 
-	const args = [
-		options.input,
-		"-o",
-		outputPath,
-		"--wait-for",
-		"Boolean(window.__printedjsRenderFinished || window.__pagedRenderFinished || document.querySelector('.printedjs_page, .pagedjs_page'))",
-	];
+	const args = [options.input, "-o", outputPath];
+
+	if (waitExpr) {
+		args.push("--wait-for", waitExpr);
+	}
 
 	if (options.format) {
 		args.push("--format", options.format);

@@ -7,6 +7,7 @@ import {
 	isWebviewAvailable,
 	printedjsPuppeteerBridge,
 	renderPdf,
+	resolveWaitExpression,
 	resolveWebviewBinary,
 	runCli,
 	type PuppeteerPageLike,
@@ -158,5 +159,33 @@ describe("@printedjs/cli", () => {
 		} else {
 			expect(resolvedBinary).toBeUndefined();
 		}
+	});
+
+	test("resolveWaitExpression returns explicit waitFor", () => {
+		expect(resolveWaitExpression({ waitFor: "window.isReady === true" })).toBe(
+			"window.isReady === true",
+		);
+	});
+
+	test("resolveWaitExpression returns printedjs condition when waitPrintedjs is set", () => {
+		expect(resolveWaitExpression({ waitPrintedjs: true })).toBe(
+			"Boolean(window.__printedjsRenderFinished || document.querySelector('.printedjs_page'))",
+		);
+	});
+
+	test("resolveWaitExpression returns pagedjs condition when waitPagedjs is set", () => {
+		expect(resolveWaitExpression({ waitPagedjs: true })).toBe(
+			"Boolean(window.__pagedRenderFinished || document.querySelector('.pagedjs_page'))",
+		);
+	});
+
+	test("resolveWaitExpression returns dual condition when both are set", () => {
+		expect(resolveWaitExpression({ waitPrintedjs: true, waitPagedjs: true })).toBe(
+			"Boolean(window.__printedjsRenderFinished || window.__pagedRenderFinished || document.querySelector('.printedjs_page, .pagedjs_page'))",
+		);
+	});
+
+	test("resolveWaitExpression returns undefined when no wait options are set", () => {
+		expect(resolveWaitExpression({})).toBeUndefined();
 	});
 });

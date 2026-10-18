@@ -4,7 +4,11 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { injectAndPaginate } from "./browser-injection.js";
 import { resolveChromeExecutable } from "./chrome-resolver.js";
-import type { CliRenderOptions, CliRenderResult } from "./render.js";
+import {
+	resolveWaitExpression,
+	type CliRenderOptions,
+	type CliRenderResult,
+} from "./render.js";
 
 export interface PuppeteerPageLike {
 	goto(
@@ -13,7 +17,10 @@ export interface PuppeteerPageLike {
 	): Promise<void>;
 	evaluate<T, A = void>(fn: (arg: A) => T | Promise<T>, arg?: A | undefined): Promise<T>;
 	waitForSelector(selector: string, options?: { timeout?: number }): Promise<void>;
-	waitForFunction(fn: () => boolean, options?: { timeout?: number }): Promise<void>;
+	waitForFunction(
+		fn: (() => boolean) | string,
+		options?: { timeout?: number },
+	): Promise<void>;
 	addStyleTag?(options: { content: string }): Promise<void>;
 	addScriptTag?(options: { content: string }): Promise<void>;
 	pdf(options: {
@@ -30,6 +37,9 @@ export interface PuppeteerBridgeOptions {
 	readonly printBackground?: boolean | undefined;
 	readonly timeoutMs?: number | undefined;
 	readonly output?: string | undefined;
+	readonly waitFor?: string | undefined;
+	readonly waitPrintedjs?: boolean | undefined;
+	readonly waitPagedjs?: boolean | undefined;
 }
 
 export interface PuppeteerBridgeResult {
@@ -73,26 +83,32 @@ export async function printedjsPuppeteerBridge(
 
 	await injectAndPaginate(page);
 
-	// Wait for pagination completion via global flag or selector with stabilization
-	try {
-		await page.waitForFunction(
-			() => {
-				interface WindowWithRenderFinished extends Window {
-					__printedjsRenderFinished?: boolean;
-					__pagedRenderFinished?: boolean;
-				}
+	// Wait for completion via explicit wait expression or standard pagination flags
+	const waitExpr = resolveWaitExpression(options ?? {});
 
-				// SAFETY: window in browser evaluation context holds render completion flags
-				const win = window as WindowWithRenderFinished;
+	if (waitExpr) {
+		await page.waitForFunction(waitExpr, { timeout });
+	} else {
+		try {
+			await page.waitForFunction(
+				() => {
+					interface WindowWithRenderFinished extends Window {
+						__printedjsRenderFinished?: boolean;
+						__pagedRenderFinished?: boolean;
+					}
 
-				return (
-					win.__printedjsRenderFinished === true || win.__pagedRenderFinished === true
-				);
-			},
-			{ timeout },
-		);
-	} catch {
-		await page.waitForSelector(".printedjs_page, .pagedjs_page", { timeout });
+					// SAFETY: window in browser evaluation context holds render completion flags
+					const win = window as WindowWithRenderFinished;
+
+					return (
+						win.__printedjsRenderFinished === true || win.__pagedRenderFinished === true
+					);
+				},
+				{ timeout },
+			);
+		} catch {
+			await page.waitForSelector(".printedjs_page, .pagedjs_page", { timeout });
+		}
 	}
 
 	await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 200)));

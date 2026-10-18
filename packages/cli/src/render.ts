@@ -17,6 +17,37 @@ export interface CliRenderOptions extends PagedjsCompatibilityOptions {
 	readonly timeoutMs?: number | undefined;
 	readonly signal?: AbortSignal | undefined;
 	readonly engine?: "webview" | "headless" | "playwright" | "puppeteer" | undefined;
+	readonly waitFor?: string | undefined;
+	readonly waitPrintedjs?: boolean | undefined;
+	readonly waitPagedjs?: boolean | undefined;
+}
+
+/**
+ * Resolves the wait-for JavaScript expression based on explicit waitFor,
+ * waitPrintedjs, or waitPagedjs options.
+ */
+export function resolveWaitExpression(options: {
+	readonly waitFor?: string | undefined;
+	readonly waitPrintedjs?: boolean | undefined;
+	readonly waitPagedjs?: boolean | undefined;
+}): string | undefined {
+	if (options.waitFor) {
+		return options.waitFor;
+	}
+
+	if (options.waitPrintedjs && options.waitPagedjs) {
+		return "Boolean(window.__printedjsRenderFinished || window.__pagedRenderFinished || document.querySelector('.printedjs_page, .pagedjs_page'))";
+	}
+
+	if (options.waitPrintedjs) {
+		return "Boolean(window.__printedjsRenderFinished || document.querySelector('.printedjs_page'))";
+	}
+
+	if (options.waitPagedjs) {
+		return "Boolean(window.__pagedRenderFinished || document.querySelector('.pagedjs_page'))";
+	}
+
+	return undefined;
 }
 
 export interface CliRenderResult {
@@ -54,7 +85,7 @@ interface ChromiumBrowser {
 					options?: { timeout?: number },
 				): Promise<PlaywrightElementHandle | null>;
 				waitForFunction(
-					fn: () => boolean,
+					fn: (() => boolean) | string,
 					options?: { timeout?: number },
 				): Promise<PlaywrightElementHandle | null>;
 				addStyleTag(options: {
@@ -140,27 +171,33 @@ export async function renderPdfWithPlaywright(
 			pagedjsCompatible: options.pagedjsCompatible ?? false,
 		});
 
-		// Wait for pagination completion via global flag or selector with stabilization
-		try {
-			await page.waitForFunction(
-				() => {
-					interface WindowWithRenderFinished extends Window {
-						__printedjsRenderFinished?: boolean;
-						__pagedRenderFinished?: boolean;
-					}
+		// Wait for completion via explicit wait expression or standard pagination flags
+		const waitExpr = resolveWaitExpression(options);
 
-					// SAFETY: window in browser evaluation context holds render completion flags
-					const win = window as WindowWithRenderFinished;
+		if (waitExpr) {
+			await page.waitForFunction(waitExpr, { timeout });
+		} else {
+			try {
+				await page.waitForFunction(
+					() => {
+						interface WindowWithRenderFinished extends Window {
+							__printedjsRenderFinished?: boolean;
+							__pagedRenderFinished?: boolean;
+						}
 
-					return (
-						win.__printedjsRenderFinished === true || win.__pagedRenderFinished === true
-					);
-				},
-				{ timeout },
-			);
-		} catch {
-			// Fallback: wait for at least one pagebox
-			await page.waitForSelector(".printedjs_page, .pagedjs_page", { timeout });
+						// SAFETY: window in browser evaluation context holds render completion flags
+						const win = window as WindowWithRenderFinished;
+
+						return (
+							win.__printedjsRenderFinished === true || win.__pagedRenderFinished === true
+						);
+					},
+					{ timeout },
+				);
+			} catch {
+				// Fallback: wait for at least one pagebox
+				await page.waitForSelector(".printedjs_page, .pagedjs_page", { timeout });
+			}
 		}
 
 		await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 200)));

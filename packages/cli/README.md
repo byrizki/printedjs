@@ -72,6 +72,19 @@ The native `webview` engine uses WebKitGTK and GTK 3 on Linux, which requires an
 xvfb-run -a pnpm printedjs render invoice.html -o invoice.pdf
 ```
 
+### Waiting for Content & Pagination
+
+```bash
+# Wait for Printed.js pagination completion
+pnpm printedjs render report.html -o report.pdf --wait-printedjs
+
+# Wait for legacy Paged.js polyfill execution
+pnpm printedjs render report.html -o report.pdf --wait-pagedjs --pagedjs-compatible
+
+# Wait for a custom JS expression
+pnpm printedjs render chart.html -o chart.pdf --wait-for "window.isReady === true"
+```
+
 ### Watch Mode
 
 Ideal for developing and styling printable documents:
@@ -93,6 +106,9 @@ Options:
   -f, --format <format>       Page format override (e.g. A4, Letter, Legal)
   -b, --bleed <dimension>     Bleed dimension (e.g. 3mm, 0.125in)
   -e, --engine <engine>       Browser engine: webview | playwright | puppeteer (default: webview)
+  --wait-for <expr>           Wait for custom JS expression to be truthy before rendering PDF
+  --wait-printedjs            Wait for Printed.js pagination to finish before rendering PDF
+  --wait-pagedjs              Wait for Paged.js pagination to finish before rendering PDF
   -w, --watch                 Watch input file and rebuild on change
   --pagedjs-compatible        Emit dual Printedjs and legacy Paged.js classes
   --no-pagedjs-compatible     Emit only modern Printedjs classes (default)
