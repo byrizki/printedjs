@@ -1,0 +1,62 @@
+[
+	{
+		"name": "Typst",
+		"runtime": "Native Rust Binary",
+		"useCase": "Pure markup-to-PDF compilation (non-HTML/CSS)",
+		"durationMs": 94,
+		"runsMs": [94, 95, 94],
+		"peakRssMb": 39,
+		"fileSizeBytes": 134897,
+		"fileSizeKb": 132,
+		"pageCount": 10,
+		"verified": true
+	},
+	{
+		"name": "Printedjs (Playwright)",
+		"runtime": "Node.js + Chromium",
+		"useCase": "Server batch compilation, CI/CD, leanest PDF output",
+		"durationMs": 880,
+		"runsMs": [881, 892, 867],
+		"peakRssMb": 184,
+		"fileSizeBytes": 62754,
+		"fileSizeKb": 61,
+		"pageCount": 10,
+		"verified": true
+	},
+	{
+		"name": "Printedjs (Puppeteer)",
+		"runtime": "Node.js + Chromium CDP",
+		"useCase": "Cloud microservices, Docker workers, serverless",
+		"durationMs": 1026,
+		"runsMs": [1029, 1023, 1025],
+		"peakRssMb": 192,
+		"fileSizeBytes": 160045,
+		"fileSizeKb": 156,
+		"pageCount": 10,
+		"verified": true
+	},
+	{
+		"name": "Paged.js Polyfill",
+		"runtime": "Puppeteer + DOM Reflow",
+		"useCase": "Legacy in-browser polyfill with full DOM reflow",
+		"durationMs": 1043,
+		"runsMs": [1042, 1035, 1053],
+		"peakRssMb": 191,
+		"fileSizeBytes": 160045,
+		"fileSizeKb": 156,
+		"pageCount": 10,
+		"verified": true
+	},
+	{
+		"name": "Printedjs Headless WebView",
+		"runtime": "Native On-Device Engine",
+		"useCase": "Mobile & Desktop on-device export with zero cloud latency",
+		"durationMs": 468,
+		"runsMs": [432, 550, 421],
+		"peakRssMb": 134,
+		"fileSizeBytes": 811187,
+		"fileSizeKb": 792,
+		"pageCount": 10,
+		"verified": true
+	}
+]
