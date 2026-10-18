@@ -1,6 +1,6 @@
 {
 	"name": "@printedjs/headless-webview",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Cross-platform headless webview runtime and PDF pipeline for React Native and .NET, powered by Wry and UniFFI",
 	"type": "module",
 	"main": "./dist/index.js",
