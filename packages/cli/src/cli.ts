@@ -111,7 +111,7 @@ export async function runCli(args: string[] = process.argv.slice(2)): Promise<vo
 	}
 
 	if (values.version) {
-		console.log("printedjs 0.2.2");
+		console.log("printedjs 0.2.3");
 
 		return;
 	}

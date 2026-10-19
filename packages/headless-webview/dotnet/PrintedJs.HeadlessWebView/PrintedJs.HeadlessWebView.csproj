@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <PackageId>PrintedJs.HeadlessWebView</PackageId>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <Authors>PrintedJS Contributors</Authors>
     <Company>PrintedJS</Company>
     <Description>Cross-platform headless webview and vector PDF rendering library for .NET powered by Wry and OS-native web engines.</Description>
