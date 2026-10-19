@@ -448,6 +448,7 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 		};
 
 		const module = getNativeModule();
+
 		const instanceId = await module.createInstance({
 			html: "<h1>Custom UDD</h1>",
 			dataDirectory: "/tmp/custom-profile",
@@ -463,7 +464,7 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 	test.skipIf(!isDesktopSupported())(
 		"renders large HTML exceeding 2 MB via desktop bridge to valid PDF",
 		async () => {
-			const desktopBridge = enableDesktopBridge();
+			enableDesktopBridge();
 
 			const largeHtml = `<html><head><title>Large RN Test</title></head><body><h1>Large RN HTML</h1>${"<p>Repeating test paragraph to create large document size.</p>\n".repeat(
 				40000,

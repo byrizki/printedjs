@@ -1,3 +1,7 @@
+use crate::config::WebViewConfig;
+use crate::error::HeadlessWebViewError;
+use crate::options::PdfPrintOptions;
+use std::sync::Arc;
 #[cfg(any(
     target_os = "windows",
     target_vendor = "apple",
@@ -6,10 +10,6 @@
 ))]
 use std::sync::Mutex;
 use std::time::Duration;
-use std::sync::Arc;
-use crate::config::WebViewConfig;
-use crate::error::HeadlessWebViewError;
-use crate::options::PdfPrintOptions;
 
 #[cfg(any(
     target_os = "windows",
@@ -123,11 +123,11 @@ impl HeadlessWebViewCore {
                 });
             }
 
-            let webview = builder
-                .build_headless()
-                .map_err(|e| HeadlessWebViewError::InitializationFailed {
+            let webview = builder.build_headless().map_err(|e| {
+                HeadlessWebViewError::InitializationFailed {
                     message: e.to_string(),
-                })?;
+                }
+            })?;
 
             if has_content {
                 let start = std::time::Instant::now();
@@ -179,9 +179,12 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let webview = self.inner.lock().map_err(|_| HeadlessWebViewError::InvalidState {
-                message: "Failed to acquire webview lock".to_string(),
-            })?;
+            let webview = self
+                .inner
+                .lock()
+                .map_err(|_| HeadlessWebViewError::InvalidState {
+                    message: "Failed to acquire webview lock".to_string(),
+                })?;
 
             webview
                 .load_html(&html)
@@ -212,9 +215,12 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let webview = self.inner.lock().map_err(|_| HeadlessWebViewError::InvalidState {
-                message: "Failed to acquire webview lock".to_string(),
-            })?;
+            let webview = self
+                .inner
+                .lock()
+                .map_err(|_| HeadlessWebViewError::InvalidState {
+                    message: "Failed to acquire webview lock".to_string(),
+                })?;
 
             webview
                 .load_url(&url)
@@ -245,9 +251,12 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let webview = self.inner.lock().map_err(|_| HeadlessWebViewError::InvalidState {
-                message: "Failed to acquire webview lock".to_string(),
-            })?;
+            let webview = self
+                .inner
+                .lock()
+                .map_err(|_| HeadlessWebViewError::InvalidState {
+                    message: "Failed to acquire webview lock".to_string(),
+                })?;
 
             let (tx, rx) = std::sync::mpsc::channel();
             webview
@@ -265,7 +274,8 @@ impl HeadlessWebViewCore {
                     Ok(res) => return Ok(res),
                     Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                         return Err(HeadlessWebViewError::ScriptEvaluationFailed {
-                            message: "Script evaluation channel disconnected unexpectedly".to_string(),
+                            message: "Script evaluation channel disconnected unexpectedly"
+                                .to_string(),
                         });
                     }
                     Err(std::sync::mpsc::TryRecvError::Empty) => {
@@ -359,7 +369,10 @@ impl HeadlessWebViewCore {
         }
     }
 
-    pub fn print_to_pdf(&self, options: Option<PdfPrintOptions>) -> Result<Vec<u8>, HeadlessWebViewError> {
+    pub fn print_to_pdf(
+        &self,
+        options: Option<PdfPrintOptions>,
+    ) -> Result<Vec<u8>, HeadlessWebViewError> {
         #[cfg(any(
             target_os = "windows",
             target_vendor = "apple",
@@ -367,9 +380,12 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let webview = self.inner.lock().map_err(|_| HeadlessWebViewError::InvalidState {
-                message: "Failed to acquire webview lock".to_string(),
-            })?;
+            let webview = self
+                .inner
+                .lock()
+                .map_err(|_| HeadlessWebViewError::InvalidState {
+                    message: "Failed to acquire webview lock".to_string(),
+                })?;
 
             let (tx, rx) = std::sync::mpsc::channel();
             let wry_options = options.unwrap_or_default().into();
@@ -425,7 +441,11 @@ impl HeadlessWebViewCore {
         }
     }
 
-    pub fn print_to_pdf_file(&self, output_path: String, options: Option<PdfPrintOptions>) -> Result<(), HeadlessWebViewError> {
+    pub fn print_to_pdf_file(
+        &self,
+        output_path: String,
+        options: Option<PdfPrintOptions>,
+    ) -> Result<(), HeadlessWebViewError> {
         #[cfg(any(
             target_os = "windows",
             target_vendor = "apple",
@@ -433,9 +453,12 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let webview = self.inner.lock().map_err(|_| HeadlessWebViewError::InvalidState {
-                message: "Failed to acquire webview lock".to_string(),
-            })?;
+            let webview = self
+                .inner
+                .lock()
+                .map_err(|_| HeadlessWebViewError::InvalidState {
+                    message: "Failed to acquire webview lock".to_string(),
+                })?;
 
             let (tx, rx) = std::sync::mpsc::channel();
             let wry_options = options.unwrap_or_default().into();
@@ -462,13 +485,15 @@ impl HeadlessWebViewCore {
                     }
                     Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                         return Err(HeadlessWebViewError::PdfGenerationFailed {
-                            message: "PDF file generation channel disconnected unexpectedly".to_string(),
+                            message: "PDF file generation channel disconnected unexpectedly"
+                                .to_string(),
                         });
                     }
                     Err(std::sync::mpsc::TryRecvError::Empty) => {
                         if start.elapsed() >= timeout {
                             return Err(HeadlessWebViewError::PdfGenerationFailed {
-                                message: "PDF file generation timed out after 30 seconds".to_string(),
+                                message: "PDF file generation timed out after 30 seconds"
+                                    .to_string(),
                             });
                         }
                         pump_platform_events();

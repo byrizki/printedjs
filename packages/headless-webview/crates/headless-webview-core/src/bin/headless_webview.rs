@@ -96,7 +96,10 @@ fn main() {
         process::exit(1);
     }
 
-    let (url, html) = if input.starts_with("http://") || input.starts_with("https://") {
+    let (url, html) = if input.starts_with("http://")
+        || input.starts_with("https://")
+        || input.starts_with("file://")
+    {
         (Some(input), None)
     } else {
         let path = PathBuf::from(&input);
@@ -111,9 +114,14 @@ fn main() {
             process::exit(1);
         }
 
-        let canonical = abs_path.canonicalize().unwrap_or(abs_path);
-        let file_url = format!("file:///{}", canonical.to_string_lossy().replace('\\', "/"));
-        (Some(file_url), None)
+        let content = match std::fs::read_to_string(&abs_path) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Error reading input file {}: {e}", abs_path.display());
+                process::exit(1);
+            }
+        };
+        (None, Some(content))
     };
 
     let config = WebViewConfig {

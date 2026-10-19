@@ -1,9 +1,9 @@
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
-use std::sync::{Arc, Mutex};
 use crate::config::WebViewConfig;
 use crate::engine::HeadlessWebViewCore;
 use crate::options::PdfPrintOptions;
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use std::sync::{Arc, Mutex};
 
 static LAST_ERROR: Mutex<Option<String>> = Mutex::new(None);
 
