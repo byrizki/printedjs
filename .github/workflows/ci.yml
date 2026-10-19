@@ -288,6 +288,13 @@ jobs:
           echo "✓ Verified Linux CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
           rm -f test-sample.html
 
+          node -e 'const fs = require("fs"); const content = "<html><head><title>Large Test</title></head><body><h1>Large 2MB+ HTML</h1>" + "<p>Repeating paragraph for 2MB test payload.</p>\n".repeat(60000) + "</body></html>"; fs.writeFileSync("test-large.html", content);'
+          xvfb-run -a ./packages/cli/bin/linux-x64/headless-webview test-large.html -o output-artifacts/linux-cli-large-test.pdf
+          test -s output-artifacts/linux-cli-large-test.pdf
+          head -c 4 output-artifacts/linux-cli-large-test.pdf | grep -q "%PDF"
+          echo "✓ Verified Linux CLI large HTML (>2MB) to PDF rendering"
+          rm -f test-large.html
+
       - name: Upload Linux PDF Output Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -384,6 +391,13 @@ jobs:
           head -c 4 output-artifacts/macos-cli-test.pdf | grep -q "%PDF"
           echo "✓ Verified macOS CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
           rm -f test-sample.html
+
+          node -e 'const fs = require("fs"); const content = "<html><head><title>Large Test</title></head><body><h1>Large 2MB+ HTML</h1>" + "<p>Repeating paragraph for 2MB test payload.</p>\n".repeat(60000) + "</body></html>"; fs.writeFileSync("test-large.html", content);'
+          ./packages/cli/bin/darwin-arm64/headless-webview test-large.html -o output-artifacts/macos-cli-large-test.pdf
+          test -s output-artifacts/macos-cli-large-test.pdf
+          head -c 4 output-artifacts/macos-cli-large-test.pdf | grep -q "%PDF"
+          echo "✓ Verified macOS CLI large HTML (>2MB) to PDF rendering"
+          rm -f test-large.html
 
       - name: Verify macOS .NET native runtimes
         run: |
@@ -495,6 +509,13 @@ jobs:
           head -c 4 output-artifacts/windows-cli-test.pdf | grep -q "%PDF"
           echo "✓ Verified Windows CLI HTML to PDF rendering (valid %PDF header and non-empty file)"
           rm -f test-sample.html
+
+          node -e 'const fs = require("fs"); const content = "<html><head><title>Large Test</title></head><body><h1>Large 2MB+ HTML</h1>" + "<p>Repeating paragraph for 2MB test payload.</p>\n".repeat(60000) + "</body></html>"; fs.writeFileSync("test-large.html", content);'
+          ./packages/cli/bin/win32-x64/headless-webview.exe test-large.html -o output-artifacts/windows-cli-large-test.pdf
+          test -s output-artifacts/windows-cli-large-test.pdf
+          head -c 4 output-artifacts/windows-cli-large-test.pdf | grep -q "%PDF"
+          echo "✓ Verified Windows CLI large HTML (>2MB) to PDF rendering"
+          rm -f test-large.html
 
       - name: Verify Windows .NET native runtime
         shell: bash

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { describe, expect, test, vi } from "vitest";
@@ -188,4 +188,59 @@ describe("@printedjs/cli", () => {
 	test("resolveWaitExpression returns undefined when no wait options are set", () => {
 		expect(resolveWaitExpression({})).toBeUndefined();
 	});
+
+	const isDesktopSupported = () => {
+		if (process.platform === "win32" || process.platform === "darwin") {
+			return true;
+		}
+
+		if (process.platform === "linux") {
+			return Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+		}
+
+		return false;
+	};
+
+	test.skipIf(!isWebviewAvailable() || !isDesktopSupported())(
+		"executeWebviewBinary renders large HTML exceeding 2 MB to valid PDF",
+		async () => {
+			const binary = resolveWebviewBinary();
+
+			expect(binary).toBeDefined();
+
+			const tempHtmlPath = resolve(process.cwd(), `temp-large-cli-${Date.now()}.html`);
+			const tempPdfPath = resolve(process.cwd(), `temp-large-cli-${Date.now()}.pdf`);
+
+			const largeHtml = `<html><head><title>Large CLI Test</title></head><body><h1>Large CLI HTML</h1>${"<p>Repeating test paragraph to create large document size.</p>\n".repeat(
+				50000,
+			)}</body></html>`;
+
+			expect(largeHtml.length).toBeGreaterThan(2_000_000);
+			writeFileSync(tempHtmlPath, largeHtml, "utf-8");
+
+			try {
+				const result = await executeWebviewBinary(binary!, {
+					input: tempHtmlPath,
+					output: tempPdfPath,
+				});
+
+				expect(result.durationMs).toBeGreaterThan(0);
+				expect(existsSync(tempPdfPath)).toBe(true);
+
+				const buffer = readFileSync(tempPdfPath);
+
+				expect(buffer.byteLength).toBeGreaterThan(100);
+				expect(buffer.subarray(0, 4).toString("utf-8")).toBe("%PDF");
+			} finally {
+				if (existsSync(tempHtmlPath)) {
+					unlinkSync(tempHtmlPath);
+				}
+
+				if (existsSync(tempPdfPath)) {
+					unlinkSync(tempPdfPath);
+				}
+			}
+		},
+		30000,
+	);
 });
