@@ -8,6 +8,7 @@ dictionary WebViewConfig {
     boolean devtools;
     boolean transparent;
     sequence<string> initialization_scripts;
+    string? data_directory = null;
 };
 
 dictionary PdfPrintOptions {

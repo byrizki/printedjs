@@ -84,7 +84,15 @@ impl HeadlessWebViewCore {
             all(target_os = "linux", feature = "os-webview")
         ))]
         {
-            let mut builder = wry::WebViewBuilder::new();
+            let mut web_context = config
+                .data_directory
+                .as_ref()
+                .map(|dir| wry::WebContext::new(Some(std::path::PathBuf::from(dir))));
+
+            let mut builder = match &mut web_context {
+                Some(ctx) => wry::WebViewBuilder::new_with_web_context(ctx),
+                None => wry::WebViewBuilder::new(),
+            };
 
             if let Some(html) = &config.html {
                 builder = builder.with_html(html);

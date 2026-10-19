@@ -5,4 +5,5 @@ export interface HeadlessWebViewConfig {
 	devtools?: boolean;
 	transparent?: boolean;
 	initializationScripts?: string[];
+	dataDirectory?: string | undefined;
 }

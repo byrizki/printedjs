@@ -431,4 +431,58 @@ describe("@printedjs/headless-webview Desktop Binding & Harness Integration", ()
 			expect(desktopBridge.activeSessionCount).toBe(0);
 		},
 	);
+
+	test("supports dataDirectory in HeadlessWebViewConfig across New Architecture", async () => {
+		const mockTurboModule: NativeHeadlessWebViewSpec = {
+			createInstance: vi.fn().mockResolvedValue("turbo-instance-custom-dir"),
+			loadHtml: vi.fn().mockResolvedValue(undefined),
+			loadUrl: vi.fn().mockResolvedValue(undefined),
+			evalScript: vi.fn().mockResolvedValue("eval-result"),
+			printToPdf: vi.fn().mockResolvedValue("base64-pdf"),
+			printToPdfFile: vi.fn().mockResolvedValue(undefined),
+			destroyInstance: vi.fn().mockResolvedValue(undefined),
+		};
+
+		(globalThis as Record<string, unknown>).TurboModuleRegistry = {
+			get: vi.fn().mockReturnValue(mockTurboModule),
+		};
+
+		const module = getNativeModule();
+		const instanceId = await module.createInstance({
+			html: "<h1>Custom UDD</h1>",
+			dataDirectory: "/tmp/custom-profile",
+		});
+
+		expect(instanceId).toBe("turbo-instance-custom-dir");
+		expect(mockTurboModule.createInstance).toHaveBeenCalledWith({
+			html: "<h1>Custom UDD</h1>",
+			dataDirectory: "/tmp/custom-profile",
+		});
+	});
+
+	test.skipIf(!isDesktopSupported())(
+		"renders large HTML exceeding 2 MB via desktop bridge to valid PDF",
+		async () => {
+			const desktopBridge = enableDesktopBridge();
+
+			const largeHtml = `<html><head><title>Large RN Test</title></head><body><h1>Large RN HTML</h1>${"<p>Repeating test paragraph to create large document size.</p>\n".repeat(
+				40000,
+			)}</body></html>`;
+
+			expect(largeHtml.length).toBeGreaterThan(2_000_000);
+
+			const webview = await HeadlessWebView.create({ html: largeHtml });
+			expect(webview.id.length).toBeGreaterThan(0);
+
+			const pdfBytes = await webview.printToPdf();
+			expect(pdfBytes).toBeInstanceOf(Uint8Array);
+			expect(pdfBytes.byteLength).toBeGreaterThan(100);
+			expect(pdfBytes[0]).toBe(0x25); // %
+			expect(pdfBytes[1]).toBe(0x50); // P
+			expect(pdfBytes[2]).toBe(0x44); // D
+			expect(pdfBytes[3]).toBe(0x46); // F
+
+			await webview.dispose();
+		},
+	);
 });

@@ -6,6 +6,8 @@ pub struct WebViewConfig {
     pub devtools: bool,
     pub transparent: bool,
     pub initialization_scripts: Vec<String>,
+    #[serde(default)]
+    pub data_directory: Option<String>,
 }
 
 impl Default for WebViewConfig {
@@ -17,6 +19,7 @@ impl Default for WebViewConfig {
             devtools: false,
             transparent: false,
             initialization_scripts: Vec::new(),
+            data_directory: None,
         }
     }
 }

@@ -15,4 +15,6 @@ public record WebViewConfig
     public bool Transparent { get; init; } = false;
 
     public IReadOnlyList<string> InitializationScripts { get; init; } = new List<string>();
+ 
+    public string? DataDirectory { get; init; }
 }

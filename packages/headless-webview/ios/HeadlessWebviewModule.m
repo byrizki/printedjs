@@ -6,6 +6,7 @@
   NSMutableDictionary<NSString *, NSMutableArray<void (^)(NSError *)> *> *_pendingNavigations;
   NSMutableDictionary<NSString *, dispatch_block_t> *_navigationTimeouts;
   NSMutableDictionary<NSString *, NSNumber *> *_loadingStates;
+  NSMutableDictionary<NSString *, NSString *> *_tempHtmlFiles;
 }
 
 RCT_EXPORT_MODULE()
@@ -27,11 +28,38 @@ RCT_EXPORT_MODULE()
     _pendingNavigations = [NSMutableDictionary dictionary];
     _navigationTimeouts = [NSMutableDictionary dictionary];
     _loadingStates = [NSMutableDictionary dictionary];
+    _tempHtmlFiles = [NSMutableDictionary dictionary];
   }
   return self;
 }
 
 #pragma mark - Navigation Helper Methods
+
+static const NSUInteger kLargeHtmlThreshold = 1000000; // 1 MB
+
+- (void)navigateHtml:(NSString *)html
+          instanceId:(NSString *)instanceId
+             webview:(WKWebView *)webview
+{
+  if (html.length > kLargeHtmlThreshold) {
+    NSString *tempDir = [NSTemporaryDirectory() stringByAppendingPathComponent:@"printedjs_html"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:tempDir withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *fileName = [NSString stringWithFormat:@"doc_%@_%.0f.html", instanceId, [[NSDate date] timeIntervalSince1970] * 1000];
+    NSString *tempPath = [tempDir stringByAppendingPathComponent:fileName];
+    [html writeToFile:tempPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+
+    NSString *oldPath = _tempHtmlFiles[instanceId];
+    if (oldPath) {
+      [[NSFileManager defaultManager] removeItemAtPath:oldPath error:nil];
+    }
+    _tempHtmlFiles[instanceId] = tempPath;
+
+    NSURL *fileURL = [NSURL fileURLWithPath:tempPath];
+    [webview loadFileURL:fileURL allowingReadAccessToURL:fileURL.URLByDeletingLastPathComponent];
+  } else {
+    [webview loadHTMLString:html baseURL:nil];
+  }
+}
 
 - (NSString *)instanceIdForWebView:(WKWebView *)webView
 {
@@ -175,7 +203,7 @@ RCT_EXPORT_METHOD(createInstance:(NSDictionary *)config
         resolve(instanceId);
       }
     }];
-    [webview loadHTMLString:html baseURL:nil];
+    [self navigateHtml:html instanceId:instanceId webview:webview];
   } else if ([urlString isKindOfClass:[NSString class]]) {
     NSURL *url = [NSURL URLWithString:urlString];
     if (url) {
@@ -215,7 +243,7 @@ RCT_EXPORT_METHOD(loadHtml:(NSString *)instanceId
       resolve([NSNull null]);
     }
   }];
-  [webview loadHTMLString:html baseURL:nil];
+  [self navigateHtml:html instanceId:instanceId webview:webview];
 }
 
 RCT_EXPORT_METHOD(loadUrl:(NSString *)instanceId
@@ -458,6 +486,12 @@ RCT_EXPORT_METHOD(destroyInstance:(NSString *)instanceId
   }
   [_pendingNavigations removeObjectForKey:instanceId];
   [_loadingStates removeObjectForKey:instanceId];
+
+  NSString *tempPath = _tempHtmlFiles[instanceId];
+  if (tempPath) {
+    [[NSFileManager defaultManager] removeItemAtPath:tempPath error:nil];
+    [_tempHtmlFiles removeObjectForKey:instanceId];
+  }
 
   WKWebView *webview = _webviews[instanceId];
   if (webview) {

@@ -63,6 +63,18 @@ public class HeadlessWebViewTests
     }
 
     [Fact]
+    public void WebViewConfig_Serialization_IncludesDataDirectory()
+    {
+        var config = new WebViewConfig
+        {
+            DataDirectory = "C:\\CustomDataDir"
+        };
+
+        string json = InternalJsonWriter.SerializeConfig(config);
+        Assert.Contains("\"data_directory\":\"C:\\\\CustomDataDir\"", json);
+    }
+
+    [Fact]
     public void HeadlessWebViewException_CarriesErrorCode()
     {
         var ex = new HeadlessWebViewException("Custom error message", -42);
@@ -119,6 +131,86 @@ public class HeadlessWebViewTests
         try
         {
             await ExecuteRenderHtmlToPdfTestAsync(config);
+        }
+        catch (HeadlessWebViewException ex) when (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && ex.Message.Contains("not on the main thread"))
+        {
+            return;
+        }
+    }
+
+    [Fact]
+    public async Task RenderHtmlToPdf_HtmlExceeding2MB_Succeeds()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<html><head><title>Large Document Test</title></head><body>");
+        sb.Append("<h1>Large Document Render Test</h1>");
+        string chunk = "<p>This is a test paragraph containing repeating text to exceed the 2MB WebView2 NavigateToString limit.</p>\n";
+        while (sb.Length < 2_500_000)
+        {
+            sb.Append(chunk);
+        }
+        sb.Append("</body></html>");
+
+        var config = new WebViewConfig
+        {
+            Html = sb.ToString()
+        };
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+        {
+            await RunInStaThreadAsync(async () =>
+            {
+                await ExecuteRenderHtmlToPdfTestAsync(config);
+            });
+            return;
+        }
+
+        try
+        {
+            await ExecuteRenderHtmlToPdfTestAsync(config);
+        }
+        catch (HeadlessWebViewException ex) when (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && ex.Message.Contains("not on the main thread"))
+        {
+            return;
+        }
+    }
+
+    [Fact]
+    public async Task LoadHtmlAsync_HtmlExceeding2MB_Succeeds()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<html><head><title>Large Document LoadHtml Test</title></head><body>");
+        sb.Append("<h1>Large Document LoadHtmlAsync Test</h1>");
+        string chunk = "<p>Testing LoadHtmlAsync exceeding 2MB IPC threshold across bindings.</p>\n";
+        while (sb.Length < 2_500_000)
+        {
+            sb.Append(chunk);
+        }
+        sb.Append("</body></html>");
+        string largeHtml = sb.ToString();
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+        {
+            await RunInStaThreadAsync(async () =>
+            {
+                using var webview = await HeadlessWebView.CreateAsync(new WebViewConfig());
+                await webview.LoadHtmlAsync(largeHtml);
+                byte[] pdfBytes = await webview.PrintToPdfAsync();
+                Assert.NotNull(pdfBytes);
+                Assert.True(pdfBytes.Length > 100);
+                Assert.Equal(0x25, pdfBytes[0]);
+            });
+            return;
+        }
+
+        try
+        {
+            using var webview = await HeadlessWebView.CreateAsync(new WebViewConfig());
+            await webview.LoadHtmlAsync(largeHtml);
+            byte[] pdfBytes = await webview.PrintToPdfAsync();
+            Assert.NotNull(pdfBytes);
+            Assert.True(pdfBytes.Length > 100);
+            Assert.Equal(0x25, pdfBytes[0]);
         }
         catch (HeadlessWebViewException ex) when (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && ex.Message.Contains("not on the main thread"))
         {

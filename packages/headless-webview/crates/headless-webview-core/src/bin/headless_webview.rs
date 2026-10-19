@@ -111,8 +111,9 @@ fn main() {
             process::exit(1);
         }
 
-        let content = std::fs::read_to_string(&abs_path).unwrap_or_default();
-        (None, Some(content))
+        let canonical = abs_path.canonicalize().unwrap_or(abs_path);
+        let file_url = format!("file:///{}", canonical.to_string_lossy().replace('\\', "/"));
+        (Some(file_url), None)
     };
 
     let config = WebViewConfig {
@@ -122,6 +123,7 @@ fn main() {
         devtools: false,
         transparent: false,
         initialization_scripts: Vec::new(),
+        data_directory: None,
     };
 
     let core = match HeadlessWebViewCore::new(config) {

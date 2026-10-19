@@ -29,9 +29,11 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
     private val pendingNavigations = ConcurrentHashMap<String, MutableList<(Throwable?) -> Unit>>()
     private val navigationTimeouts = ConcurrentHashMap<String, Runnable>()
     private val loadingStates = ConcurrentHashMap<String, Boolean>()
+    private val tempHtmlFiles = ConcurrentHashMap<String, File>()
 
     companion object {
         const val NAME = "HeadlessWebviewModule"
+        const val LARGE_HTML_THRESHOLD = 1_000_000
     }
 
     override fun getName(): String = NAME
@@ -63,6 +65,22 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
             }
             navigationTimeouts[instanceId] = runnable
             mainHandler.postDelayed(runnable, timeoutMs)
+        }
+    }
+
+    private fun navigateHtml(instanceId: String, html: String, webView: WebView) {
+        if (html.length > LARGE_HTML_THRESHOLD) {
+            val tempDir = File(reactApplicationContext.cacheDir, "printedjs_html").apply { mkdirs() }
+            val tempFile = File(tempDir, "doc_${instanceId}_${System.currentTimeMillis()}.html")
+            tempFile.writeText(html, Charsets.UTF_8)
+
+            tempHtmlFiles.remove(instanceId)?.delete()
+            tempHtmlFiles[instanceId] = tempFile
+
+            webView.settings.allowFileAccess = true
+            webView.loadUrl(android.net.Uri.fromFile(tempFile).toString())
+        } else {
+            webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
         }
     }
 
@@ -129,7 +147,7 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                             promise.resolve(instanceId)
                         }
                     }
-                    webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                    navigateHtml(instanceId, html, webView)
                 } else if (config.hasKey("url")) {
                     val url = config.getString("url") ?: ""
                     loadingStates[instanceId] = true
@@ -166,7 +184,7 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
                     promise.resolve(null)
                 }
             }
-            webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+            navigateHtml(instanceId, html, webView)
         }
     }
 
@@ -330,6 +348,7 @@ class HeadlessWebViewModule(reactContext: ReactApplicationContext) :
             }
             pendingNavigations.remove(instanceId)
             loadingStates.remove(instanceId)
+            tempHtmlFiles.remove(instanceId)?.delete()
 
             val webView = webviews.remove(instanceId)
             webView?.stopLoading()

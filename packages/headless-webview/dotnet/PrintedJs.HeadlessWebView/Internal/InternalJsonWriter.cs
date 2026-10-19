@@ -39,6 +39,12 @@ internal static class InternalJsonWriter
             }
         }
         sb.Append(']');
+ 
+        if (config.DataDirectory != null)
+        {
+            sb.Append(",\"data_directory\":");
+            WriteNullableString(sb, config.DataDirectory);
+        }
 
         sb.Append('}');
         return sb.ToString();
