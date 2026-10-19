@@ -96,6 +96,32 @@ public class HeadlessWebViewTests
         {
             // macOS WKWebView enforces MainThreadMarker (pthread_main_np), which xUnit runner threads cannot obtain.
             // Main thread execution is verified by CLI rendering test on macOS runner.
+        }
+    }
+
+    [Fact]
+    public async Task RenderHtmlToPdf_WithUtf8Characters_Succeeds()
+    {
+        var config = new WebViewConfig
+        {
+            Html = "<html><head><meta charset=\"utf-8\"><title>UTF-8 Test</title></head><body><h1>Halo Dunia — Rp 100.000,00 • Zürich &amp; Müller €99 © 2026</h1><p>Testing non-ASCII: 日本語 • 🌟 • äöü • ‘smart quotes’</p></body></html>"
+        };
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+        {
+            await RunInStaThreadAsync(async () =>
+            {
+                await ExecuteRenderHtmlToPdfTestAsync(config);
+            });
+            return;
+        }
+
+        try
+        {
+            await ExecuteRenderHtmlToPdfTestAsync(config);
+        }
+        catch (HeadlessWebViewException ex) when (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && ex.Message.Contains("not on the main thread"))
+        {
             return;
         }
     }

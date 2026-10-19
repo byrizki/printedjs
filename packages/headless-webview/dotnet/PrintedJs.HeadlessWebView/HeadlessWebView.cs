@@ -86,7 +86,7 @@ public class HeadlessWebView : IHeadlessWebView
 
         try
         {
-            string result = Marshal.PtrToStringAnsi(outResult) ?? string.Empty;
+            string result = Marshal.PtrToStringUTF8(outResult) ?? string.Empty;
             return Task.FromResult(result);
         }
         finally
@@ -182,7 +182,7 @@ public class HeadlessWebView : IHeadlessWebView
         {
             try
             {
-                return Marshal.PtrToStringAnsi(outMsg);
+                return Marshal.PtrToStringUTF8(outMsg);
             }
             finally
             {

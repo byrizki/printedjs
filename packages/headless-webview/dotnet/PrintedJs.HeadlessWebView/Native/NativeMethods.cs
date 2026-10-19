@@ -7,33 +7,33 @@ internal static class NativeMethods
 {
     private const string LibraryName = "headless_webview_core";
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal static extern int headless_webview_create(string? configJson, out IntPtr outHandle);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int headless_webview_create([MarshalAs(UnmanagedType.LPUTF8Str)] string? configJson, out IntPtr outHandle);
 
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void headless_webview_destroy(IntPtr handle);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal static extern int headless_webview_load_html(IntPtr handle, string html);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int headless_webview_load_html(IntPtr handle, [MarshalAs(UnmanagedType.LPUTF8Str)] string html);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal static extern int headless_webview_load_url(IntPtr handle, string url);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int headless_webview_load_url(IntPtr handle, [MarshalAs(UnmanagedType.LPUTF8Str)] string url);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal static extern int headless_webview_eval(IntPtr handle, string script, out IntPtr outResult);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int headless_webview_eval(IntPtr handle, [MarshalAs(UnmanagedType.LPUTF8Str)] string script, out IntPtr outResult);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int headless_webview_print_to_pdf(
         IntPtr handle,
-        string? optionsJson,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? optionsJson,
         out IntPtr outBytes,
         out UIntPtr outLen);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int headless_webview_print_to_pdf_file(
         IntPtr handle,
-        string path,
-        string? optionsJson);
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string path,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? optionsJson);
 
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void headless_webview_free_bytes(IntPtr bytes, UIntPtr len);
