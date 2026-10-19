@@ -74,6 +74,162 @@ function findPackageJsonFiles(dir: string): string[] {
 	return results;
 }
 
+function updateChangelog(targetVersion: string, releaseDate: string): void {
+	const changelogPath = resolve(rootDir, "CHANGELOG.md");
+
+	if (!existsSync(changelogPath)) {
+		return;
+	}
+
+	const existingChangelog = readFileSync(changelogPath, "utf-8");
+
+	// Don't duplicate if already present
+	if (existingChangelog.includes(`## [${targetVersion}]`)) {
+		console.log(`ℹ CHANGELOG.md already contains entry for [${targetVersion}]`);
+
+		return;
+	}
+
+	// Fetch git commits since last tag
+	let latestTag = "";
+
+	try {
+		latestTag = execSync("git describe --tags --abbrev=0 2>/dev/null", {
+			encoding: "utf-8",
+			cwd: rootDir,
+		}).trim();
+	} catch {
+		latestTag = "";
+	}
+
+	const gitRange = latestTag ? `${latestTag}..HEAD` : "HEAD";
+	let commitsRaw = "";
+
+	try {
+		commitsRaw = execSync(`git log ${gitRange} --pretty=format:"%s"`, {
+			encoding: "utf-8",
+			cwd: rootDir,
+		}).trim();
+	} catch {
+		commitsRaw = "";
+	}
+
+	const commitLines = commitsRaw ? commitsRaw.split("\n") : [];
+	const addedList: string[] = [];
+	const fixedList: string[] = [];
+	const otherList: string[] = [];
+
+	for (const line of commitLines) {
+		const trimmed = line.trim();
+
+		if (!trimmed) {
+			continue;
+		}
+
+		// Skip release chore/bump commits
+		if (
+			trimmed.startsWith("chore: bump version") ||
+			trimmed.startsWith("docs: update CHANGELOG") ||
+			trimmed.startsWith("chore: v")
+		) {
+			continue;
+		}
+
+		if (trimmed.startsWith("feat")) {
+			addedList.push(trimmed);
+		} else if (trimmed.startsWith("fix")) {
+			fixedList.push(trimmed);
+		} else {
+			otherList.push(trimmed);
+		}
+	}
+
+	let newSection = `## [${targetVersion}] - ${releaseDate}\n\n`;
+
+	if (addedList.length > 0) {
+		newSection += `### Added\n\n`;
+
+		for (const item of addedList) {
+			newSection += `- ${item}\n`;
+		}
+
+		newSection += `\n`;
+	}
+
+	if (fixedList.length > 0) {
+		newSection += `### Fixed\n\n`;
+
+		for (const item of fixedList) {
+			newSection += `- ${item}\n`;
+		}
+
+		newSection += `\n`;
+	}
+
+	if (otherList.length > 0) {
+		newSection += `### Changed\n\n`;
+
+		for (const item of otherList) {
+			newSection += `- ${item}\n`;
+		}
+
+		newSection += `\n`;
+	}
+
+	if (addedList.length === 0 && fixedList.length === 0 && otherList.length === 0) {
+		newSection += `### Changed\n\n- Bump version to ${targetVersion}\n\n`;
+	}
+
+	// Insert right after preamble: after line starting with "and this project adheres to [Semantic Versioning]"
+	const anchor =
+		"and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n";
+
+	let updatedChangelog = "";
+
+	if (existingChangelog.includes(anchor)) {
+		updatedChangelog = existingChangelog.replace(anchor, `${anchor}\n${newSection}`);
+	} else {
+		// Fallback: prepend after first header
+		const firstHeaderMatch = existingChangelog.match(/^# [^\n]+\n+/);
+
+		if (firstHeaderMatch) {
+			const idx = firstHeaderMatch[0].length;
+			updatedChangelog =
+				existingChangelog.slice(0, idx) + newSection + existingChangelog.slice(idx);
+		} else {
+			updatedChangelog = newSection + existingChangelog;
+		}
+	}
+
+	writeFileSync(changelogPath, updatedChangelog, "utf-8");
+	console.log(`✓ Updated CHANGELOG.md with release section for [${targetVersion}]`);
+}
+
+function updateDocsSnippets(targetVersion: string): void {
+	const docFiles = [
+		resolve(rootDir, "docs/content/en/01.getting-started/2.installation.md"),
+		resolve(rootDir, "docs/content/id/01.getting-started/2.installation.md"),
+	];
+
+	for (const docFile of docFiles) {
+		if (existsSync(docFile)) {
+			const raw = readFileSync(docFile, "utf-8");
+
+			const updated = raw.replace(
+				/(<PackageReference Include="PrintedJs\.HeadlessWebView" Version=")[^"]+(" \/>)/g,
+				`$1${targetVersion}$2`,
+			);
+
+			if (updated !== raw) {
+				writeFileSync(docFile, updated, "utf-8");
+				console.log(
+					`✓ Updated documentation snippet version in ${docFile.replace(rootDir + "/", "")}`,
+				);
+			}
+		}
+	}
+}
+
 function bumpVersion() {
 	const args = process.argv.slice(2);
 	const bumpArg = args[0];
@@ -198,18 +354,31 @@ function bumpVersion() {
 		);
 	}
 
-	// 7. Run pnpm install to update lockfile
+	// 7. Update docs snippets
+	updateDocsSnippets(targetVersion);
+
+	// 8. Update CHANGELOG.md
+	const today = new Date().toISOString().slice(0, 10);
+	updateChangelog(targetVersion, today);
+
+	// 9. Run pnpm install to update lockfile
 	console.log("\nSynchronizing pnpm-lock.yaml...");
 	execSync("pnpm install", { stdio: "inherit", cwd: rootDir });
 
-	// 8. Format modified files
+	// 10. Format modified files
 	console.log("\nRunning oxfmt formatting...");
 	execSync("pnpm format", { stdio: "inherit", cwd: rootDir });
 
 	console.log(`\nSuccessfully bumped version to v${targetVersion}!`);
 }
 
-export { computeTargetVersion, findPackageJsonFiles, parseSemver };
+export {
+	computeTargetVersion,
+	findPackageJsonFiles,
+	parseSemver,
+	updateChangelog,
+	updateDocsSnippets,
+};
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
 	bumpVersion();

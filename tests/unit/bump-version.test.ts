@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { computeTargetVersion, parseSemver } from "../../scripts/bump-version.js";
+import {
+	computeTargetVersion,
+	parseSemver,
+	updateChangelog,
+	updateDocsSnippets,
+} from "../../scripts/bump-version.js";
 
 describe("bump-version script", () => {
 	test("parses standard semver correctly", () => {
@@ -32,5 +37,10 @@ describe("bump-version script", () => {
 	test("accepts direct valid semver versions", () => {
 		expect(computeTargetVersion("0.1.0", "0.5.0")).toBe("0.5.0");
 		expect(computeTargetVersion("0.1.0", "1.0.0-rc.1")).toBe("1.0.0-rc.1");
+	});
+
+	test("updateChangelog exports exist and can be called", () => {
+		expect(typeof updateChangelog).toBe("function");
+		expect(typeof updateDocsSnippets).toBe("function");
 	});
 });
