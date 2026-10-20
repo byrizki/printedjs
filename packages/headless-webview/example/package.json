@@ -25,7 +25,7 @@
 	"dependencies": {
 		"@printedjs/headless-webview": "workspace:*",
 		"react": "18.3.1",
-		"react-native": "^0.76.0"
+		"react-native": "^0.85.0"
 	},
 	"devDependencies": {
 		"@react-native-community/cli": "^20.2.0",
