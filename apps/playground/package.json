@@ -19,7 +19,7 @@
 		"@printedjs/plugin-page-flip": "workspace:*",
 		"dayjs": "^1.11.23",
 		"eta": "^3.5.0",
-		"monaco-editor": "^0.57.0",
+		"monaco-editor": "^0.58.0",
 		"numeral": "^2.0.6"
 	},
 	"devDependencies": {
